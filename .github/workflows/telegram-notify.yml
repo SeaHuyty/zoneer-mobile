@@ -2,18 +2,31 @@ name: Telegram Notification
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: Build
+  notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Telegram Message
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            🔔 **New Event in ${{ github.repository }}**
-            
-            👤 User: ${{ github.actor }}
-            📝 Commit: ${{ github.event.commits[0].message }}
-            🔗 [View Changes](${{ github.event.head_commit.url }})
+      - name: Send to Telegram Topic
+        env:
+          # We pull these from your Secrets
+          TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_TO }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+          
+          # GitHub variables
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          COMMIT_MSG: ${{ github.event.commits[0].message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+        run: |
+          # We construct a JSON message safely
+          # Note: We use "message_thread_id" to target the specific topic
+          
+          curl -s -X POST https://api.telegram.org/bot$TOKEN/sendMessage \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "chat_id": "'"$CHAT_ID"'",
+            "message_thread_id": "'"$TOPIC_ID"'",
+            "parse_mode": "markdown",
+            "text": "🔔 *New Update in '"$REPO"'*\n\n👤 *User:* '"$ACTOR"'\n📝 *Commit:* '"$COMMIT_MSG"'\n🔗 [View Changes]('"$COMMIT_URL"')",
+            "disable_web_page_preview": true
+          }'

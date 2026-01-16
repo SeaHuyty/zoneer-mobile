@@ -1,0 +1,19 @@
+name: Telegram Notification
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Message
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🔔 **New Event in ${{ github.repository }}**
+            
+            👤 User: ${{ github.actor }}
+            📝 Commit: ${{ github.event.commits[0].message }}
+            🔗 [View Changes](${{ github.event.head_commit.url }})

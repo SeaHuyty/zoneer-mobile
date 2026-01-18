@@ -1,0 +1,51 @@
+import 'package:zoneer_mobile/shared/models/enums/verify_status.dart';
+
+class UserModel {
+  final String id;
+  final String fullname;
+  final String? phoneNumber;
+  final String email;
+  final String password;
+  final String role;
+
+  final String? profileUrl;
+  final String? previousVisitorId;
+  final String? idCardUrl;
+  final VerifyStatus verifyStatus;
+  final String? selfieUrl;
+
+  final String? createdAt;
+
+  UserModel({
+    required this.id,
+    required this.fullname,
+    this.phoneNumber,
+    required this.email,
+    required this.password,
+    required this.role,
+
+    this.profileUrl,
+    this.previousVisitorId,
+    this.idCardUrl,
+    required this.verifyStatus,
+    this.selfieUrl,
+    this.createdAt,
+  });
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] as String,
+      fullname: json['fullname'] as String,
+      phoneNumber: json['phoneNumber'] as String?,
+      email: json['email'] as String,
+      password: json['password'] as String,
+      role: json['role'] as String,
+      profileUrl: json['image_profile_url'] as String?,
+      previousVisitorId: json['previous_visitor_id'] as String?,
+      idCardUrl: json['id_card_url'] as String?,
+      verifyStatus: VerifyStatus.fromValue(json['verify_status']),
+      selfieUrl: json['selfie_url'] as String?,
+      createdAt: json['created_at'] as String
+    );
+  }
+}

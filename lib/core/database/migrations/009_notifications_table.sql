@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS notifications(
       'reminder')
     ),
   is_read BOOLEAN DEFAULT false,
-  meta_data JSON,
+  metadata JSON,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -26,7 +26,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 -- Create policies as needed
 CREATE POLICY "Notifications are viewable by everyone"
 	ON notifications FOR SELECT
-	USING(true);
+	USING(auth.uid() = user_id);
 
 -- TODO: Create Index for better performance.
 -- Only add indexes for columns you frequently filter, join, or sort on.

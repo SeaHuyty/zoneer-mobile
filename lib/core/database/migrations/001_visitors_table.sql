@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS visitors (
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ENABLE Row Level Security
+-- Enable Row Level Security
 ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
 
 -- Create Policy

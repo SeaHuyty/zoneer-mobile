@@ -1,7 +1,7 @@
 -- Create Amenity Table
 CREATE TABLE IF NOT EXISTS amenities(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	name VARCHAR(120) UNIQUE
+	name VARCHAR(120) NOT NULL UNIQUE
 );
 
 -- Enable Row Level Security

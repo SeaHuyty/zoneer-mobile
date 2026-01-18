@@ -46,17 +46,17 @@ class PropertyModel {
       price: (json['price'] as num).toDouble(),
       bedroom: json['bedroom'] as int,
       bathroom: json['bathroom'] as int,
-      squareArea: (json['squareArea'] as num).toDouble(),
+      squareArea: (json['square_area'] as num).toDouble(),
       address: json['address'] as String,
-      locationUrl: json['locationUrl'] as String,
+      locationUrl: json['location_url'] as String,
       description: json['description'] as String?,
       securityFeatures: json['security_features'] as Map<String, dynamic>?,
       propertyFeatures: json['property_features'] as Map<String, dynamic>?,
       badgeOptions: json['badge_options'] as Map<String, dynamic>?,
       verifyStatus: VerifyStatus.fromValue(json['verify_status']),
       propertyStatus: PropertyStatus.fromValue(json['property_status']),
-      landlordId: json['landlord_id'] as String,
-      verifiedByAdmin: json['verified_by_admin'] as String
+      landlordId: json['landlord_id'] as String?,
+      verifiedByAdmin: json['verified_by_admin'] as String?,
     );
   }
 }

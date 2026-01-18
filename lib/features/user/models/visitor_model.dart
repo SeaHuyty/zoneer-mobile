@@ -15,8 +15,8 @@ class VisitorModel {
     return VisitorModel(
       id: json['id'] as String,
       deviceId: json['device_id'] as String?,
-      lastActive: json['lastActive'] as String,
-      createdAt: json['createdAt'] as String,
+      lastActive: json['last_active'] as String,
+      createdAt: json['created_at'] as String?,
     );
   }
 }

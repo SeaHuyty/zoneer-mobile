@@ -36,7 +36,7 @@ class UserModel {
     return UserModel(
       id: json['id'] as String,
       fullname: json['fullname'] as String,
-      phoneNumber: json['phoneNumber'] as String?,
+      phoneNumber: json['phone_number'] as String?,
       email: json['email'] as String,
       password: json['password'] as String,
       role: json['role'] as String,
@@ -45,7 +45,7 @@ class UserModel {
       idCardUrl: json['id_card_url'] as String?,
       verifyStatus: VerifyStatus.fromValue(json['verify_status']),
       selfieUrl: json['selfie_url'] as String?,
-      createdAt: json['created_at'] as String
+      createdAt: json['created_at'] as String?
     );
   }
 }

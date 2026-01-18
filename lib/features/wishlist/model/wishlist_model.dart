@@ -13,7 +13,7 @@ class WishlistModel {
     return WishlistModel(
       userId: json['userId'] as String,
       propertyId: json['propertyId'] as String,
-      createdAt: json['createdAt'] as String,
+      createdAt: json['createdAt'] as String?,
     );
   }
 }

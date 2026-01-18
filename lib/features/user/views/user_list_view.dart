@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/features/users/viewmodels/user_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_viewmodel.dart';
 
 class UserView extends ConsumerWidget {
   const UserView({super.key});
@@ -22,9 +22,9 @@ class UserView extends ConsumerWidget {
               final user = users[index];
               return ListTile(
                 leading: CircleAvatar(
-                  child: Text(user.username[0].toUpperCase()),
+                  child: Text(user.fullname[0].toUpperCase()),
                 ),
-                title: Text(user.username),
+                title: Text(user.fullname),
                 subtitle: Text('ID: ${user.id}'),
               );
             },

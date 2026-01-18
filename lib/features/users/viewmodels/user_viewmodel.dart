@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/users/repositories/user_repository.dart';
-import '../models/user_model.dart';
+import 'package:zoneer_mobile/features/users/models/user_model.dart';
 
 class UserViewmodel extends Notifier<AsyncValue<List<UserModel>>> {
   @override

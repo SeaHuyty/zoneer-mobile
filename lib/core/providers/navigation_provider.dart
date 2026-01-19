@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// This allows any widget in the app to read or change the current tab
 /// Usage:
 /// - Read: `ref.watch(navigationProvider)`
-/// - Update: `ref.read(navigationProvider.notifier).update((state) => newIndex)`
+/// - Update: `ref.read(navigationProvider.notifier).changeTab(newIndex)`
 final navigationProvider = NotifierProvider<NavigationNotifier, int>(
   NavigationNotifier.new,
 );

@@ -33,10 +33,22 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   @override
   void initState() {
     super.initState();
-    _homeController = AnimationController(vsync: this);
-    _wishlistController = AnimationController(vsync: this);
-    _mapController = AnimationController(vsync: this);
-    _profileController = AnimationController(vsync: this);
+    _homeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _wishlistController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _mapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _profileController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
   }
 
   @override

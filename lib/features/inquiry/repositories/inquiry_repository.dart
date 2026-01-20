@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/services/supabase_service.dart';
-import 'package:zoneer_mobile/features/inquiry/model/inquiry_model.dart';
+import 'package:zoneer_mobile/features/inquiry/models/inquiry_model.dart';
 
 class InquiryRepository {
   final SupabaseService _supabase;
@@ -21,6 +21,17 @@ class InquiryRepository {
         .insert(inquiry.toJson())
         .select()
         .single();
+    return InquiryModel.fromJson(response);
+  }
+
+  Future<InquiryModel> updateInquiry(InquiryModel inquiry) async {
+    final response = await _supabase
+        .from('inquiries')
+        .update(inquiry.toJson())
+        .eq('id', inquiry.id)
+        .select()
+        .single();
+
     return InquiryModel.fromJson(response);
   }
 

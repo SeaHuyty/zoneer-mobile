@@ -1,4 +1,4 @@
-import 'package:zoneer_mobile/features/notification/model/enums/notification_type.dart';
+import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
 
 class NotificationModel {
   final String id;

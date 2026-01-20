@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/features/inquiry/model/inquiry_model.dart';
+import 'package:zoneer_mobile/features/inquiry/models/inquiry_model.dart';
 import 'package:zoneer_mobile/features/inquiry/repositories/inquiry_repository.dart';
 
 class InquiryViewmodel extends Notifier<AsyncValue<List<InquiryModel>>> {

@@ -1,4 +1,4 @@
-import 'package:zoneer_mobile/features/inquiry/model/enums/inquiry_status.dart';
+import 'package:zoneer_mobile/features/inquiry/models/enums/inquiry_status.dart';
 
 class InquiryModel {
   final String id;
@@ -36,7 +36,7 @@ class InquiryModel {
       occupation: json['occupation'] as String?,
       message: json['message'] as String,
       status: InquiryStatus.fromValue(json['status']),
-      createdAt: json['created_At'] as String?
+      createdAt: json['created_at'] as String?
     );
   }
 

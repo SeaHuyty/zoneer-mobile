@@ -39,6 +39,7 @@ dependencies:
   supabase_flutter: ^2.12.0
   google_nav_bar: ^5.0.7
   lottie: ^3.2.0
+  flutter_svg: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -63,11 +64,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/icons/
     - .env
-    - lib/assets/icons/system-solid-41-home-hover-pinch.json
-    - lib/assets/icons/system-solid-20-bookmark-hover-bookmark-1.json
-    - lib/assets/icons/droppin.json
-    - lib/assets/icons/system-solid-8-account-hover-pinch.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

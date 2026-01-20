@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/features/property/widgets/home_header.dart';
 
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
@@ -8,7 +9,7 @@ class HomeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home'), elevation: 0),
+      appBar: HomeHeader(),
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:zoneer_mobile/features/user/views/user_list_view.dart';
+import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,11 +26,29 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Zoneer Mobile',
+      title: 'Zoneer Mobile App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme(
+          primary: AppColors.primary,
+          secondary: AppColors.secondary,
+          surface: AppColors.surface,
+          error: AppColors.error,
+          onPrimary: AppColors.white,
+          onSecondary: AppColors.white,
+          onSurface: AppColors.textPrimary,
+          onError: AppColors.white,
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: AppColors.background,
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.white,
+          elevation: 0,
+        ),
+        useMaterial3: true,
       ),
-      home: const UserView(),
+      debugShowCheckedModeBanner: false,
+      home: const Scaffold(body: GoogleNavBar()),
     );
   }
 }

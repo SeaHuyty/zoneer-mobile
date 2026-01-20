@@ -20,6 +20,7 @@ class UserViewmodel extends Notifier<AsyncValue<List<UserModel>>> {
   }
 }
 
-final userViewModelProvider = NotifierProvider<UserViewmodel, AsyncValue<List<UserModel>>>(() {
-  return UserViewmodel();
-});
+final userViewModelProvider =
+    NotifierProvider<UserViewmodel, AsyncValue<List<UserModel>>>(() {
+      return UserViewmodel();
+    });

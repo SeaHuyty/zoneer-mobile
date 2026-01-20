@@ -19,7 +19,7 @@ class _HomeHeaderState extends State<HomeHeader> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _lottieController = AnimationController(vsync: this);
+    _lottieController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
   }
 
   @override
@@ -84,6 +84,9 @@ class _HomeHeaderState extends State<HomeHeader> with SingleTickerProviderStateM
                           fit: BoxFit.contain,
                           width: 24,
                           height: 24,
+                          onLoaded: (composition) {
+                            _lottieController.duration = composition.duration;
+                          },
                         ),
                         onPressed: () {
                           // _lottieController.reset();

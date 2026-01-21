@@ -1,50 +1,77 @@
 import 'package:geocoding/geocoding.dart';
-import 'package:location/location.dart' as loc;
+import 'package:geolocator/geolocator.dart';
 
 class LocationService {
-  final loc.Location _location = loc.Location();
-
   // Check if the location service is enabled
   Future<bool> isLocationServiceEnabled() async {
-    return await _location.serviceEnabled();
+    return await Geolocator.isLocationServiceEnabled();
   }
 
   // Request to enable the location service
   Future<bool> requestLocationService() async {
-    bool serviceEnabled = await _location.serviceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      serviceEnabled = await _location.requestService();
+      // On mobile, this will prompt user to enable location
+      // On web, this just returns the current status
+      return false;
     }
     return serviceEnabled;
   }
 
   // Check permission status
-  Future<loc.PermissionStatus> checkPermission() async {
-    return await _location.hasPermission();
+  Future<LocationPermission> checkPermission() async {
+    return await Geolocator.checkPermission();
   }
 
   // Request location permission
-  Future<loc.PermissionStatus> requestPermission() async {
-    loc.PermissionStatus permission = await _location.hasPermission();
-    if (permission == loc.PermissionStatus.denied) {
-      permission = await _location.requestPermission();
+  Future<LocationPermission> requestPermission() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
     }
     return permission;
   }
 
   // Get current location
-  Future<loc.LocationData?> getCurrentLocation() async {
+  Future<Position?> getCurrentLocation() async {
     try {
-      // Check if service is enabled
-      bool serviceEnabled = await requestLocationService();
-      if (!serviceEnabled) return null;
+      // Check permission first (more important than service check on macOS)
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('Location permissions are denied');
+          return null;
+        }
+      }
 
-      // Check permission
-      loc.PermissionStatus permission = await requestPermission();
-      if (permission != loc.PermissionStatus.granted) return null;
+      if (permission == LocationPermission.deniedForever) {
+        print('Location permissions are permanently denied. Please enable in system settings.');
+        return null;
+      }
 
-      // Get location
-      return await _location.getLocation();
+      // Check if service is enabled after permission check
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('Location services are disabled. Please enable in system settings.');
+        // On some platforms, we can still try to get location
+        // Continue anyway for web/desktop platforms
+      }
+
+      // Get location with timeout
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 100,
+          timeLimit: Duration(seconds: 10),
+        ),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          print('Location request timed out');
+          throw Exception('Location request timed out');
+        },
+      );
     } catch (e) {
       print('Error getting location: $e');
       return null;
@@ -63,7 +90,27 @@ class LocationService {
       );
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
-        return '${place.locality}, ${place.administrativeArea}';
+        
+        // Build city string from available fields (handles null values on web)
+        String? locality = place.locality;
+        String? adminArea = place.administrativeArea;
+        String? subLocality = place.subLocality;
+        String? country = place.country;
+        
+        // Try to build a meaningful location string
+        if (locality != null && adminArea != null) {
+          return '$locality, $adminArea';
+        } else if (locality != null && country != null) {
+          return '$locality, $country';
+        } else if (subLocality != null && adminArea != null) {
+          return '$subLocality, $adminArea';
+        } else if (adminArea != null) {
+          return adminArea;
+        } else if (locality != null) {
+          return locality;
+        } else if (country != null) {
+          return country;
+        }
       }
       return null;
     } catch (e) {
@@ -75,13 +122,11 @@ class LocationService {
   // Complete flow: get location name city name
   Future<String> getCurrentCity() async {
     try {
-      loc.LocationData? locationData = await getCurrentLocation();
-      if (locationData != null &&
-          locationData.latitude != null &&
-          locationData.longitude != null) {
+      Position? position = await getCurrentLocation();
+      if (position != null) {
         String? city = await getCityFromCoordinates(
-          locationData.latitude!,
-          locationData.longitude!,
+          position.latitude,
+          position.longitude,
         );
         return city ?? 'Unknown Location';
       }

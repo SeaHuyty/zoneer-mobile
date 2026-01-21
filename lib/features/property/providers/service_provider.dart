@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:zoneer_mobile/features/property/services/location_service.dart';
 
 // Location service provider
@@ -8,17 +7,18 @@ final locationServiceProvider = Provider<LocationService>((ref) {
 });
 
 // Current city state provider
-final currentCityProvider = StateNotifierProvider<CurrentCityNotifier, String>((ref) {
-  return CurrentCityNotifier(ref.read(locationServiceProvider));
+final currentCityProvider = NotifierProvider<CurrentCityNotifier, String>(() {
+  return CurrentCityNotifier();
 });
-class CurrentCityNotifier extends StateNotifier<String> {
-  final LocationService _locationService;
 
-  CurrentCityNotifier(this._locationService): super('Current Location');
-  
-  // Fetch current location 
+class CurrentCityNotifier extends Notifier<String> {
+  @override
+  String build() => 'Current Location';
+
+  // Fetch current location
   Future<void> fetchCurrentCity() async {
-    String city = await _locationService.getCurrentCity();
+    final locationService = ref.read(locationServiceProvider);
+    String city = await locationService.getCurrentCity();
     state = city;
   }
 

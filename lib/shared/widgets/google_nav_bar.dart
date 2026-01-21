@@ -101,7 +101,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                       width: 24,
                       height: 24,
                       child: Lottie.asset(
-                        'lib/assets/icons/system-solid-41-home-hover-pinch.json',
+                        'assets/icons/system-solid-41-home-hover-pinch.json',
                         controller: _homeController,
                         fit: BoxFit.contain,
                         onLoaded: (composition) {
@@ -125,7 +125,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                       width: 24,
                       height: 24,
                       child: Lottie.asset(
-                        'lib/assets/icons/system-solid-20-bookmark-hover-bookmark-1.json',
+                        'assets/icons/system-solid-20-bookmark-hover-bookmark-1.json',
                         controller: _wishlistController,
                         fit: BoxFit.contain,
                         onLoaded: (composition) {
@@ -149,7 +149,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                       width: 24,
                       height: 24,
                       child: Lottie.asset(
-                        'lib/assets/icons/droppin.json',
+                        'assets/icons/droppin.json',
                         controller: _mapController,
                         fit: BoxFit.contain,
                         onLoaded: (composition) {
@@ -173,7 +173,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                       width: 24,
                       height: 24,
                       child: Lottie.asset(
-                        'lib/assets/icons/system-solid-8-account-hover-pinch.json',
+                        'assets/icons/system-solid-8-account-hover-pinch.json',
                         controller: _profileController,
                         fit: BoxFit.contain,
                         onLoaded: (composition) {

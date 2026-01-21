@@ -28,40 +28,74 @@ class NotificationViewmodel
           .read(notificationRepositoryProvider)
           .getUnreadNotifications(userId);
       state = AsyncValue.data(notifications);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
       await ref.read(notificationRepositoryProvider).markAsRead(notificationId);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+
+      final currentState = state;
+      if (currentState is AsyncData<List<NotificationModel>>) {
+      state = AsyncValue.data(
+        currentState.value
+            .map(
+              (n) => n.id == notificationId
+                  ? n.copyWith(isRead: true)
+                  : n,
+            )
+            .toList(),
+      );
+    }
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
-  Future<void> markAllNotificationAsRead(String userId) async {
+  Future<void> markAllNotificationsAsRead(String userId) async {
     try {
       await ref.read(notificationRepositoryProvider).markAllAsRead(userId);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+
+      final currentState = state;
+      if (currentState is AsyncData<List<NotificationModel>>) {
+        state = AsyncValue.data(
+          currentState.value.map((n) => n.copyWith(isRead: true)).toList(),
+        );
+      }
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> deleteNotification(String notificationId) async {
+    final currentState = state;
+
     try {
-      await ref.read(notificationRepositoryProvider).deleteOneNotification(notificationId);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+      await ref
+          .read(notificationRepositoryProvider)
+          .deleteOneNotification(notificationId);
+
+      if (currentState is AsyncData<List<NotificationModel>>) {
+        state = AsyncValue.data(
+          currentState.value.where((n) => n.id != notificationId).toList(),
+        );
+      }
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
-  Future<void> deleteAllNotification(String userId) async {
+  Future<void> deleteAllNotifications(String userId) async {
     try {
-      await ref.read(notificationRepositoryProvider).deleteAllNotificationsByUserId(userId);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+      await ref
+          .read(notificationRepositoryProvider)
+          .deleteAllNotificationsByUserId(userId);
+
+      state = const AsyncValue.data([]);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 }

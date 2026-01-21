@@ -13,7 +13,8 @@ class NotificationRepository {
     final response = await _supabase
         .from('notifications')
         .select()
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
 
     return (response as List)
         .map((e) => NotificationModel.fromJson(e))
@@ -25,7 +26,8 @@ class NotificationRepository {
         .from('notifications')
         .select()
         .eq('user_id', userId)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .order('created_at', ascending: false);
 
     return (response as List)
         .map((e) => NotificationModel.fromJson(e))

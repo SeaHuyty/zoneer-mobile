@@ -30,7 +30,20 @@ class NotificationModel {
       type: NotificationType.fromValue(json['notification_type']),
       isRead: json['is_read'] as bool,
       metadata: json['metadata'] as Map<String, dynamic>,
-      createdAt: json['created_at'] as String?
+      createdAt: json['created_at'] as String?,
+    );
+  }
+
+  NotificationModel copyWith({bool? isRead}) {
+    return NotificationModel(
+      id: id,
+      userId: userId,
+      title: title,
+      message: message,
+      type: type,
+      isRead: isRead ?? this.isRead,
+      metadata: metadata,
+      createdAt: createdAt,
     );
   }
 }

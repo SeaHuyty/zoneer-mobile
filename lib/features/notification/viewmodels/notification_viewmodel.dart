@@ -39,16 +39,12 @@ class NotificationViewmodel
 
       final currentState = state;
       if (currentState is AsyncData<List<NotificationModel>>) {
-      state = AsyncValue.data(
-        currentState.value
-            .map(
-              (n) => n.id == notificationId
-                  ? n.copyWith(isRead: true)
-                  : n,
-            )
-            .toList(),
-      );
-    }
+        state = AsyncValue.data(
+          currentState.value
+              .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
+              .toList(),
+        );
+      }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -73,9 +69,17 @@ class NotificationViewmodel
     final currentState = state;
 
     try {
-      await ref
+      final success = await ref
           .read(notificationRepositoryProvider)
           .deleteOneNotification(notificationId);
+
+      if (!success) {
+        state = AsyncValue.error(
+          'Failed to delete notification',
+          StackTrace.current,
+        );
+        return;
+      }
 
       if (currentState is AsyncData<List<NotificationModel>>) {
         state = AsyncValue.data(
@@ -89,9 +93,17 @@ class NotificationViewmodel
 
   Future<void> deleteAllNotifications(String userId) async {
     try {
-      await ref
+      final success = await ref
           .read(notificationRepositoryProvider)
           .deleteAllNotificationsByUserId(userId);
+      
+      if (!success) {
+        state = AsyncValue.error(
+          'Failed to delete all notifications',
+          StackTrace.current,
+        );
+        return;
+      }
 
       state = const AsyncValue.data([]);
     } catch (e, stack) {

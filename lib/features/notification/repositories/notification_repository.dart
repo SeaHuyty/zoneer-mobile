@@ -57,29 +57,24 @@ class NotificationRepository {
         .toList();
   }
 
-  Future<NotificationModel> deleteOneNotification(String notificationId) async {
-    final response = await _supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-        .select()
-        .single();
+  Future<bool> deleteOneNotification(String notificationId) async {
+    try {
+      await _supabase.from('notifications').delete().eq('id', notificationId);
 
-    return NotificationModel.fromJson(response);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  Future<List<NotificationModel>> deleteAllNotificationsByUserId(
-    String userId,
-  ) async {
-    final response = await _supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', userId)
-        .select();
+  Future<bool> deleteAllNotificationsByUserId(String userId) async {
+    try {
+      await _supabase.from('notifications').delete().eq('user_id', userId);
 
-    return (response as List)
-        .map((e) => NotificationModel.fromJson(e))
-        .toList();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }
 

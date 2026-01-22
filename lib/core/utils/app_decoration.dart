@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppDecoration {
-  static BoxDecoration card({double radius = 15, Color color = Colors.white}) {
+  static BoxDecoration card({double radius = 15, Color colors = Colors.white}) {
     return BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      color: Colors.white,
+      borderRadius: BorderRadius.circular(radius),
+      color: colors,
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.06),

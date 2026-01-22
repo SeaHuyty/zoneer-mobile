@@ -17,7 +17,7 @@ class GoogleNavBar extends ConsumerStatefulWidget {
 }
 
 class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
-    with TickerProviderStateMixin {
+  with TickerProviderStateMixin {
   late AnimationController _homeController;
   late AnimationController _wishlistController;
   late AnimationController _mapController;
@@ -27,7 +27,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     HomeView(),
     WishlistView(),
     MapView(),
-    ProfileView(),
+    LandlordProfileSetting(),
   ];
 
   @override

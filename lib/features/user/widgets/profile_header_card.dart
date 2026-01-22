@@ -3,7 +3,7 @@ import 'package:zoneer_mobile/core/utils/app_decoration.dart';
 
 
 class ProfileHeaderCard extends StatelessWidget {
-  const ProfileHeaderCard();
+  const ProfileHeaderCard({super.key});
 
   @override
   Widget build(BuildContext context) {

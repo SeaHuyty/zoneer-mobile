@@ -7,7 +7,7 @@ import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
 import 'package:zoneer_mobile/features/property/views/map_view.dart';
-import 'package:zoneer_mobile/features/user/views/profile_view.dart';
+import 'package:zoneer_mobile/features/user/views/landlord_profile_setting.dart';
 
 class GoogleNavBar extends ConsumerStatefulWidget {
   const GoogleNavBar({super.key});
@@ -17,7 +17,7 @@ class GoogleNavBar extends ConsumerStatefulWidget {
 }
 
 class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
-    with TickerProviderStateMixin {
+  with TickerProviderStateMixin {
   late AnimationController _homeController;
   late AnimationController _wishlistController;
   late AnimationController _mapController;
@@ -27,7 +27,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     HomeView(),
     WishlistView(),
     MapView(),
-    ProfileView(),
+    LandlordProfileSetting(),
   ];
 
   @override

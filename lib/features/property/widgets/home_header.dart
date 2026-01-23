@@ -45,7 +45,14 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
     setState(() => _isLoadingLocation = true);
 
     try {
-      await ref.read(currentCityProvider.notifier).fetchCurrentCity();
+      final result = await ref
+          .read(currentCityProvider.notifier)
+          .fetchCurrentCity();
+
+      // Show error dialog if location fetch failed
+      if (mounted && !result.success) {
+        _showLocationErrorDialog(result.errorInfo!);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -57,6 +64,30 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
         setState(() => _isLoadingLocation = false);
       }
     }
+  }
+
+  void _showLocationErrorDialog(dynamic errorInfo) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(errorInfo.title),
+        content: Text(errorInfo.message),
+        actions: [
+          if (errorInfo.canRequest)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleLocationRequest(); // Retry
+              },
+              child: const Text('Try Again'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(errorInfo.canRequest ? 'Cancel' : 'OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -122,42 +153,22 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                       ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      IconButton(
-                        style: IconButton.styleFrom(
-                          side: const BorderSide(color: AppColors.greyLight),
-                          padding: EdgeInsets.zero,
-                        ),
-                        icon: Lottie.asset(
-                          'assets/icons/system-solid-46-notification-bell-hover-bell.json',
-                          controller: _notificationController,
-                          width: 28,
-                          height: 28,
-                          onLoaded: (composition) {
-                            _notificationController.duration =
-                                composition.duration;
-                          },
-                        ),
-                        onPressed: () {},
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        style: IconButton.styleFrom(
-                          padding: const EdgeInsets.all(8),
-                        ),
-                        icon: Lottie.asset(
-                          'assets/icons/system-solid-8-account-hover-pinch.json',
-                          controller: _accountController,
-                          width: 28,
-                          height: 28,
-                          onLoaded: (composition) {
-                            _accountController.duration = composition.duration;
-                          },
-                        ),
-                        onPressed: () {},
-                      ),
-                    ],
+
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      side: const BorderSide(color: AppColors.greyLight),
+                      padding: EdgeInsets.zero,
+                    ),
+                    icon: Lottie.asset(
+                      'assets/icons/system-solid-46-notification-bell-hover-bell.json',
+                      controller: _notificationController,
+                      width: 28,
+                      height: 28,
+                      onLoaded: (composition) {
+                        _notificationController.duration = composition.duration;
+                      },
+                    ),
+                    onPressed: () {},
                   ),
                 ],
               ),

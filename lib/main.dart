@@ -3,7 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
-import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
+import 'package:zoneer_mobile/features/user/views/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +19,7 @@ Future<void> main() async {
 }
 
 final supabase = Supabase.instance.client;
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -48,7 +49,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const Scaffold(body: GoogleNavBar()),
+      home: const Scaffold(body: SplashScreen()),
     );
   }
 }

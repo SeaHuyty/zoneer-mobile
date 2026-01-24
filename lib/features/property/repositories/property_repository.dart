@@ -52,6 +52,16 @@ class PropertyRepository {
       return false;
     }
   }
+
+  Future<bool> deleteProperty(PropertyModel id) async {
+    try {
+      await _supabase.from('properties').delete().eq('id', id);
+
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 final propertyRepositoryProvider = Provider<PropertyRepository>((ref) {

@@ -72,8 +72,8 @@ class PropertyModel {
       'security_features': securityFeatures,
       'property_features': propertyFeatures,
       'badge_options': badgeOptions,
-      'verify_status': verifyStatus,
-      'property_status': propertyStatus,
+      'verify_status': verifyStatus.value,
+      'property_status': propertyStatus.value,
       'landlord_id': landlordId,
       'verified_by_admin': verifiedByAdmin
     };

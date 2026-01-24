@@ -8,6 +8,10 @@ class InquiryViewmodel extends Notifier<AsyncValue<List<InquiryModel>>> {
     return const AsyncValue.loading();
   }
 
+  Future<void> loadInquiryById(String id) async {
+    
+  }
+
   Future<void> loadUserInquiries(String userId) async {
     state = const AsyncValue.loading();
     try {

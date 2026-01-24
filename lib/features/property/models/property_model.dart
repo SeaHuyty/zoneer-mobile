@@ -59,4 +59,26 @@ class PropertyModel {
       verifiedByAdmin: json['verified_by_admin'] as String?,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      'price': price,
+      'bedroom': bedroom,
+      'bathroom': bathroom,
+      'square_area': squareArea,
+      'address': address,
+      'location_url': locationUrl,
+      'description': description,
+      'security_features': securityFeatures,
+      'property_features': propertyFeatures,
+      'badge_options': badgeOptions,
+      'verify_status': verifyStatus.value,
+      'property_status': propertyStatus.value,
+      'landlord_id': landlordId,
+      'verified_by_admin': verifiedByAdmin
+    };
+
+    data.removeWhere((key, value) => value == null);
+    return data;
+  }
 }

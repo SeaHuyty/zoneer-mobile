@@ -69,17 +69,9 @@ class NotificationViewmodel
     final currentState = state;
 
     try {
-      final success = await ref
+      await ref
           .read(notificationRepositoryProvider)
           .deleteOneNotification(notificationId);
-
-      if (!success) {
-        state = AsyncValue.error(
-          'Failed to delete notification',
-          StackTrace.current,
-        );
-        return;
-      }
 
       if (currentState is AsyncData<List<NotificationModel>>) {
         state = AsyncValue.data(

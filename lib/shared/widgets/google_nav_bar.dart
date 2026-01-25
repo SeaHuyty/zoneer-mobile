@@ -17,7 +17,7 @@ class GoogleNavBar extends ConsumerStatefulWidget {
 }
 
 class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
-  with TickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _homeController;
   late AnimationController _wishlistController;
   late AnimationController _mapController;
@@ -125,7 +125,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                                   controller: _homeController,
                                   fit: BoxFit.contain,
                                   onLoaded: (composition) {
-                                    _homeController.duration = composition.duration;
+                                    _homeController.duration =
+                                        composition.duration;
                                   },
                                 ),
                               ),
@@ -158,7 +159,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                               controller: _wishlistController,
                               fit: BoxFit.contain,
                               onLoaded: (composition) {
-                                _wishlistController.duration = composition.duration;
+                                _wishlistController.duration =
+                                    composition.duration;
                               },
                             ),
                           ),
@@ -179,7 +181,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                                   controller: _wishlistController,
                                   fit: BoxFit.contain,
                                   onLoaded: (composition) {
-                                    _wishlistController.duration = composition.duration;
+                                    _wishlistController.duration =
+                                        composition.duration;
                                   },
                                 ),
                               ),
@@ -233,7 +236,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                                   controller: _mapController,
                                   fit: BoxFit.contain,
                                   onLoaded: (composition) {
-                                    _mapController.duration = composition.duration;
+                                    _mapController.duration =
+                                        composition.duration;
                                   },
                                 ),
                               ),
@@ -266,7 +270,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                               controller: _profileController,
                               fit: BoxFit.contain,
                               onLoaded: (composition) {
-                                _profileController.duration = composition.duration;
+                                _profileController.duration =
+                                    composition.duration;
                               },
                             ),
                           ),
@@ -287,7 +292,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                                   controller: _profileController,
                                   fit: BoxFit.contain,
                                   onLoaded: (composition) {
-                                    _profileController.duration = composition.duration;
+                                    _profileController.duration =
+                                        composition.duration;
                                   },
                                 ),
                               ),

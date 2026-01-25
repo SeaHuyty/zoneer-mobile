@@ -90,99 +90,219 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
               tabs: [
                 GButton(
                   icon: Icons.home,
-                  leading: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      selectedIndex == 0
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                      BlendMode.srcIn,
-                    ),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Lottie.asset(
-                        'assets/icons/system-solid-41-home-hover-pinch.json',
-                        controller: _homeController,
-                        fit: BoxFit.contain,
-                        onLoaded: (composition) {
-                          _homeController.duration = composition.duration;
-                        },
-                      ),
-                    ),
-                  ),
-                  text: 'Home',
+                  leading: selectedIndex == 0
+                      ? ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            AppColors.primary,
+                            BlendMode.srcIn,
+                          ),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Lottie.asset(
+                              'assets/icons/system-solid-41-home-hover-pinch.json',
+                              controller: _homeController,
+                              fit: BoxFit.contain,
+                              onLoaded: (composition) {
+                                _homeController.duration = composition.duration;
+                              },
+                            ),
+                          ),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                AppColors.secondary,
+                                BlendMode.srcIn,
+                              ),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Lottie.asset(
+                                  'assets/icons/system-solid-41-home-hover-pinch.json',
+                                  controller: _homeController,
+                                  fit: BoxFit.contain,
+                                  onLoaded: (composition) {
+                                    _homeController.duration = composition.duration;
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Home',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                  text: selectedIndex == 0 ? 'Home' : '',
                 ),
                 GButton(
                   icon: Icons.bookmark,
-                  leading: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      selectedIndex == 1
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                      BlendMode.srcIn,
-                    ),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Lottie.asset(
-                        'assets/icons/system-solid-20-bookmark-hover-bookmark-1.json',
-                        controller: _wishlistController,
-                        fit: BoxFit.contain,
-                        onLoaded: (composition) {
-                          _wishlistController.duration = composition.duration;
-                        },
-                      ),
-                    ),
-                  ),
-                  text: 'Wishlist',
+                  leading: selectedIndex == 1
+                      ? ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            AppColors.primary,
+                            BlendMode.srcIn,
+                          ),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Lottie.asset(
+                              'assets/icons/system-solid-20-bookmark-hover-bookmark-1.json',
+                              controller: _wishlistController,
+                              fit: BoxFit.contain,
+                              onLoaded: (composition) {
+                                _wishlistController.duration = composition.duration;
+                              },
+                            ),
+                          ),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                AppColors.secondary,
+                                BlendMode.srcIn,
+                              ),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Lottie.asset(
+                                  'assets/icons/system-solid-20-bookmark-hover-bookmark-1.json',
+                                  controller: _wishlistController,
+                                  fit: BoxFit.contain,
+                                  onLoaded: (composition) {
+                                    _wishlistController.duration = composition.duration;
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Wishlist',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                  text: selectedIndex == 1 ? 'Wishlist' : '',
                 ),
                 GButton(
                   icon: Icons.map,
-                  leading: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      selectedIndex == 2
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                      BlendMode.srcIn,
-                    ),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Lottie.asset(
-                        'assets/icons/droppin.json',
-                        controller: _mapController,
-                        fit: BoxFit.contain,
-                        onLoaded: (composition) {
-                          _mapController.duration = composition.duration;
-                        },
-                      ),
-                    ),
-                  ),
-                  text: 'Map',
+                  leading: selectedIndex == 2
+                      ? ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            AppColors.primary,
+                            BlendMode.srcIn,
+                          ),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Lottie.asset(
+                              'assets/icons/droppin.json',
+                              controller: _mapController,
+                              fit: BoxFit.contain,
+                              onLoaded: (composition) {
+                                _mapController.duration = composition.duration;
+                              },
+                            ),
+                          ),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                AppColors.secondary,
+                                BlendMode.srcIn,
+                              ),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Lottie.asset(
+                                  'assets/icons/droppin.json',
+                                  controller: _mapController,
+                                  fit: BoxFit.contain,
+                                  onLoaded: (composition) {
+                                    _mapController.duration = composition.duration;
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Map',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                  text: selectedIndex == 2 ? 'Map' : '',
                 ),
                 GButton(
                   icon: Icons.person,
-                  leading: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      selectedIndex == 3
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                      BlendMode.srcIn,
-                    ),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Lottie.asset(
-                        'assets/icons/system-solid-8-account-hover-pinch.json',
-                        controller: _profileController,
-                        fit: BoxFit.contain,
-                        onLoaded: (composition) {
-                          _profileController.duration = composition.duration;
-                        },
-                      ),
-                    ),
-                  ),
-                  text: 'Profile',
+                  leading: selectedIndex == 3
+                      ? ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            AppColors.primary,
+                            BlendMode.srcIn,
+                          ),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Lottie.asset(
+                              'assets/icons/system-solid-8-account-hover-pinch.json',
+                              controller: _profileController,
+                              fit: BoxFit.contain,
+                              onLoaded: (composition) {
+                                _profileController.duration = composition.duration;
+                              },
+                            ),
+                          ),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                AppColors.secondary,
+                                BlendMode.srcIn,
+                              ),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Lottie.asset(
+                                  'assets/icons/system-solid-8-account-hover-pinch.json',
+                                  controller: _profileController,
+                                  fit: BoxFit.contain,
+                                  onLoaded: (composition) {
+                                    _profileController.duration = composition.duration;
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Profile',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                  text: selectedIndex == 3 ? 'Profile' : '',
                 ),
               ],
               selectedIndex: selectedIndex,

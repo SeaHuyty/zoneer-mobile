@@ -16,4 +16,14 @@ class WishlistModel {
       createdAt: json['createdAt'] as String?,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      'user_id': userId,
+      'property_id': propertyId,
+    };
+
+    data.removeWhere((key, value) => value == null);
+    return data;
+  }
 }

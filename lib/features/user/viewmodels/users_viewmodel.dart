@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/user/repositories/user_repository.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
 
-class UserViewmodel extends Notifier<AsyncValue<List<UserModel>>> {
+class UsersViewmodel extends Notifier<AsyncValue<List<UserModel>>> {
   @override
   AsyncValue<List<UserModel>> build() {
     loadUsers();
@@ -20,7 +20,7 @@ class UserViewmodel extends Notifier<AsyncValue<List<UserModel>>> {
   }
 }
 
-final userViewModelProvider =
-    NotifierProvider<UserViewmodel, AsyncValue<List<UserModel>>>(() {
-      return UserViewmodel();
+final usersViewModelProvider =
+    NotifierProvider<UsersViewmodel, AsyncValue<List<UserModel>>>(() {
+      return UsersViewmodel();
     });

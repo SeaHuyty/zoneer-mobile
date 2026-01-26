@@ -7,7 +7,7 @@ class UserView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usersAsync = ref.watch(userViewModelProvider);
+    final usersAsync = ref.watch(usersViewModelProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Users')),

@@ -1,26 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/features/user/repositories/user_repository.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
+import 'package:zoneer_mobile/features/user/repositories/user_repository.dart';
 
-class UserViewmodel extends Notifier<AsyncValue<List<UserModel>>> {
+class UserViewmodel extends Notifier<AsyncValue<UserModel>> {
   @override
-  AsyncValue<List<UserModel>> build() {
-    loadUsers();
+  AsyncValue<UserModel> build() {
     return const AsyncValue.loading();
   }
 
-  Future<void> loadUsers() async {
-    state = const AsyncValue.loading();
+  Future<void> loadUserById(String id) async {
+    state = AsyncValue.loading();
     try {
-      final users = await ref.read(userRepositoryProvider).getUsers();
-      state = AsyncValue.data(users);
+      final user = await ref.read(userRepositoryProvider).getUserById(id);
+      state = AsyncValue.data(user);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 }
-
-final userViewModelProvider =
-    NotifierProvider<UserViewmodel, AsyncValue<List<UserModel>>>(() {
-      return UserViewmodel();
-    });

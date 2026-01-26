@@ -11,6 +11,19 @@ class UserRepository {
     final response = await _supabase.from('users').select();
     return (response as List).map((e) => UserModel.fromJson(e)).toList();
   }
+
+  Future<UserModel> getUserById(String id) async {
+    final response = await _supabase.from('users').select().eq('id', id).single();
+    return UserModel.fromJson(response);
+  }
+
+  Future<void> createUser(UserModel user) async {
+    await _supabase.from('users').insert(user);
+  }
+
+  Future<void> deleteUser(String id) async {
+    await _supabase.from('users').delete();
+  }
 }
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {

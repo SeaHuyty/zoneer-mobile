@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/features/user/viewmodels/user_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/users_viewmodel.dart';
 
 class UserView extends ConsumerWidget {
   const UserView({super.key});

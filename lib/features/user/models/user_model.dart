@@ -45,7 +45,27 @@ class UserModel {
       idCardUrl: json['id_card_url'] as String?,
       verifyStatus: VerifyStatus.fromValue(json['verify_status']),
       selfieUrl: json['selfie_url'] as String?,
-      createdAt: json['created_at'] as String?
+      createdAt: json['created_at'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      'id': id,
+      'fullname': fullname,
+      'phone_number': phoneNumber,
+      'email': email,
+      'password': password,
+      'role': role,
+      'image_profile_url': profileUrl,
+      'previous_visitor_id': previousVisitorId,
+      'id_card_url': idCardUrl,
+      'verify_status': verifyStatus.value,
+      'selfie_url': selfieUrl,
+      'created_at': createdAt,
+    };
+
+    data.removeWhere((key, value) => value == null);
+    return data;
   }
 }

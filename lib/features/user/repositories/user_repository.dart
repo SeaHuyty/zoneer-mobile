@@ -18,11 +18,11 @@ class UserRepository {
   }
 
   Future<void> createUser(UserModel user) async {
-    await _supabase.from('users').insert(user);
+    await _supabase.from('users').insert(user.toJson());
   }
 
   Future<void> deleteUser(String id) async {
-    await _supabase.from('users').delete();
+    await _supabase.from('users').delete().eq('id', id);
   }
 }
 

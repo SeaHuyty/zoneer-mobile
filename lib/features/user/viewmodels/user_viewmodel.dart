@@ -9,7 +9,7 @@ class UserViewmodel extends Notifier<AsyncValue<UserModel>> {
   }
 
   Future<void> loadUserById(String id) async {
-    state = AsyncValue.loading();
+    state = const AsyncValue.loading();
     try {
       final user = await ref.read(userRepositoryProvider).getUserById(id);
       state = AsyncValue.data(user);
@@ -18,3 +18,8 @@ class UserViewmodel extends Notifier<AsyncValue<UserModel>> {
     }
   }
 }
+
+final userViewModelProvider =
+    NotifierProvider<UserViewmodel, AsyncValue<UserModel>>(() {
+      return UserViewmodel();
+    });

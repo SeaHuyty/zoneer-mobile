@@ -9,9 +9,11 @@ class WishlistViewmodel extends Notifier<AsyncValue<List<WishlistModel>>> {
   }
 
   Future<void> loadWishlist(String userId) async {
-    state = AsyncValue.loading();
+    state = const AsyncValue.loading();
     try {
-      final wishlist = await ref.read(wishlistRepositoryProvider).getWishlistByUserId(userId);
+      final wishlist = await ref
+          .read(wishlistRepositoryProvider)
+          .getWishlistByUserId(userId);
       state = AsyncValue.data(wishlist);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -20,7 +22,12 @@ class WishlistViewmodel extends Notifier<AsyncValue<List<WishlistModel>>> {
 
   Future<void> addToWishlist(WishlistModel wishlist) async {
     try {
+      final currentState = state;
       await ref.read(wishlistRepositoryProvider).addToWishlist(wishlist);
+
+      if (currentState is AsyncData<List<WishlistModel>>) {
+        state = AsyncValue.data([...currentState.value, wishlist]);
+      }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -28,7 +35,19 @@ class WishlistViewmodel extends Notifier<AsyncValue<List<WishlistModel>>> {
 
   Future<void> removeFromWishlist(String userId, String propertyId) async {
     try {
-      await ref.read(wishlistRepositoryProvider).removeFromWishlist(userId, propertyId);
+      final currentState = state;
+
+      await ref
+          .read(wishlistRepositoryProvider)
+          .removeFromWishlist(userId, propertyId);
+
+      if (currentState is AsyncData<List<WishlistModel>>) {
+        state = AsyncValue.data(
+          currentState.value
+              .where((w) => !(w.userId == userId && w.propertyId == propertyId))
+              .toList(),
+        );
+      }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -37,12 +56,14 @@ class WishlistViewmodel extends Notifier<AsyncValue<List<WishlistModel>>> {
   Future<void> clearWishlist(String userId) async {
     try {
       await ref.read(wishlistRepositoryProvider).clearWishlist(userId);
+      state = AsyncValue.data([]);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 }
 
-final wishlistViewmodelProvider = NotifierProvider<WishlistViewmodel, AsyncValue<List<WishlistModel>>>(() {
-  return WishlistViewmodel();
-});
+final wishlistViewmodelProvider =
+    NotifierProvider<WishlistViewmodel, AsyncValue<List<WishlistModel>>>(() {
+      return WishlistViewmodel();
+    });

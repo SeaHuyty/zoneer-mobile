@@ -111,16 +111,17 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          'assets/icons/map-pin-house.svg',
-                          width: 24,
-                          height: 24,
-                        ),
-                        onPressed: _isLoadingLocation
+                      GestureDetector(
+                        onTap: _isLoadingLocation
                             ? null
                             : _handleLocationRequest,
+                        child: SvgPicture.asset(
+                          'assets/icons/map-pin-house.svg',
+                          width: 32,
+                          height: 32,
+                        ),
                       ),
+                      SizedBox(width: 8),
                       GestureDetector(
                         onTap: _isLoadingLocation
                             ? null

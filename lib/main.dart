@@ -4,6 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/views/splash_screen.dart';
+import 'package:device_preview/device_preview.dart';
+
+const bool enableDevicePreview = bool.fromEnvironment(
+  'DEVICE_PREVIEW',
+  defaultValue: false,
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,11 +21,17 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    enableDevicePreview
+        ? DevicePreview(
+            enabled: true,
+            builder: (context) => const ProviderScope(child: MyApp()),
+          )
+        : const ProviderScope(child: MyApp()),
+  );
 }
 
 final supabase = Supabase.instance.client;
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -27,8 +39,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      builder: enableDevicePreview ? DevicePreview.appBuilder : null,
       title: 'Zoneer Mobile App',
       theme: ThemeData(
+        fontFamily: 'Inter',
         colorScheme: ColorScheme(
           primary: AppColors.primary,
           secondary: AppColors.secondary,

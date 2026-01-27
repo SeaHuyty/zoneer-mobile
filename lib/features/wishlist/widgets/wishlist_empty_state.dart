@@ -24,9 +24,7 @@ class WishlistEmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Map icon with circle background
-            Container(
-              child: Image.asset('lib/assets/images/empty_wishlist.png'),
-            ),
+            Image.asset('assets/images/empty_wishlist.png'),
             const SizedBox(height: 24),
 
             // Title

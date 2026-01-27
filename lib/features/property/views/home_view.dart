@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_header.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_properties_category.dart';
-import 'package:zoneer_mobile/shared/widgets/seach_bar.dart';
+import 'package:zoneer_mobile/shared/widgets/search_bar.dart';
 
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});

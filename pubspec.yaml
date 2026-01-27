@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  device_preview: ^1.1.0
   flutter:
     sdk: flutter
 
@@ -71,9 +72,25 @@ flutter:
   assets:
     - assets/icons/
     - assets/logo/
+    - assets/stickers/
     - assets/images/
     - .env
 
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_28pt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter_28pt-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter_28pt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter_28pt-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter_28pt-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Inter_28pt-Black.ttf
+          weight: 900
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

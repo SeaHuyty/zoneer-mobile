@@ -9,25 +9,27 @@ class WishlistViewmodel extends AsyncNotifier<List<WishlistModel>> {
   Future<void> loadWishlist(String userId) async {
     state = const AsyncValue.loading();
 
-    state = await AsyncValue.guard(() {
+    state = await AsyncValue.guard(() async {
       return ref.read(wishlistRepositoryProvider).getWishlistByUserId(userId);
     });
   }
 
   Future<void> addToWishlist(WishlistModel wishlist) async {
-    await AsyncValue.guard(() async {
+    state = await AsyncValue.guard(() async {
       await ref.read(wishlistRepositoryProvider).addToWishlist(wishlist);
 
       final currentState = state;
 
       if (currentState is AsyncData<List<WishlistModel>>) {
-        state = AsyncValue.data([...currentState.value, wishlist]);
+        return [...currentState.value, wishlist];
       }
+
+      return currentState.value ?? <WishlistModel>[];
     });
   }
 
   Future<void> removeFromWishlist(String userId, String propertyId) async {
-    await AsyncValue.guard(() async {
+    state = await AsyncValue.guard(() async {
       await ref
           .read(wishlistRepositoryProvider)
           .removeFromWishlist(userId, propertyId);
@@ -35,12 +37,12 @@ class WishlistViewmodel extends AsyncNotifier<List<WishlistModel>> {
       final currentState = state;
 
       if (currentState is AsyncData<List<WishlistModel>>) {
-        state = AsyncValue.data(
-          currentState.value
-              .where((w) => !(w.userId == userId && w.propertyId == propertyId))
-              .toList(),
-        );
+        return currentState.value
+            .where((w) => !(w.userId == userId && w.propertyId == propertyId))
+            .toList();
       }
+
+      return currentState.value ?? <WishlistModel>[];
     });
   }
 

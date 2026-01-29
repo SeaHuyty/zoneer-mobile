@@ -25,8 +25,10 @@ class InquiryViewmodel extends AsyncNotifier<List<InquiryModel>> {
   }
 
   Future<void> submitInquiry(InquiryModel inquiry) async {
-    await AsyncValue.guard(() async {
+    state = await AsyncValue.guard(() async {
       await ref.read(inquiryRepositoryProvider).createInquiry(inquiry);
+
+      return state.value ?? <InquiryModel>[];
     });
   }
 }

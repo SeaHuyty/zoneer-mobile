@@ -27,48 +27,48 @@ class NotificationViewmodel extends AsyncNotifier<List<NotificationModel>> {
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    await AsyncValue.guard(() async {
+    state = await AsyncValue.guard(() async {
       await ref.read(notificationRepositoryProvider).markAsRead(notificationId);
 
       final currentState = state;
 
       if (currentState is AsyncData<List<NotificationModel>>) {
-        state = AsyncValue.data(
-          currentState.value
-              .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
-              .toList(),
-        );
+        return currentState.value
+            .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
+            .toList();
       }
+
+      return currentState.value ?? <NotificationModel>[];
     });
   }
 
   Future<void> markAllNotificationsAsRead(String userId) async {
-    await AsyncValue.guard(() async {
+    state = await AsyncValue.guard(() async {
       await ref.read(notificationRepositoryProvider).markAllAsRead(userId);
 
       final currentState = state;
 
       if (currentState is AsyncData<List<NotificationModel>>) {
-        state = AsyncValue.data(
-          currentState.value.map((n) => n.copyWith(isRead: true)).toList(),
-        );
+        return currentState.value.map((n) => n.copyWith(isRead: true)).toList();
       }
+
+      return currentState.value ?? <NotificationModel>[];
     });
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    await AsyncValue.guard(() async {
+    state = await AsyncValue.guard(() async {
       await ref
           .read(notificationRepositoryProvider)
           .deleteOneNotification(notificationId);
 
       final currentState = state;
-      
+
       if (currentState is AsyncData<List<NotificationModel>>) {
-        state = AsyncValue.data(
-          currentState.value.where((n) => n.id != notificationId).toList(),
-        );
+        return currentState.value.where((n) => n.id != notificationId).toList();
       }
+
+      return currentState.value ?? <NotificationModel>[];
     });
   }
 

@@ -31,36 +31,19 @@ class PropertyRepository {
     return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
   }
 
-  Future<bool> createProperty(PropertyModel property) async {
-    try {
-      await _supabase
-          .from('properties')
-          .insert(property.toJson());
-
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<void> createProperty(PropertyModel property) async {
+    await _supabase.from('properties').insert(property.toJson());
   }
 
-  Future<bool> updateProperty(PropertyModel property) async {
-    try {
-      await _supabase.from('properties').update(property.toJson()).eq('id', property.id);
-
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<void> updateProperty(PropertyModel property) async {
+    await _supabase
+        .from('properties')
+        .update(property.toJson())
+        .eq('id', property.id);
   }
 
-  Future<bool> deleteProperty(PropertyModel id) async {
-    try {
-      await _supabase.from('properties').delete().eq('id', id);
-
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<void> deleteProperty(String id) async {
+    await _supabase.from('properties').delete().eq('id', id);
   }
 }
 

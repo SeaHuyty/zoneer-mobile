@@ -2,112 +2,90 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
 import 'package:zoneer_mobile/features/notification/repositories/notification_repository.dart';
 
-class NotificationViewmodel
-    extends Notifier<AsyncValue<List<NotificationModel>>> {
+class NotificationViewmodel extends AsyncNotifier<List<NotificationModel>> {
   @override
-  AsyncValue<List<NotificationModel>> build() {
-    return const AsyncValue.loading();
-  }
+  Future<List<NotificationModel>> build() async => [];
 
   Future<void> loadNotifications(String userId) async {
     state = const AsyncValue.loading();
-    try {
-      final notifications = await ref
+
+    state = await AsyncValue.guard(() async {
+      return ref
           .read(notificationRepositoryProvider)
           .getNotificationsByUserId(userId);
-      state = AsyncValue.data(notifications);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+    });
   }
 
   Future<void> loadUnreadNotifications(String userId) async {
     state = const AsyncValue.loading();
-    try {
-      final notifications = await ref
+
+    state = await AsyncValue.guard(() async {
+      return ref
           .read(notificationRepositoryProvider)
           .getUnreadNotifications(userId);
-      state = AsyncValue.data(notifications);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+    });
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    try {
+    state = await AsyncValue.guard(() async {
       await ref.read(notificationRepositoryProvider).markAsRead(notificationId);
 
       final currentState = state;
+
       if (currentState is AsyncData<List<NotificationModel>>) {
-        state = AsyncValue.data(
-          currentState.value
-              .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
-              .toList(),
-        );
+        return currentState.value
+            .map((n) => n.id == notificationId ? n.copyWith(isRead: true) : n)
+            .toList();
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+      return currentState.value ?? <NotificationModel>[];
+    });
   }
 
   Future<void> markAllNotificationsAsRead(String userId) async {
-    try {
+    state = await AsyncValue.guard(() async {
       await ref.read(notificationRepositoryProvider).markAllAsRead(userId);
 
       final currentState = state;
+
       if (currentState is AsyncData<List<NotificationModel>>) {
-        state = AsyncValue.data(
-          currentState.value.map((n) => n.copyWith(isRead: true)).toList(),
-        );
+        return currentState.value.map((n) => n.copyWith(isRead: true)).toList();
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+      return currentState.value ?? <NotificationModel>[];
+    });
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    final currentState = state;
-
-    try {
+    state = await AsyncValue.guard(() async {
       await ref
           .read(notificationRepositoryProvider)
           .deleteOneNotification(notificationId);
 
+      final currentState = state;
+
       if (currentState is AsyncData<List<NotificationModel>>) {
-        state = AsyncValue.data(
-          currentState.value.where((n) => n.id != notificationId).toList(),
-        );
+        return currentState.value.where((n) => n.id != notificationId).toList();
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+      return currentState.value ?? <NotificationModel>[];
+    });
   }
 
   Future<void> deleteAllNotifications(String userId) async {
-    try {
-      final success = await ref
+    state = const AsyncValue.loading();
+
+    state = await AsyncValue.guard(() async {
+      await ref
           .read(notificationRepositoryProvider)
           .deleteAllNotificationsByUserId(userId);
-      
-      if (!success) {
-        state = AsyncValue.error(
-          'Failed to delete all notifications',
-          StackTrace.current,
-        );
-        return;
-      }
 
-      state = const AsyncValue.data([]);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+      return <NotificationModel>[];
+    });
   }
 }
 
 final notificationsViewModelProvider =
-    NotifierProvider<
-      NotificationViewmodel,
-      AsyncValue<List<NotificationModel>>
-    >(() {
-      return NotificationViewmodel();
-    });
+    AsyncNotifierProvider<NotificationViewmodel, List<NotificationModel>>(
+      NotificationViewmodel.new,
+    );

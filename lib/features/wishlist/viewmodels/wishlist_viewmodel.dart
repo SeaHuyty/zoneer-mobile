@@ -2,68 +2,62 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
 import 'package:zoneer_mobile/features/wishlist/repositories/wishlist_repository.dart';
 
-class WishlistViewmodel extends Notifier<AsyncValue<List<WishlistModel>>> {
+class WishlistViewmodel extends AsyncNotifier<List<WishlistModel>> {
   @override
-  AsyncValue<List<WishlistModel>> build() {
-    return const AsyncValue.loading();
-  }
+  Future<List<WishlistModel>> build() async => [];
 
   Future<void> loadWishlist(String userId) async {
     state = const AsyncValue.loading();
-    try {
-      final wishlist = await ref
-          .read(wishlistRepositoryProvider)
-          .getWishlistByUserId(userId);
-      state = AsyncValue.data(wishlist);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+    state = await AsyncValue.guard(() async {
+      return ref.read(wishlistRepositoryProvider).getWishlistByUserId(userId);
+    });
   }
 
   Future<void> addToWishlist(WishlistModel wishlist) async {
-    try {
-      final currentState = state;
+    state = await AsyncValue.guard(() async {
       await ref.read(wishlistRepositoryProvider).addToWishlist(wishlist);
 
+      final currentState = state;
+
       if (currentState is AsyncData<List<WishlistModel>>) {
-        state = AsyncValue.data([...currentState.value, wishlist]);
+        return [...currentState.value, wishlist];
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+      return currentState.value ?? <WishlistModel>[];
+    });
   }
 
   Future<void> removeFromWishlist(String userId, String propertyId) async {
-    try {
-      final currentState = state;
-
+    state = await AsyncValue.guard(() async {
       await ref
           .read(wishlistRepositoryProvider)
           .removeFromWishlist(userId, propertyId);
 
+      final currentState = state;
+
       if (currentState is AsyncData<List<WishlistModel>>) {
-        state = AsyncValue.data(
-          currentState.value
-              .where((w) => !(w.userId == userId && w.propertyId == propertyId))
-              .toList(),
-        );
+        return currentState.value
+            .where((w) => !(w.userId == userId && w.propertyId == propertyId))
+            .toList();
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+      return currentState.value ?? <WishlistModel>[];
+    });
   }
 
   Future<void> clearWishlist(String userId) async {
-    try {
+    state = const AsyncValue.loading();
+
+    state = await AsyncValue.guard(() async {
       await ref.read(wishlistRepositoryProvider).clearWishlist(userId);
-      state = AsyncValue.data([]);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+
+      return <WishlistModel>[];
+    });
   }
 }
 
 final wishlistViewmodelProvider =
-    NotifierProvider<WishlistViewmodel, AsyncValue<List<WishlistModel>>>(() {
-      return WishlistViewmodel();
-    });
+    AsyncNotifierProvider<WishlistViewmodel, List<WishlistModel>>(
+      WishlistViewmodel.new,
+    );

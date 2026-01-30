@@ -61,14 +61,8 @@ class NotificationRepository {
     await _supabase.from('notifications').delete().eq('id', notificationId);
   }
 
-  Future<bool> deleteAllNotificationsByUserId(String userId) async {
-    try {
-      await _supabase.from('notifications').delete().eq('user_id', userId);
-
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<void> deleteAllNotificationsByUserId(String userId) async {
+    await _supabase.from('notifications').delete().eq('user_id', userId);
   }
 }
 

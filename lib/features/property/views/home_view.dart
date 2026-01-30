@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_header.dart';
+import 'package:zoneer_mobile/features/property/widgets/home_properties_category.dart';
+import 'package:zoneer_mobile/shared/widgets/search_bar.dart';
 
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
@@ -12,19 +13,11 @@ class HomeView extends ConsumerWidget {
       appBar: const HomeHeader(),
       body: const Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Icon(Icons.home, size: 100, color: AppColors.primary),
+            SearchBarApp(),
             SizedBox(height: 20),
-            Text(
-              'Home Page',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Property listings will appear here',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
+            HomePropertiesCategory(),
           ],
         ),
       ),

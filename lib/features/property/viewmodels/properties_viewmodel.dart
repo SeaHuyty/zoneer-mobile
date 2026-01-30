@@ -29,3 +29,9 @@ final propertiesViewModelProvider =
     AsyncNotifierProvider<PropertiesViewmodel, List<PropertyModel>>(
       PropertiesViewmodel.new,
     );
+
+final propertyViewModelProvider = FutureProvider.family<PropertyModel, String>((ref, id) async {
+  final property = await ref.read(propertyRepositoryProvider).getPropertyById(id);
+
+  return property;
+});

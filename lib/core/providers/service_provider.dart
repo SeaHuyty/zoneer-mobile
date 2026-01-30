@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/features/property/services/location_service.dart';
+import 'package:zoneer_mobile/core/services/location_service.dart';
 
 // Location service provider
 final locationServiceProvider = Provider<LocationService>((ref) {

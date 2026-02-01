@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/widgets/profile_header_card.dart';
 import 'package:zoneer_mobile/features/user/widgets/section_card.dart';
 
-class LandlordProfileSetting extends ConsumerWidget {
-  const LandlordProfileSetting({super.key});
+class TenantProfileSetting extends ConsumerWidget {
+  const TenantProfileSetting({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -13,7 +14,7 @@ class LandlordProfileSetting extends ConsumerWidget {
       backgroundColor: const Color(0xFFF6F6F6), // soft page background
       appBar: AppBar(
         title: const Text(
-          'Profile Setting',
+          'Tenant Profile Setting',
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -55,7 +56,7 @@ class LandlordProfileSetting extends ConsumerWidget {
               SizedBox(height: 12),
               InfoIconRow(
                 rowIcon: Icons.person_pin,
-                text: 'Landlord',
+                text: 'tenant',
                 iconColor: AppColors.primary,
                 textColor: Colors.black,
                 textSize: 14,
@@ -74,10 +75,35 @@ class LandlordProfileSetting extends ConsumerWidget {
                   // TODO: navigate to edit profile
                 },
               ),
-              const SizedBox(height: 10),
               ActionRow(
                 icon: Icons.swap_horiz_outlined,
-                label: "Switch to Tenant",
+                label: "Switch to landlord",
+                onTap: () async {
+                  // Show loading dialog
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                  
+                  // Simulate loading (remove this when backend is implemented)
+                  await Future.delayed(const Duration(milliseconds: 800));
+                  
+                  // Close loading dialog
+                  if (context.mounted) Navigator.of(context).pop();
+                  
+                  // Switch profile type using provider
+                  if (context.mounted) {
+                    ref.read(profileTypeProvider.notifier).switchToLandlord();
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+              ActionRow(
+                icon: Icons.dangerous,
+                label: "Danger Zone",
                 onTap: () {
                   // TODO: switch role
                 },
@@ -86,7 +112,7 @@ class LandlordProfileSetting extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           SectionCard(
-            title: 'Danger Zone', 
+            title: 'Logout', 
             children: [
               //Logout button styled like a card action
               Container(
@@ -108,13 +134,13 @@ class LandlordProfileSetting extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
                       Icon(
-                        Icons.delete_forever,
+                        Icons.logout,
                         size: 18,
                         color: Colors.white,
                       ),
                       SizedBox(width: 10),
                       Text(
-                        'Delete Account',
+                        'Logout',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,

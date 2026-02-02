@@ -4,10 +4,12 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
+import 'package:zoneer_mobile/features/user/views/tenant/tenant_profile_setting.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
 import 'package:zoneer_mobile/features/property/views/map_view.dart';
-import 'package:zoneer_mobile/features/user/views/landlord_profile_setting.dart';
+import 'package:zoneer_mobile/features/user/views/landlord/landlord_profile.dart';
 
 class GoogleNavBar extends ConsumerStatefulWidget {
   const GoogleNavBar({super.key});
@@ -22,13 +24,6 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   late AnimationController _wishlistController;
   late AnimationController _mapController;
   late AnimationController _profileController;
-
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeView(),
-    WishlistView(),
-    MapView(),
-    LandlordProfileSetting(),
-  ];
 
   @override
   void initState() {
@@ -63,10 +58,21 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationProvider);
+    final profileType = ref.watch(profileTypeProvider);
+
+    // Dynamically build widget list based on profile type
+    final List<Widget> widgetOptions = [
+      const HomeView(),
+      const WishlistView(),
+      const MapView(),
+      profileType == ProfileType.landlord 
+        ? const LandlordProfile() 
+        : const TenantProfileSetting(),
+    ];
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: IndexedStack(index: selectedIndex, children: _widgetOptions),
+      body: IndexedStack(index: selectedIndex, children: widgetOptions),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,

@@ -15,5 +15,10 @@ class UsersViewmodel extends AsyncNotifier<List<UserModel>> {
   }
 }
 
-final usersViewModelProvider =
-    AsyncNotifierProvider<UsersViewmodel, List<UserModel>>(UsersViewmodel.new);
+final usersViewModelProvider = AsyncNotifierProvider<UsersViewmodel, List<UserModel>>(UsersViewmodel.new);
+
+final userViewModelProvider = FutureProvider.family<UserModel, String>((ref, id) async {
+  final user = await ref.read(userRepositoryProvider).getUserById(id);
+
+  return user;
+});

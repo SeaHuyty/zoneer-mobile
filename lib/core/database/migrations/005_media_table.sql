@@ -1,8 +1,7 @@
 -- Create Media Table
 CREATE TABLE IF NOT EXISTS media(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type VARCHAR(100) DEFAULT 'default' CHECK (type in ('default', 'cover')),
-  url VARCHAR(500) NOT NULL,
+  url TEXT NOT NULL,
   property_id UUID,
   FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
 );

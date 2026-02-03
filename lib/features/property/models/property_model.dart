@@ -10,6 +10,7 @@ class PropertyModel {
   final String address;
   final String locationUrl;
   final String? description;
+  final String thumbnail;
 
   final Map<String, dynamic>? securityFeatures;
   final Map<String, dynamic>? propertyFeatures;
@@ -29,6 +30,7 @@ class PropertyModel {
     required this.squareArea,
     required this.address,
     required this.locationUrl,
+    required this.thumbnail,
     this.description,
     this.securityFeatures,
     this.propertyFeatures,
@@ -50,9 +52,16 @@ class PropertyModel {
       address: json['address'] as String,
       locationUrl: json['location_url'] as String,
       description: json['description'] as String?,
-      securityFeatures: json['security_features'] as Map<String, dynamic>?,
-      propertyFeatures: json['property_features'] as Map<String, dynamic>?,
-      badgeOptions: json['badge_options'] as Map<String, dynamic>?,
+      thumbnail: json['thumbnail_url'] as String,
+      securityFeatures: json['security_features'] is Map
+          ? json['security_features'] as Map<String, dynamic>?
+          : null,
+      propertyFeatures: json['property_features'] is Map
+          ? json['property_features'] as Map<String, dynamic>?
+          : null,
+      badgeOptions: json['badge_options'] is Map
+          ? json['badge_options'] as Map<String, dynamic>?
+          : null,
       verifyStatus: VerifyStatus.fromValue(json['verify_status']),
       propertyStatus: PropertyStatus.fromValue(json['property_status']),
       landlordId: json['landlord_id'] as String?,
@@ -68,6 +77,7 @@ class PropertyModel {
       'square_area': squareArea,
       'address': address,
       'location_url': locationUrl,
+      'thumbnail_url': thumbnail,
       'description': description,
       'security_features': securityFeatures,
       'property_features': propertyFeatures,
@@ -75,7 +85,7 @@ class PropertyModel {
       'verify_status': verifyStatus.value,
       'property_status': propertyStatus.value,
       'landlord_id': landlordId,
-      'verified_by_admin': verifiedByAdmin
+      'verified_by_admin': verifiedByAdmin,
     };
 
     data.removeWhere((key, value) => value == null);

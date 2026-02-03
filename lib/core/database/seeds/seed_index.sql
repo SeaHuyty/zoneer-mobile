@@ -1,0 +1,125 @@
+insert into visitors (device_id)
+values
+  ('device_001'),
+  ('device_002'),
+  ('device_003');
+
+
+insert into admins (username, password, email)
+values
+  ('Admin One', 'password123', 'admin1@test.com'),
+  ('Admin Two', 'password123', 'admin2@test.com');
+
+
+-- Link some users to previous visitors
+insert into users (fullname, phone_number, email, password, role, previous_visitor_id, verify_status)
+select 'Alice Tenant', '08123456789', 'alice@test.com', 'password123', 'tenant', id, 'verified'
+from visitors where device_id = 'device_001';
+
+insert into users (fullname, phone_number, email, password, role, previous_visitor_id)
+select 'Bob Landlord', '08129876543', 'bob@test.com', 'password123', 'landlord', id
+from visitors where device_id = 'device_002';
+
+insert into users (fullname, phone_number, email, password, role)
+values
+  ('Charlie Tenant', '08121112222', 'charlie@test.com', 'password123', 'tenant');
+
+
+-- Grab landlord and admin IDs
+WITH landlord AS (
+  SELECT id AS landlord_id FROM users WHERE fullname = 'Bob Landlord'
+),
+admin AS (
+  SELECT id AS admin_id FROM admins WHERE username = 'Admin One'
+)
+INSERT INTO properties (
+  price,
+  bedroom,
+  bathroom,
+  square_area,
+  address,
+  location_url,
+  description,
+  security_features,
+  property_features,
+  badge_options,
+  verify_status,
+  property_status,
+  landlord_id,
+  thumbnail_url,
+  verified_by_admin
+)
+SELECT
+  1200.00,
+  2,
+  1,
+  75.5,
+  '123 Main St, City',
+  'https://maps.app.goo.gl/8ersyZjBAY1A2DK67',
+  'Cozy apartment near downtown',
+  '{"cctv": true, "security_guard": true}'::json,
+  '{"wifi": true, "balcony": true}'::json,
+  '{"featured": true}'::json,
+  'verified',
+  'available',
+  landlord_id,
+  'https://i.pinimg.com/1200x/71/d4/fa/71d4fae0ad919401720e12d2d37a0e6d.jpg',
+  admin_id
+FROM landlord, admin
+
+UNION ALL
+
+SELECT
+  2000.00,
+  3,
+  2,
+  120.0,
+  '456 Elm St, City',
+  'https://maps.app.goo.gl/8ersyZjBAY1A2DK67',
+  'Spacious house with garden',
+  '{"cctv": true, "security_guard": false}'::json,
+  '{"wifi": true, "balcony": true, "pool": true}'::json,
+  '{"featured": false}'::json,
+  'pending',
+  'available',
+  landlord_id,
+  'https://i.pinimg.com/736x/f4/e7/be/f4e7be9e608d92ec713e06e25656b098.jpg',
+  admin_id
+FROM landlord, admin;
+
+
+-- Link media to properties
+INSERT INTO media (url, property_id)
+SELECT
+  'https://i.pinimg.com/1200x/71/d4/fa/71d4fae0ad919401720e12d2d37a0e6d.jpg',
+  id
+FROM properties
+LIMIT 1;
+
+INSERT INTO media (url, property_id)
+SELECT
+  'https://i.pinimg.com/736x/f4/e7/be/f4e7be9e608d92ec713e06e25656b098.jpg',
+  id
+FROM properties
+OFFSET 1
+LIMIT 1;
+
+
+-- Alice wishes for the first property
+insert into wishlists (user_id, property_id)
+select u.id, p.id
+from users u, properties p
+where u.fullname = 'Alice Tenant'
+limit 1;
+
+
+insert into notifications (user_id, title, message, notification_type)
+select id, 'Welcome!', 'Your account has been created.', 'system'
+from users;
+
+
+insert into inquiries (property_id, user_id, fullname, email, phone_number, message)
+select p.id, u.id, u.fullname, u.email, u.phone_number, 'I am interested in this property, please provide more info.'
+from properties p, users u
+where u.fullname = 'Charlie Tenant'
+limit 1;

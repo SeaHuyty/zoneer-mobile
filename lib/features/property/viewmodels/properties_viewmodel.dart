@@ -4,7 +4,9 @@ import 'package:zoneer_mobile/features/property/repositories/property_repository
 
 class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
   @override
-  Future<List<PropertyModel>> build() async => [];
+  Future<List<PropertyModel>> build() async {
+    return ref.read(propertyRepositoryProvider).getProperties();
+  }
 
   Future<void> loadProperties() async {
     state = const AsyncValue.loading();
@@ -16,7 +18,7 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
 
   Future<void> loadLandlordProperties(String landlordId) async {
     state = const AsyncValue.loading();
-    
+
     state = await AsyncValue.guard(() async {
       return ref
           .read(propertyRepositoryProvider)
@@ -30,8 +32,13 @@ final propertiesViewModelProvider =
       PropertiesViewmodel.new,
     );
 
-final propertyViewModelProvider = FutureProvider.family<PropertyModel, String>((ref, id) async {
-  final property = await ref.read(propertyRepositoryProvider).getPropertyById(id);
+final propertyViewModelProvider = FutureProvider.family<PropertyModel, String>((
+  ref,
+  id,
+) async {
+  final property = await ref
+      .read(propertyRepositoryProvider)
+      .getPropertyById(id);
 
   return property;
 });

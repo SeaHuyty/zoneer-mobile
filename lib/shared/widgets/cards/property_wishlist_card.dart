@@ -6,12 +6,12 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 ///
 /// Horizontal layout with image on left and details on right.
 /// Used across wishlist, search, and property browsing features.
-class PropertyCard extends StatefulWidget {
+class WishlistPropertyCard extends StatefulWidget {
   final PropertyModel property;
   final VoidCallback? onRemove;
   final VoidCallback? onTap;
 
-  const PropertyCard({
+  const WishlistPropertyCard({
     super.key,
     required this.property,
     this.onRemove,
@@ -19,10 +19,10 @@ class PropertyCard extends StatefulWidget {
   });
 
   @override
-  State<PropertyCard> createState() => _PropertyCardState();
+  State<WishlistPropertyCard> createState() => _WishlistPropertyCardState();
 }
 
-class _PropertyCardState extends State<PropertyCard> {
+class _WishlistPropertyCardState extends State<WishlistPropertyCard> {
   late bool _isInWishlist;
 
   @override

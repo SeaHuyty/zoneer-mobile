@@ -83,7 +83,7 @@ class WishlistView extends ConsumerWidget {
                 itemCount: wishlist.length,
                 itemBuilder: (context, index) {
                   final property = wishlist[index];
-                  return PropertyCard(
+                  return WishlistPropertyCard(
                     property: property,
                     onRemove: () {
                       // TODO: Implement remove from wishlist

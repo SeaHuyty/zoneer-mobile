@@ -101,12 +101,12 @@ class PropertyDetailPage extends ConsumerWidget {
 
                       Row(
                         children: [
-                          Icon(Icons.location_on_outlined, size: 20, color: const Color.fromARGB(255, 118, 118, 118),),
-                          Text(property.address, style: TextStyle(color: const Color.fromARGB(255, 118, 118, 118)),)
+                          Icon(Icons.location_on_outlined, size: 20, color: Color.fromARGB(255, 118, 118, 118),),
+                          Text(property.address, style: const TextStyle(color: Color.fromARGB(255, 118, 118, 118)),)
                         ],
                       ),
 
-                      SizedBox(height: 15,),
+                      const SizedBox(height: 15,),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -154,7 +154,7 @@ class PropertyDetailPage extends ConsumerWidget {
       bottomNavigationBar: property.maybeWhen(
         orElse: () => const SizedBox(),
         data: (property) => Container(
-          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -202,8 +202,8 @@ class PropertyDetailPage extends ConsumerWidget {
                   elevation: 2,
                 ),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: Text('Schedule Tour', style: TextStyle(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Text('Schedule Tour', style: const TextStyle(
                     color: Colors.white
                   ),),
                 ),

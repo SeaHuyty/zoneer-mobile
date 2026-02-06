@@ -54,29 +54,28 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
                 },
               ),
               // Dots indicator
-              Positioned(
-                bottom: 8,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(images.length, (index) {
-                    bool isActive = index == currentPage;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: isActive ? 12 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? Colors.white
-                            : Colors.black26,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    );
-                  }),
+              if (images.length > 1)
+                Positioned(
+                  bottom: 8,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(images.length, (index) {
+                      bool isActive = index == currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: isActive ? 12 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.white : Colors.black26,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    }),
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -85,10 +84,8 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
         height: 250,
         child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (err, _) => SizedBox(
-        height: 250,
-        child: Center(child: Text(err.toString())),
-      ),
+      error: (err, _) =>
+          SizedBox(height: 250, child: Center(child: Text(err.toString()))),
     );
   }
 }

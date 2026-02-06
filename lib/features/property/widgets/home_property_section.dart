@@ -21,7 +21,7 @@ class HomePropertySection extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             TextButton(onPressed: onSeeAll, child: Text('See all')),
           ],

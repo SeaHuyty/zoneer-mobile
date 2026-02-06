@@ -21,8 +21,8 @@ class PropertyCard extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -93,13 +93,26 @@ class PropertyCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '\$${property.price.toString()} / month',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryDark,
-                          fontSize: 20,
-                        ),
+                      Row(
+                        spacing: 5,
+                        children: [
+                          Text(
+                            '\$${property.price.toString()}',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryDark,
+                              fontSize: 20,
+                            ),
+                          ),
+                          Text(
+                            '/Month',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

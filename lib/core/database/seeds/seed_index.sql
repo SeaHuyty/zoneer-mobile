@@ -63,7 +63,7 @@ SELECT
   'verified',
   'available',
   landlord_id,
-  'https://i.pinimg.com/1200x/71/d4/fa/71d4fae0ad919401720e12d2d37a0e6d.jpg',
+  'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(1).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICgxKS5qcGciLCJpYXQiOjE3NzAyNjU2NDAsImV4cCI6MTgwMTgwMTY0MH0.IkHHCty_6n1AMl_0j3czN_a-glZN0v_3XWAL8ZArjiQ',
   admin_id
 FROM landlord, admin
 
@@ -83,7 +83,7 @@ SELECT
   'pending',
   'available',
   landlord_id,
-  'https://i.pinimg.com/736x/f4/e7/be/f4e7be9e608d92ec713e06e25656b098.jpg',
+  'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(2).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICgyKS5qcGciLCJpYXQiOjE3NzAyNjU3OTAsImV4cCI6MTgwMTgwMTc5MH0.hxduERFqL0PChvarUdZjaJtN68Wt25tsZEYfgTybKzc',
   admin_id
 FROM landlord, admin;
 
@@ -91,14 +91,14 @@ FROM landlord, admin;
 -- Link media to properties
 INSERT INTO media (url, property_id)
 SELECT
-  'https://i.pinimg.com/1200x/71/d4/fa/71d4fae0ad919401720e12d2d37a0e6d.jpg',
+  'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(3).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICgzKS5qcGciLCJpYXQiOjE3NzAyNjU4MDAsImV4cCI6MTgwMTgwMTgwMH0.9QRXuLG1GX6KagscF0Qrv8n718Zn1dypL7HwBavk-qw',
   id
 FROM properties
 LIMIT 1;
 
 INSERT INTO media (url, property_id)
 SELECT
-  'https://i.pinimg.com/736x/f4/e7/be/f4e7be9e608d92ec713e06e25656b098.jpg',
+  'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(4).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICg0KS5qcGciLCJpYXQiOjE3NzAyNjU4MTcsImV4cCI6MTgwMTgwMTgxN30.pl_MBmDw1V4dQG4N-LSb3jmiyuBK3ZifpAsqJU0nyt0',
   id
 FROM properties
 OFFSET 1

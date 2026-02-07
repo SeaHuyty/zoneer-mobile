@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
+import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
 import 'package:zoneer_mobile/features/property/widgets/image_widget.dart';
 import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/users_viewmodel.dart';
@@ -13,16 +15,10 @@ class PropertyDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final propertyAsync = ref.watch(propertyViewModelProvider(id));
+    final property = ref.watch(propertyViewModelProvider(id));
 
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.share_outlined)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border_outlined)),
-        ],
-      ),
-      body: propertyAsync.when(
+      body: property.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text(err.toString())),
         data: (property) {
@@ -31,74 +27,191 @@ class PropertyDetailPage extends ConsumerWidget {
               : null;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ImageWidget(imageUrl: property.thumbnail),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Stack(
                   children: [
-                    Expanded(child: Text('House in ${property.address}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-                    Text('\$${property.price.toString()} / month', style: const TextStyle(fontSize: 20, color: AppColors.primary, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-                const Divider(color: Colors.grey, thickness: 0.8),
-                
-                const Text('Amenities', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AmenityItem(icon: Icons.bed_outlined, label: 'Bedrooms', value: property.bedroom.toString()),
-                    AmenityItem(icon: Icons.bathtub_outlined, label: 'Bathrooms', value: property.bathroom.toString()),
-                    AmenityItem(icon: Icons.crop_square_outlined, label: 'Area', value: property.squareArea.toString()),
-                  ],
-                ),
-                const Divider(color: Colors.grey, thickness: 0.8),
-                
-                const Text('Description', style: TextStyle(fontWeight: FontWeight.bold)),
-                if (property.description != null && property.description!.isNotEmpty)
-                  Text(property.description!),
-                const SizedBox(height: 16),
+                    ImageWidget(thumbnail: property.thumbnail, propertyId: id),
 
-                if (landlordAsync != null)
-                  landlordAsync.maybeWhen(
-                    data: (landlord) => LandlordCard(landlord: landlord),
-                    orElse: () => const SizedBox(),
+                    SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CircleIcon(
+                              icon: Icons.arrow_back,
+                              onTap: () => Navigator.pop(context),
+                            ),
+                            Row(
+                              children: [
+                                CircleIcon(
+                                  icon: Icons.share_outlined,
+                                  onTap: () {},
+                                ),
+                                const SizedBox(width: 8),
+                                CircleIcon(
+                                  icon: Icons.favorite_border_outlined,
+                                  onTap: () {},
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 5,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'House in ${property.address}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '\$${property.price} / month',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 20, color: Color.fromARGB(255, 118, 118, 118),),
+                          Text(property.address, style: const TextStyle(color: Color.fromARGB(255, 118, 118, 118)),)
+                        ],
+                      ),
+
+                      const SizedBox(height: 15,),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AmenityItem(
+                            icon: Icons.bed_outlined,
+                            label: 'Bedrooms',
+                            value: property.bedroom.toString(),
+                          ),
+                          AmenityItem(
+                            icon: Icons.bathtub_outlined,
+                            label: 'Bathrooms',
+                            value: property.bathroom.toString(),
+                          ),
+                          AmenityItem(
+                            icon: Icons.crop_square_outlined,
+                            label: 'Area',
+                            value: property.squareArea.toString(),
+                          ),
+                        ],
+                      ),
+
+                      const Text(
+                        'Description',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      if (property.description != null &&
+                          property.description!.isNotEmpty)
+                        Text(property.description!),
+
+                      const SizedBox(height: 16),
+
+                      if (landlordAsync != null)
+                        landlordAsync.maybeWhen(
+                          data: (landlord) => LandlordCard(landlord: landlord),
+                          orElse: () => const SizedBox(),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
         },
       ),
-    );
-  }
-}
-
-class AmenityItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const AmenityItem({super.key, required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 4),
-            Text(value),
-          ],
+      bottomNavigationBar: property.maybeWhen(
+        orElse: () => const SizedBox(),
+        data: (property) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '\$${property.price}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    ' /Month',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 2,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Text('Schedule Tour', style: const TextStyle(
+                    color: Colors.white
+                  ),),
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

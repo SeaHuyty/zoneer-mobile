@@ -5,7 +5,7 @@ class UserModel {
   final String fullname;
   final String? phoneNumber;
   final String email;
-  final String password;
+  final String? password;
   final String role;
 
   final String? profileUrl;
@@ -21,7 +21,7 @@ class UserModel {
     required this.fullname,
     this.phoneNumber,
     required this.email,
-    required this.password,
+    this.password,
     required this.role,
 
     this.profileUrl,
@@ -38,7 +38,7 @@ class UserModel {
       fullname: json['fullname'] as String,
       phoneNumber: json['phone_number'] as String?,
       email: json['email'] as String,
-      password: json['password'] as String,
+      password: json['password'] as String?,
       role: json['role'] as String,
       profileUrl: json['image_profile_url'] as String?,
       previousVisitorId: json['previous_visitor_id'] as String?,
@@ -55,7 +55,7 @@ class UserModel {
       'fullname': fullname,
       'phone_number': phoneNumber,
       'email': email,
-      'password': password,
+      if (password != null && password!.isNotEmpty) 'password': password,
       'role': role,
       'image_profile_url': profileUrl,
       'previous_visitor_id': previousVisitorId,

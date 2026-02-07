@@ -4,16 +4,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 /// Empty state widget shown when user has no wishlist items.
 /// Supports two states: not logged in (with Register/Login buttons) and logged in (empty).
 class WishlistEmptyState extends StatelessWidget {
-  final bool isLoggedIn;
-  final VoidCallback? onRegister;
-  final VoidCallback? onLogin;
-
-  const WishlistEmptyState({
-    super.key,
-    this.isLoggedIn = false,
-    this.onRegister,
-    this.onLogin,
-  });
+  const WishlistEmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,64 +31,14 @@ class WishlistEmptyState extends StatelessWidget {
 
             // Subtitle
             Text(
-              isLoggedIn
-                  ? 'Start adding your favorite properties!'
-                  : 'Please register or login to get started!',
+              'Start adding your favorite properties!',
+
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-
-            // Buttons (only show if not logged in)
-            if (!isLoggedIn)
-              Row(
-                children: [
-                  // Register Button
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onRegister,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Register',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Login Button
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onLogin,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Login',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
           ],
         ),
       ),

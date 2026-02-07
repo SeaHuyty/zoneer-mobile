@@ -6,7 +6,7 @@ import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
 import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
 import 'package:zoneer_mobile/features/property/widgets/image_widget.dart';
 import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
-import 'package:zoneer_mobile/features/user/viewmodels/users_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 
 class PropertyDetailPage extends ConsumerWidget {
   final String id;
@@ -23,7 +23,7 @@ class PropertyDetailPage extends ConsumerWidget {
         error: (err, _) => Center(child: Text(err.toString())),
         data: (property) {
           final landlordAsync = property.landlordId != null
-              ? ref.watch(userViewModelProvider(property.landlordId!))
+              ? ref.watch(userByIdProvider(property.landlordId!))
               : null;
 
           return SingleChildScrollView(

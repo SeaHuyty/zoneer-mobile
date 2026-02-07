@@ -33,8 +33,43 @@ class LandlordProfileSetting extends ConsumerWidget {
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: userAsync.when(
-        error: (error, stackTrace) => const SizedBox(),
-        loading: () => CircularProgressIndicator(),
+        error: (error, stackTrace) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.redAccent,
+                  size: 40,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Failed to load profile information.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
+        ),
         data: (user) => ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           children: [

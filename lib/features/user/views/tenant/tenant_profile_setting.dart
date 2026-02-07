@@ -40,11 +40,6 @@ class TenantProfileSetting extends ConsumerWidget {
       ),
       body: userAsync.when(
         error: (error, stackTrace) {
-          // DETAILED ERROR DISPLAY
-          print('❌ Error loading user:');
-          print('Error: $error');
-          print('Stack trace: $stackTrace');
-
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -72,12 +67,10 @@ class TenantProfileSetting extends ConsumerWidget {
                   SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () async {
-                      // Try to create the user record manually
                       final authUser =
                           Supabase.instance.client.auth.currentUser;
                       if (authUser != null) {
                         try {
-                          // This would require importing and using your user mutation
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -109,7 +102,7 @@ class TenantProfileSetting extends ConsumerWidget {
               children: [
                 InfoIconRow(
                   rowIcon: Icons.email_outlined,
-                  text: user.fullname,
+                  text: user.email,
                   iconColor: AppColors.primary,
                   textColor: Colors.black,
                   textSize: 14,
@@ -158,9 +151,6 @@ class TenantProfileSetting extends ConsumerWidget {
                           const Center(child: CircularProgressIndicator()),
                     );
 
-                    // Simulate loading (remove this when backend is implemented)
-                    await Future.delayed(const Duration(milliseconds: 800));
-
                     // Close loading dialog
                     if (context.mounted) Navigator.of(context).pop();
 
@@ -184,7 +174,6 @@ class TenantProfileSetting extends ConsumerWidget {
             SectionCard(
               title: 'Logout',
               children: [
-                //Logout button styled like a card action
                 Container(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -203,7 +192,7 @@ class TenantProfileSetting extends ConsumerWidget {
                       ),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min, //keeps content centered
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
                         Icon(Icons.logout, size: 18, color: Colors.white),

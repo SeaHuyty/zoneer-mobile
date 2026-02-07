@@ -3,10 +3,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_screen.dart';
 
 class AuthRequiredScreen extends StatelessWidget {
-  final VoidCallback? onRegister;
-  final VoidCallback? onLogin;
-
-  const AuthRequiredScreen({super.key, this.onRegister, this.onLogin});
+  const AuthRequiredScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

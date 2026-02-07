@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS properties(
 	thumbnail_url TEXT NOT NULL,
 	verified_by_admin UUID NOT NULL,
 	FOREIGN KEY (landlord_id) REFERENCES users(id) ON DELETE CASCADE,
-	FOREIGN KEY (verified_by_admin) REFERENCES admins(id) ON DELETE SET NULL
+	FOREIGN KEY (verified_by_admin) REFERENCES admins(id) ON DELETE RESTRICT
 );
 
 -- Enable Row Level Security

@@ -58,7 +58,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           fullname: _fullNameController.text,
         );
 
-        if (response.user != null) {
+        if (response.session != null) {
           try {
             await ref
                 .read(userMutationViewModelProvider.notifier)
@@ -187,8 +187,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submit,
-                  child: Text(isRegister ? 'Register' : 'Login'),
+                  onPressed: _isLoading ? null : _submit,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(isRegister ? 'Register' : 'Login'),
                 ),
               ),
 

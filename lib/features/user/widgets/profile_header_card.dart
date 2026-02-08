@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:zoneer_mobile/core/utils/app_decoration.dart';
+import 'package:zoneer_mobile/features/user/models/user_model.dart';
 
 
 class ProfileHeaderCard extends StatelessWidget {
-  const ProfileHeaderCard({super.key});
+  final UserModel user;
+
+  const ProfileHeaderCard({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +22,8 @@ class ProfileHeaderCard extends StatelessWidget {
             child: const Icon(Icons.person, size: 46, color: Colors.grey),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Sophavisnuka',
+          Text(
+            user.fullname,
             style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
@@ -34,8 +37,8 @@ class ProfileHeaderCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               color: const Color(0xFFEFEFEF),
             ),
-            child: const Text(
-              'Landlord',
+            child: Text(
+              user.role.toUpperCase(),
               style: TextStyle(color: Colors.black, fontSize: 12),
             ),
           ),

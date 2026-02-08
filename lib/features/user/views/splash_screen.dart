@@ -4,7 +4,7 @@ import '../widgets/circleTransition.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_prefs.dart';
 import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
-import '../views/onBoarding_screen.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,15 +25,19 @@ class _SplashScreenState extends State<SplashScreen>
     final onboardingDone = await AppPrefs.isOnboardingDone();
 
     if (!onboardingDone) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+      }
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const GoogleNavBar()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GoogleNavBar()),
+        );
+      }
     }
   }
 

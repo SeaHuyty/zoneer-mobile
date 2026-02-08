@@ -58,7 +58,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           fullname: _fullNameController.text,
         );
 
-        if (response.session != null) {
+        if (response.user != null) {
           try {
             await ref
                 .read(userMutationViewModelProvider.notifier)

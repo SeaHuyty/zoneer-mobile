@@ -25,7 +25,7 @@ class Onboarding1 extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 60),
                 child: Column(
                   children: [
-                    Text(
+                    const Text(
                       'Find the perfect place for your future house',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -33,8 +33,8 @@ class Onboarding1 extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 10),
-                    Text(
+                    const SizedBox(height: 10),
+                    const Text(
                       'find the best place for your dream house with your family and loved ones',
                       textAlign: TextAlign.center,
                       style: TextStyle(

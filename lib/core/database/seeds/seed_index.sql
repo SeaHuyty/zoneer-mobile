@@ -10,20 +10,21 @@ values
   ('Admin One', 'password123', 'admin1@test.com'),
   ('Admin Two', 'password123', 'admin2@test.com');
 
-
 -- Link some users to previous visitors
-insert into users (fullname, phone_number, email, password, role, previous_visitor_id, verify_status)
-select 'Alice Tenant', '08123456789', 'alice@test.com', 'password123', 'tenant', id, 'verified'
-from visitors where device_id = 'device_001';
+insert into users (id, fullname, phone_number, email, role, previous_visitor_id, verify_status, image_profile_url)
+select gen_random_uuid(), 'Alice Tenant', '08123456789', 'alice@test.com', 'tenant', id, 'verified', 'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(5).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICg1KS5qcGciLCJpYXQiOjE3NzA1NDAwNDQsImV4cCI6MTgwMjA3NjA0NH0.YU3Q1l40rJ4NyAdgbBbsuR91U9TN9k9nMg0gBU3HO88'
+from visitors
+where device_id = 'device_001';
 
-insert into users (fullname, phone_number, email, password, role, previous_visitor_id)
-select 'Bob Landlord', '08129876543', 'bob@test.com', 'password123', 'landlord', id
-from visitors where device_id = 'device_002';
+insert into users (id, fullname, phone_number, email, role, previous_visitor_id, image_profile_url)
+select gen_random_uuid(), 'Bob Landlord', '08129876543', 'bob@test.com', 'landlord', id, 'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(5).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICg1KS5qcGciLCJpYXQiOjE3NzA1NDAwNDQsImV4cCI6MTgwMjA3NjA0NH0.YU3Q1l40rJ4NyAdgbBbsuR91U9TN9k9nMg0gBU3HO88'
+from visitors
+where device_id = 'device_002';
 
-insert into users (fullname, phone_number, email, password, role)
+-- Insert a new user without linking to a visitor
+insert into users (id, fullname, phone_number, email, role, image_profile_url)
 values
-  ('Charlie Tenant', '08121112222', 'charlie@test.com', 'password123', 'tenant');
-
+  (gen_random_uuid(), 'Charlie Tenant', '08121112222', 'charlie@test.com', 'tenant', 'https://wpxbpemkvlnrnxosfqzn.supabase.co/storage/v1/object/sign/properties_image/download%20(5).jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kNDAyOTZkNy1lZjMwLTQ2MGItYWY1My1hZTk2NjdlNjQ1YmEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9wZXJ0aWVzX2ltYWdlL2Rvd25sb2FkICg1KS5qcGciLCJpYXQiOjE3NzA1NDAwNDQsImV4cCI6MTgwMjA3NjA0NH0.YU3Q1l40rJ4NyAdgbBbsuR91U9TN9k9nMg0gBU3HO88');
 
 -- Grab landlord and admin IDs
 WITH landlord AS (

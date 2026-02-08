@@ -9,6 +9,8 @@ import 'package:zoneer_mobile/features/property/widgets/image_widget.dart';
 import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
+import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
+import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 
 class PropertyDetailPage extends ConsumerWidget {
   final String id;
@@ -20,7 +22,12 @@ class PropertyDetailPage extends ConsumerWidget {
 
     if (authUser == null) {
       AuthRequiredScreen();
+      return;
     }
+
+    final wishlist = WishlistModel(userId: authUser.id, propertyId: id);
+
+    await ref.read(wishlistViewmodelProvider.notifier).addToWishlist(wishlist);
   }
 
   @override
@@ -67,7 +74,7 @@ class PropertyDetailPage extends ConsumerWidget {
                                 CircleIcon(
                                   icon: Icons.favorite_border_outlined,
                                   onTap: () {
-                                    // _addToWishlist();
+                                    _addToWishlist(ref);
                                   },
                                 ),
                               ],

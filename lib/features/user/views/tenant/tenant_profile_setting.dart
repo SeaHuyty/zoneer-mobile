@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
-import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
+import 'package:zoneer_mobile/features/user/widgets/action_row.dart';
 import 'package:zoneer_mobile/features/user/widgets/profile_header_card.dart';
 import 'package:zoneer_mobile/features/user/widgets/section_card.dart';
 
@@ -17,197 +18,161 @@ class TenantProfileSetting extends ConsumerWidget {
 
     if (authUser == null) {
       return const AuthRequiredScreen();
-    } 
+    }
 
     final userAsync = ref.watch(userByIdProvider(authUser.id));
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
-      appBar: AppBar(
-        title: const Text(
-          'Tenant Profile Setting',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
-        backgroundColor: const Color(0xFFF6F6F6),
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 0,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: userAsync.when(
-        error: (error, stackTrace) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  SizedBox(height: 16),
-                  Text(
-                    'User not found in database',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Your account exists but user profile is missing.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Error: $error',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final authUser =
-                          Supabase.instance.client.auth.currentUser;
-                      if (authUser != null) {
-                        try {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please contact support or re-register',
-                              ),
-                            ),
-                          );
-                        } catch (e) {
-                          print('Error: $e');
-                        }
-                      }
-                    },
-                    child: Text('Contact Support'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
 
-        loading: () => CircularProgressIndicator(),
+    return Scaffold(
+      body: userAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text(e.toString())),
         data: (user) => ListView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            ProfileHeaderCard(user: user),
-            const SizedBox(height: 14),
+            ProfileHeaderCard(
+              user: user,
+              onEdit: () {
+                // TODO: navigate to edit profile
+              },
+            ),
+
+            const SizedBox(height: 20),
+
+            /// My Activity
             SectionCard(
-              title: "Personal Info",
+              title: "My Activity",
               children: [
-                InfoIconRow(
-                  rowIcon: Icons.email_outlined,
-                  text: user.email,
-                  iconColor: AppColors.primary,
-                  textColor: Colors.black,
-                  textSize: 14,
-                  iconSize: 18,
+                ActionRow(
+                  icon: Icons.favorite_border,
+                  label: "Saved Properties",
+                  onTap: () {},
                 ),
-                SizedBox(height: 12),
-                InfoIconRow(
-                  rowIcon: Icons.phone,
-                  text: '+855 016 260 218',
-                  iconColor: AppColors.primary,
-                  textColor: Colors.black,
-                  textSize: 14,
-                  iconSize: 18,
+                ActionRow(
+                  icon: Icons.assignment_outlined,
+                  label: "My Applications",
+                  onTap: () {},
                 ),
-                SizedBox(height: 12),
-                InfoIconRow(
-                  rowIcon: Icons.person_pin,
-                  text: 'tenant',
-                  iconColor: AppColors.primary,
-                  textColor: Colors.black,
-                  textSize: 14,
-                  iconSize: 18,
+                ActionRow(
+                  icon: Icons.chat_bubble_outline,
+                  label: "Messages",
+                  onTap: () {},
+                ),
+                ActionRow(
+                  icon: Icons.event_outlined,
+                  label: "Scheduled Visits",
+                  onTap: () {},
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+
+            const SizedBox(height: 20),
+
+            /// Profile Info
             SectionCard(
-              title: "Profile Action",
+              title: "Profile Information",
               children: [
                 ActionRow(
-                  icon: Icons.edit,
-                  label: "Edit Profile",
+                  icon: Icons.person_outline,
+                  label: "Personal Information",
+                  onTap: () {},
+                ),
+                ActionRow(
+                  icon: Icons.home_work_outlined,
+                  label: "Rental Preferences",
+                  onTap: () {},
+                ),
+                ActionRow(
+                  icon: Icons.work_outline,
+                  label: "Employment & Income",
+                  onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            /// Documents
+            SectionCard(
+              title: "Documents & Verification",
+              children: [
+                ActionRow(
+                  icon: Icons.folder_open,
+                  label: "My Documents",
+                  onTap: () {},
+                ),
+                ActionRow(
+                  icon: Icons.verified_user_outlined,
+                  label: "Verification Status",
+                  onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            /// Settings
+            SectionCard(
+              title: "Settings",
+              children: [
+                ActionRow(
+                  icon: Icons.notifications_outlined,
+                  label: "Notifications",
                   onTap: () {
-                    // TODO: navigate to edit profile
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationScreen(),
+                      ),
+                    );
                   },
+                ),
+                ActionRow(
+                  icon: Icons.lock_outline,
+                  label: "Privacy & Security",
+                  onTap: () {},
                 ),
                 ActionRow(
                   icon: Icons.swap_horiz_outlined,
-                  label: "Switch to landlord",
-                  onTap: () async {
-                    // Show loading dialog
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) =>
-                          const Center(child: CircularProgressIndicator()),
-                    );
-
-                    // Close loading dialog
-                    if (context.mounted) Navigator.of(context).pop();
-
-                    // Switch profile type using provider
-                    if (context.mounted) {
-                      ref.read(profileTypeProvider.notifier).switchToLandlord();
-                    }
-                  },
-                ),
-                const SizedBox(height: 10),
-                ActionRow(
-                  icon: Icons.dangerous,
-                  label: "Danger Zone",
+                  label: "Switch to Landlord",
                   onTap: () {
-                    // TODO: switch role
+                    ref.read(profileTypeProvider.notifier).switchToLandlord();
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: 20),
+
+            /// Support
             SectionCard(
-              title: 'Logout',
+              title: "Support",
               children: [
-                Container(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await Supabase.instance.client.auth.signOut();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 0,
-                        vertical: 20,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.logout, size: 18, color: Colors.white),
-                        SizedBox(width: 10),
-                        Text(
-                          'Logout',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                ActionRow(
+                  icon: Icons.help_outline,
+                  label: "Help Center",
+                  onTap: () {},
+                ),
+                ActionRow(
+                  icon: Icons.support_agent,
+                  label: "Contact Support",
+                  onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            /// Logout
+            SectionCard(
+              title: "Account",
+              children: [
+                ActionRow(
+                  icon: Icons.logout,
+                  label: "Logout",
+                  textColor: Colors.red,
+                  onTap: () async {
+                    await Supabase.instance.client.auth.signOut();
+                  },
                 ),
               ],
             ),

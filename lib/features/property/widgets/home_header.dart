@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/service_provider.dart';
+import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 
 class HomeHeader extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const HomeHeader({super.key});
@@ -169,7 +170,9 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                         _notificationController.duration = composition.duration;
                       },
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+                    },
                   ),
                 ],
               ),

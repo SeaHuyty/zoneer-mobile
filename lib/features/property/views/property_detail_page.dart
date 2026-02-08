@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
@@ -7,11 +8,27 @@ import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
 import 'package:zoneer_mobile/features/property/widgets/image_widget.dart';
 import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
+import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
+import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
+import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 
 class PropertyDetailPage extends ConsumerWidget {
   final String id;
 
   const PropertyDetailPage({super.key, required this.id});
+
+  void _addToWishlist(WidgetRef ref) async {
+    final authUser = Supabase.instance.client.auth.currentUser;
+
+    if (authUser == null) {
+      AuthRequiredScreen();
+      return;
+    }
+
+    final wishlist = WishlistModel(userId: authUser.id, propertyId: id);
+
+    await ref.read(wishlistViewmodelProvider.notifier).addToWishlist(wishlist);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,7 +73,9 @@ class PropertyDetailPage extends ConsumerWidget {
                                 const SizedBox(width: 8),
                                 CircleIcon(
                                   icon: Icons.favorite_border_outlined,
-                                  onTap: () {},
+                                  onTap: () {
+                                    _addToWishlist(ref);
+                                  },
                                 ),
                               ],
                             ),

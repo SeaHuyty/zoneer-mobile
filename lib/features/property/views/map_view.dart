@@ -8,7 +8,23 @@ class MapView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Map'), elevation: 0),
+      backgroundColor: const Color(0xFFF6F6F6), // soft page background
+      appBar: AppBar(
+        title: const Text(
+          'Location',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: const Color(0xFFF6F6F6), // soft page background
+        surfaceTintColor: Colors.white, // Material 3 tint
+        scrolledUnderElevation: 0, // remove scroll elevation color change
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -17,8 +33,11 @@ class MapView extends ConsumerWidget {
             SizedBox(height: 20),
             Text(
               'Map View',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              )),
             SizedBox(height: 10),
             Text(
               'Property map will appear here',

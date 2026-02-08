@@ -13,21 +13,20 @@ class HomeView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: const HomeHeader(),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 15),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SearchBarApp(),
-              const SizedBox(height: 20),
-              const HomePropertiesCategory(),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const SearchBarApp(),
+            const SizedBox(height: 20),
+            const HomePropertiesCategory(),
 
-              HomePropertySection(title: 'Nearby', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.nearby))),
-              HomePropertySection(title: 'Property in Siem Reap', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.siemreap))),
-              HomePropertySection(title: 'Property in Phnom Penh', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.phnompenh)))
-            ],
-          ),
+            const SizedBox(height: 10),
+            HomePropertySection(title: 'Nearby', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.nearby))),
+            HomePropertySection(title: 'Property in Siem Reap', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.siemreap))),
+            HomePropertySection(title: 'Property in Phnom Penh', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.phnompenh)))
+          ],
         ),
       ),
     );

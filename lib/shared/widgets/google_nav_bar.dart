@@ -65,9 +65,9 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
       const HomeView(),
       const WishlistView(),
       const MapView(),
-      profileType == ProfileType.landlord 
-        ? const LandlordProfile() 
-        : const TenantProfileSetting(),
+      profileType == ProfileType.tenant
+        ? const TenantProfileSetting()
+        : const LandlordProfile(),
     ];
 
     return Scaffold(

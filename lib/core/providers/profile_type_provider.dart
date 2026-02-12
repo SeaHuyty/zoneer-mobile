@@ -19,7 +19,7 @@ final profileTypeProvider = NotifierProvider<ProfileTypeNotifier, ProfileType>(
 /// Profile type notifier to manage profile state
 class ProfileTypeNotifier extends Notifier<ProfileType> {
   @override
-  ProfileType build() => ProfileType.landlord; // Initial state is landlord
+  ProfileType build() => ProfileType.tenant; // Initial state is tenant
 
   void switchProfile(ProfileType type) {
     state = type;

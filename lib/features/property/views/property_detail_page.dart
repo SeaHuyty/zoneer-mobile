@@ -211,7 +211,7 @@ class PropertyDetailPage extends ConsumerWidget {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (builder)=>Inquiry(propertyId: id,))
+                    MaterialPageRoute(builder: (context)=>Inquiry(propertyId: id,))
                   );
                 },
                 style: ElevatedButton.styleFrom(

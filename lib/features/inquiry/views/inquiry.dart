@@ -105,7 +105,7 @@ class Inquiry extends ConsumerWidget {
                         AmenityItem(
                           label: 'Area', 
                           value: property.squareArea.toString(), 
-                          icon: Icons.bathroom
+                          icon: Icons.square_foot
                         ),
                       ],
                     ),

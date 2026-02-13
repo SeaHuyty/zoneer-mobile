@@ -299,7 +299,7 @@ class ReviewInquiry extends ConsumerWidget {
                     ),
                   );
                   // Navigate back to property details
-                  Navigator.of(context).popUntil((route) => route.isFirst || route.settings.name == '/property-detail');
+                  Navigator.of(context).pop;
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

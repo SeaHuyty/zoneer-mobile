@@ -11,6 +11,7 @@ import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
+import 'package:zoneer_mobile/features/wishlist/repositories/wishlist_repository.dart';
 import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 
 class PropertyDetailPage extends ConsumerWidget {
@@ -18,22 +19,82 @@ class PropertyDetailPage extends ConsumerWidget {
 
   const PropertyDetailPage({super.key, required this.id});
 
-  void _addToWishlist(WidgetRef ref) async {
+  void _toggleWishlist(WidgetRef ref, BuildContext context) async {
     final authUser = Supabase.instance.client.auth.currentUser;
 
     if (authUser == null) {
-      AuthRequiredScreen();
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthRequiredScreen()),
+      );
       return;
     }
 
-    final wishlist = WishlistModel(userId: authUser.id, propertyId: id);
+    try {
+      final isInWishlist = await ref
+          .read(wishlistRepositoryProvider)
+          .isPropertyInWishlist(authUser.id, id);
 
-    await ref.read(wishlistViewmodelProvider.notifier).addToWishlist(wishlist);
+      bool success;
+      String successMessage;
+
+      if (isInWishlist) {
+        // Remove from wishlist
+        success = await ref
+            .read(wishlistViewmodelProvider.notifier)
+            .removeFromWishlist(authUser.id, id);
+        successMessage = 'Removed from wishlist';
+      } else {
+        // Add to wishlist
+        final wishlistModel = WishlistModel(
+          userId: authUser.id,
+          propertyId: id,
+        );
+        success = await ref
+            .read(wishlistViewmodelProvider.notifier)
+            .addToWishlist(wishlistModel);
+        successMessage = 'Added to wishlist';
+      }
+
+      if (context.mounted) {
+        if (success) {
+          ref.invalidate(isPropertyInWishlistProvider(id));
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(successMessage),
+              duration: const Duration(seconds: 2),
+              backgroundColor: isInWishlist ? Colors.red : AppColors.primary,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to update wishlist'),
+              duration: Duration(seconds: 3),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Wishlist error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final property = ref.watch(propertyViewModelProvider(id));
+    final isInWishlistAsync = ref.watch(isPropertyInWishlistProvider(id));
 
     return Scaffold(
       body: property.when(
@@ -43,6 +104,8 @@ class PropertyDetailPage extends ConsumerWidget {
           final landlordAsync = property.landlordId != null
               ? ref.watch(userByIdProvider(property.landlordId!))
               : null;
+
+          final isInWishlist = isInWishlistAsync.value ?? false;
 
           return SingleChildScrollView(
             child: Column(
@@ -73,10 +136,11 @@ class PropertyDetailPage extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 CircleIcon(
-                                  icon: Icons.favorite_border_outlined,
-                                  onTap: () {
-                                    _addToWishlist(ref);
-                                  },
+                                  icon: isInWishlist
+                                      ? Icons.favorite
+                                      : Icons.favorite_border_outlined,
+                                  onTap: () => _toggleWishlist(ref, context),
+                                  iconColor: isInWishlist ? Colors.red : null,
                                 ),
                               ],
                             ),
@@ -121,12 +185,21 @@ class PropertyDetailPage extends ConsumerWidget {
 
                       Row(
                         children: [
-                          Icon(Icons.location_on_outlined, size: 20, color: Color.fromARGB(255, 118, 118, 118),),
-                          Text(property.address, style: const TextStyle(color: Color.fromARGB(255, 118, 118, 118)),)
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 20,
+                            color: Color.fromARGB(255, 118, 118, 118),
+                          ),
+                          Text(
+                            property.address,
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 118, 118, 118),
+                            ),
+                          ),
                         ],
                       ),
 
-                      const SizedBox(height: 15,),
+                      const SizedBox(height: 15),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -211,7 +284,9 @@ class PropertyDetailPage extends ConsumerWidget {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context)=>Inquiry(propertyId: id,))
+                    MaterialPageRoute(
+                      builder: (context) => Inquiry(propertyId: id),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -226,10 +301,14 @@ class PropertyDetailPage extends ConsumerWidget {
                   elevation: 2,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: Text('Schedule Tour', style: const TextStyle(
-                    color: Colors.white
-                  ),),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  child: Text(
+                    'Schedule Tour',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],

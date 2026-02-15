@@ -30,6 +30,17 @@ class WishlistRepository {
   Future<void> clearWishlist(String userId) async {
     await _supabase.from('wishlists').delete().eq('user_id', userId);
   }
+
+  Future<bool> isPropertyInWishlist(String userId, String propertyId) async {
+    final response = await _supabase
+        .from('wishlists')
+        .select()
+        .eq('user_id', userId)
+        .eq('property_id', propertyId)
+        .maybeSingle();
+
+    return response != null;
+  }
 }
 
 final wishlistRepositoryProvider = Provider<WishlistRepository>((ref) {

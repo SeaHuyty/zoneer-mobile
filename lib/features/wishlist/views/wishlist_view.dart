@@ -21,7 +21,9 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
     super.initState();
     final authUser = Supabase.instance.client.auth.currentUser;
     if (authUser != null) {
-      ref.read(wishlistViewmodelProvider.notifier).loadWishlist(authUser.id);
+      Future.microtask(() {
+        ref.read(wishlistViewmodelProvider.notifier).loadWishlist(authUser.id);
+      });
     }
   }
 

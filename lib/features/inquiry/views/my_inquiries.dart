@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/features/inquiry/viewmodels/inquiry_viewmodel.dart';
 import 'package:zoneer_mobile/features/inquiry/views/inquiry_detail.dart';
+import 'package:zoneer_mobile/features/inquiry/views/widgets/inquiry_card.dart';
 
 class MyInquiries extends ConsumerStatefulWidget {
   const MyInquiries({super.key});
@@ -66,40 +67,7 @@ class _MyInquiriesState extends ConsumerState<MyInquiries> {
                     ),
                   );
                 },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        inquiry.fullname,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        inquiry.message,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
+                child: InquiryCard(inquiry: inquiry)
               );
             },
           );

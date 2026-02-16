@@ -1,30 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
-import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
-import 'package:zoneer_mobile/core/database/mock/mock_notification.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
 import 'package:zoneer_mobile/features/notification/widgets/notification_tile.dart';
+import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 
-class NotificationScreen extends StatefulWidget {
+class NotificationScreen extends ConsumerStatefulWidget {
   const NotificationScreen({super.key});
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+  ConsumerState<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   bool showUnreadOnly = false;
   final Set<String> selectedIds = {};
-
-  // Using mock data for now (replace with provider later)
-  List<NotificationModel> notifications = mockNotifications;
 
   bool get isSelectionMode => selectedIds.isNotEmpty;
 
   @override
+  void initState() {
+    super.initState();
+    final authUser = Supabase.instance.client.auth.currentUser;
+    if (authUser != null) {
+      Future.microtask(() {
+        ref
+            .read(notificationsViewModelProvider.notifier)
+            .loadNotifications(authUser.id);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final visibleNotifications = showUnreadOnly
-        ? notifications.where((n) => !n.isRead).toList()
-        : notifications;
+    final authUser = Supabase.instance.client.auth.currentUser;
+
+    if (authUser == null) {
+      return const AuthRequiredScreen();
+    }
+    final notificationAsync = ref.watch(notificationsViewModelProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,61 +53,123 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ? [
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: _deleteSelected,
+                  onPressed: () => _deleteSelected(authUser.id),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: _clearSelection,
                 ),
               ]
-            : [],
+            : [
+                IconButton(
+                  onPressed: () {
+                    ref
+                        .read(notificationsViewModelProvider.notifier)
+                        .markAllNotificationsAsRead(authUser.id);
+                  },
+                  icon: const Icon(Icons.done_all),
+                  tooltip: 'Mark all as read',
+                ),
+              ],
       ),
-      body: Column(
-        children: [
-          /// Filter toggle
-          _FilterBar(
-            showUnreadOnly: showUnreadOnly,
-            onChanged: (value) {
-              setState(() {
-                showUnreadOnly = value;
-                _clearSelection();
-              });
-            },
+      body: notificationAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading notifications: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  if (showUnreadOnly) {
+                    ref
+                        .read(notificationsViewModelProvider.notifier)
+                        .loadUnreadNotifications(authUser.id);
+                  } else {
+                    ref
+                        .read(notificationsViewModelProvider.notifier)
+                        .loadNotifications(authUser.id);
+                  }
+                },
+                child: const Text('Retry'),
+              ),
+            ],
           ),
+        ),
+        data: (notifications) {
+          final visibleNotifications = showUnreadOnly
+              ? notifications.where((n) => !n.isRead).toList()
+              : notifications;
 
-          const SizedBox(height: 4),
+          return Column(
+            children: [
+              /// Filter toggle
+              _FilterBar(
+                showUnreadOnly: showUnreadOnly,
+                onChanged: (value) {
+                  setState(() {
+                    showUnreadOnly = value;
+                    _clearSelection();
+                  });
+                },
+              ),
 
-          Expanded(
-            child: visibleNotifications.isEmpty
-                ? const _EmptyNotificationState()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
-                    itemCount: visibleNotifications.length,
-                    itemBuilder: (context, index) {
-                      final notification = visibleNotifications[index];
-                      final isSelected = selectedIds.contains(notification.id);
+              const SizedBox(height: 4),
 
-                      return NotificationRow(
-                        notification: notification,
-                        isSelected: isSelected,
-                        onTap: () {
-                          if (isSelectionMode) {
-                            _toggleSelection(notification.id);
-                          } else {
-                            // TODO: mark as read + navigate
-                          }
+              Expanded(
+                child: visibleNotifications.isEmpty
+                    ? const _EmptyNotificationState()
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await ref
+                              .read(notificationsViewModelProvider.notifier)
+                              .loadNotifications(authUser.id);
                         },
-                        onLongPress: () {
-                          _toggleSelection(notification.id);
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          itemCount: visibleNotifications.length,
+                          itemBuilder: (context, index) {
+                            final notification = visibleNotifications[index];
+                            final isSelected = selectedIds.contains(
+                              notification.id,
+                            );
+
+                            return NotificationRow(
+                              notification: notification,
+                              isSelected: isSelected,
+                              onTap: () {
+                                if (isSelectionMode) {
+                                  _toggleSelection(notification.id);
+                                } else {
+                                  if (!notification.isRead) {
+                                    ref
+                                        .read(
+                                          notificationsViewModelProvider
+                                              .notifier,
+                                        )
+                                        .markNotificationAsRead(
+                                          notification.id,
+                                        );
+                                  }
+                                }
+                              },
+                              onLongPress: () {
+                                _toggleSelection(notification.id);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -113,9 +190,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
   }
 
-  void _deleteSelected() {
+  void _deleteSelected(String userId) async {
+    await ref
+        .read(notificationsViewModelProvider.notifier)
+        .deleteMultipleNotifications(selectedIds.toList());
+
     setState(() {
-      notifications.removeWhere((n) => selectedIds.contains(n.id));
       selectedIds.clear();
     });
   }

@@ -6,6 +6,7 @@ import 'package:zoneer_mobile/features/inquiry/models/inquiry_model.dart';
 import 'package:zoneer_mobile/features/inquiry/views/review_inquiry.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
+import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 
 class Inquiry extends ConsumerStatefulWidget {
   final PropertyModel property;
@@ -40,9 +41,17 @@ class _InquiryState extends ConsumerState<Inquiry> {
   void _onSubmit() {
     final authUser = Supabase.instance.client.auth.currentUser;
 
+    if (authUser == null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthRequiredScreen()),
+      );
+      return;
+    }
+
     final InquiryModel inquiry = InquiryModel(
       propertyId: widget.property.id,
-      userId: authUser!.id,
+      userId: authUser.id,
       fullname: _fullNameController.text,
       phoneNumber: _phoneController.text,
       message: _messageController.text,
@@ -53,7 +62,8 @@ class _InquiryState extends ConsumerState<Inquiry> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReviewInquiry(property: widget.property, inquiry: inquiry),
+        builder: (context) =>
+            ReviewInquiry(property: widget.property, inquiry: inquiry),
       ),
     );
   }
@@ -272,7 +282,7 @@ class _InquiryState extends ConsumerState<Inquiry> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _onSubmit,
+                      onPressed: _agreed ? _onSubmit : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: EdgeInsets.symmetric(vertical: 16),

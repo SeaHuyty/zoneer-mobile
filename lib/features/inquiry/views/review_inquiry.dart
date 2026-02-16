@@ -32,35 +32,36 @@ class ReviewInquiry extends ConsumerWidget {
       ),
     );
 
+    bool success = false;
     try {
       // Submit the inquiry
-      await ref
+      success = await ref
           .read(inquiriesViewModelProvider.notifier)
           .submitInquiry(inquiry);
+    } catch (_) {
+      success = false;
+    }
 
-      if (context.mounted) Navigator.of(context).pop();
+    if (context.mounted) Navigator.of(context).pop();
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Inquiry submitted successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    if (!context.mounted) return;
 
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      if (context.mounted) Navigator.of(context).pop();
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inquiry submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to submit inquiry: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to submit inquiry. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

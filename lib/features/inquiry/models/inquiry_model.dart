@@ -27,7 +27,7 @@ class InquiryModel {
 
   factory InquiryModel.fromJson(Map<String, dynamic> json) {
     return InquiryModel(
-      id: json['id'] as String,
+      id: json['id'] as String?,
       propertyId: json['property_id'] as String,
       userId: json['user_id'] as String,
       fullname: json['fullname'] as String,

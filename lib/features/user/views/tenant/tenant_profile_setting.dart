@@ -9,6 +9,7 @@ import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart
 import 'package:zoneer_mobile/features/user/widgets/action_row.dart';
 import 'package:zoneer_mobile/features/user/widgets/profile_header_card.dart';
 import 'package:zoneer_mobile/features/user/widgets/section_card.dart';
+import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
 
 class TenantProfileSetting extends ConsumerWidget {
   const TenantProfileSetting({super.key});
@@ -46,7 +47,14 @@ class TenantProfileSetting extends ConsumerWidget {
                 ActionRow(
                   icon: Icons.favorite_border,
                   label: "Saved Properties",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WishlistView(),
+                      ),
+                    );
+                  },
                 ),
                 ActionRow(
                   icon: Icons.assignment_outlined,
@@ -54,7 +62,9 @@ class TenantProfileSetting extends ConsumerWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => MyInquiries()),
+                      MaterialPageRoute(
+                        builder: (context) => const MyInquiries(),
+                      ),
                     );
                   },
                 ),

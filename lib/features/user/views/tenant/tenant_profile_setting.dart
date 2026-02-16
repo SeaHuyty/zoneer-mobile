@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
+import 'package:zoneer_mobile/features/inquiry/views/my_inquiries.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
@@ -50,7 +51,12 @@ class TenantProfileSetting extends ConsumerWidget {
                 ActionRow(
                   icon: Icons.assignment_outlined,
                   label: "My Applications",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyInquiries()),
+                    );
+                  },
                 ),
                 ActionRow(
                   icon: Icons.chat_bubble_outline,

@@ -28,7 +28,7 @@ class InquiryRepository {
     final response = await _supabase
         .from('inquiries')
         .update(inquiry.toJson())
-        .eq('id', inquiry.id)
+        .eq('id', inquiry.id!)
         .select()
         .single();
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/inquiry/views/inquiry.dart';
+import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
 import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
@@ -88,6 +89,23 @@ class PropertyDetailPage extends ConsumerWidget {
         );
       }
     }
+  }
+
+  void _scheduleTour(BuildContext context, PropertyModel property) {
+    final authUser = Supabase.instance.client.auth.currentUser;
+
+    if (authUser == null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthRequiredScreen()),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => Inquiry(property: property)),
+    );
   }
 
   @override
@@ -281,13 +299,7 @@ class PropertyDetailPage extends ConsumerWidget {
                 ],
               ),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => Inquiry(propertyId: id),
-                    ),
-                  );
-                },
+                onPressed: () => _scheduleTour(context, property),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zoneer_mobile/features/property/models/property_model.dart';
+import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
 import 'package:zoneer_mobile/features/wishlist/repositories/wishlist_repository.dart';
 
@@ -82,4 +84,22 @@ final isPropertyInWishlistProvider = FutureProvider.family<bool, String>((
   return ref
       .read(wishlistRepositoryProvider)
       .isPropertyInWishlist(authUser.id, propertyId);
+});
+
+final wishlistPropertiesProvider = FutureProvider.autoDispose<List<PropertyModel>>((ref) async {
+  final authUser = Supabase.instance.client.auth.currentUser;
+
+  if (authUser == null) {
+    return [];
+  }
+
+  final wishlistItems = await ref.watch(wishlistViewmodelProvider.future);
+
+  if (wishlistItems.isEmpty) {
+    return [];
+  }
+
+  final propertyIds = wishlistItems.map((item) => item.propertyId).toList();
+  
+  return ref.read(propertyRepositoryProvider).getPropertiesByIds(propertyIds);
 });

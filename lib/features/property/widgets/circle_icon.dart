@@ -17,7 +17,7 @@ class CircleIcon extends StatelessWidget {
           color: Colors.black.withValues(alpha: 0.5),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: (iconColor != null) ? iconColor : Colors.white),
+        child: Icon(icon, color: iconColor ?? Colors.white),
       ),
     );
   }

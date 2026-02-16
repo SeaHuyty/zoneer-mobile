@@ -34,7 +34,7 @@ class WishlistRepository {
   Future<bool> isPropertyInWishlist(String userId, String propertyId) async {
     final response = await _supabase
         .from('wishlists')
-        .select()
+        .select('property_id')
         .eq('user_id', userId)
         .eq('property_id', propertyId)
         .maybeSingle();

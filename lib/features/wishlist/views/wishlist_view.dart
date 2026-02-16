@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
-import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
@@ -20,12 +19,10 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authUser = Supabase.instance.client.auth.currentUser;
-      if (authUser != null) {
-        ref.read(wishlistViewmodelProvider.notifier).loadWishlist(authUser.id);
-      }
-    });
+    final authUser = Supabase.instance.client.auth.currentUser;
+    if (authUser != null) {
+      ref.read(wishlistViewmodelProvider.notifier).loadWishlist(authUser.id);
+    }
   }
 
   @override
@@ -55,7 +52,6 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  debugPrint(authUser.id);
                   ref
                       .read(wishlistViewmodelProvider.notifier)
                       .loadWishlist(authUser.id);
@@ -70,30 +66,53 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
             return const WishlistEmptyState();
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: wishlistItems.length,
-            itemBuilder: (context, index) {
-              final wishlistItem = wishlistItems[index];
+          // Watch the batch properties provider
+          final propertiesAsync = ref.watch(wishlistPropertiesProvider);
 
-              final propertyAsync = ref.watch(
-                propertyViewModelProvider(wishlistItem.propertyId),
-              );
+          return propertiesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error loading properties: $err'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.invalidate(wishlistPropertiesProvider);
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+            data: (properties) {
+              final propertyMap = {
+                for (var property in properties) property.id: property,
+              };
 
-              return propertyAsync.when(
-                loading: () => const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-                error: (err, _) => Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text('Error loading property: $err'),
-                  ),
-                ),
-                data: (property) => GestureDetector(child: PropertyCard(property: property), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PropertyDetailPage(id: property.id))),),
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: wishlistItems.length,
+                itemBuilder: (context, index) {
+                  final wishlistItem = wishlistItems[index];
+                  final property = propertyMap[wishlistItem.propertyId];
+
+                  if (property == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return GestureDetector(
+                    child: PropertyCard(property: property),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            PropertyDetailPage(id: property.id),
+                      ),
+                    ),
+                  );
+                },
               );
             },
           );

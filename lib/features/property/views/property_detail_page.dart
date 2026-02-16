@@ -11,7 +11,6 @@ import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
-import 'package:zoneer_mobile/features/wishlist/repositories/wishlist_repository.dart';
 import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 
 class PropertyDetailPage extends ConsumerWidget {
@@ -31,9 +30,9 @@ class PropertyDetailPage extends ConsumerWidget {
     }
 
     try {
-      final isInWishlist = await ref
-          .read(wishlistRepositoryProvider)
-          .isPropertyInWishlist(authUser.id, id);
+      final isInWishlist = await ref.read(
+        isPropertyInWishlistProvider(id).future,
+      );
 
       bool success;
       String successMessage;

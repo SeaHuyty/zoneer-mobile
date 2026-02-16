@@ -68,19 +68,17 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Close button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close),
+                      color: Colors.white,
+                      iconSize: 24,
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   // Image counter

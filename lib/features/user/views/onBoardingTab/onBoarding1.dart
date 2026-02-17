@@ -17,7 +17,8 @@ class Onboarding1 extends StatelessWidget {
 
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 30),
-                child: Lottie.asset('assets/stickers/ZoneerOnboarding1.json'),
+                child: Lottie.asset(
+              'assets/stickers/ZoneerOnboarding1.json'),
               ),
               SizedBox(height: 20),
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoneer_mobile/features/user/util/enumOnboarding.dart';
+import 'package:zoneer_mobile/features/user/widgets/onBoarding.dart';
 import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
 import '../../../core/utils/app_colors.dart';
-import './onBoardingTab/onBoarding1.dart';
-import './onBoardingTab/onBoarding2.dart';
-import './onBoardingTab/onBoarding3.dart';
 import '../viewmodels/onboarding_viewmodel.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -55,11 +54,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Spacer(flex: 1),
 
               Expanded(
-                flex: 7,
+                flex: 10,
                 child: PageView(
                   controller: _pageController,
                   onPageChanged: vm.onPageChanged,
-                  children: [Onboarding1(), Onboarding2(), Onboarding3()],
+                  children: [Onboarding(title: OnbordingData.onboarding1.title, subtitle: OnbordingData.onboarding1.subtitle, lottieAsset: OnbordingData.onboarding1.lottieAsset),
+                  Onboarding(title: OnbordingData.onboarding2.title, subtitle: OnbordingData.onboarding2.subtitle, lottieAsset: OnbordingData.onboarding2.lottieAsset),
+                  Onboarding(title: OnbordingData.onboarding3.title, subtitle: OnbordingData.onboarding3.subtitle, lottieAsset: OnbordingData.onboarding3.lottieAsset)],
                 ),
               ),
               SizedBox(height: 10),

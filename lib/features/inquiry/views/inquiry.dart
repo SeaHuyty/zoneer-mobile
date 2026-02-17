@@ -49,6 +49,16 @@ class _InquiryState extends ConsumerState<Inquiry> {
       return;
     }
 
+    if (_fullNameController.text.isEmpty || _phoneController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fullname and Phone number must be filled!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final InquiryModel inquiry = InquiryModel(
       propertyId: widget.property.id,
       userId: authUser.id,

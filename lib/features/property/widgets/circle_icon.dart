@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class CircleIcon extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? iconColor;
 
-  const CircleIcon({super.key, required this.icon, required this.onTap, this.iconColor});
+  const CircleIcon({super.key, required this.icon, this.onTap, this.iconColor});
 
   @override
   Widget build(BuildContext context) {

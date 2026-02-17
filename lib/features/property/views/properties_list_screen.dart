@@ -36,8 +36,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             return [
               SliverAppBar(
                 backgroundColor: const Color(0xFFF6F6F6),
-                floating: true, // 👈 Appears when scrolling up
-                snap: true, // 👈 Smooth snap animation
+                floating: true,
+                snap: true,
                 elevation: 0,
                 title: Container(
                   height: 45,
@@ -64,11 +64,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ];
           },
 
-          /// SCROLLABLE CONTENT
-          body: ListView(
-            padding: const EdgeInsets.only(bottom: 20),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// RESULT COUNT
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -83,16 +81,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
               ),
 
-              /// PROPERTY CARDS
-              ...properties.map(
-                (property) => GestureDetector(
-                  child: PropertyCard(property: property),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PropertyDetailPage(id: property.id),
-                    ),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 2,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1.25,
                   ),
+                  itemCount: properties.length,
+                  itemBuilder: (context, index) {
+                    final property = properties[index];
+
+                    return GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              PropertyDetailPage(id: property.id),
+                        ),
+                      ),
+                      child: PropertyCard(property: property),
+                    );
+                  },
                 ),
               ),
             ],

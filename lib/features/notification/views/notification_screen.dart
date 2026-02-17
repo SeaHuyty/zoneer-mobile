@@ -53,7 +53,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             ? [
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _deleteSelected(authUser.id),
+                  onPressed: _deleteSelected,
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -190,7 +190,9 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     });
   }
 
-  void _deleteSelected(String userId) async {
+  void _deleteSelected() async {
+
+
     await ref
         .read(notificationsViewModelProvider.notifier)
         .deleteMultipleNotifications(selectedIds.toList());

@@ -55,6 +55,7 @@ class ReviewInquiry extends ConsumerWidget {
       );
 
       Navigator.of(context).pop();
+      Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

@@ -45,6 +45,16 @@ class PropertyRepository {
   Future<void> deleteProperty(String id) async {
     await _supabase.from('properties').delete().eq('id', id);
   }
+
+  Future<List<PropertyModel>> getPropertiesByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+
+    final response = await _supabase
+        .from('properties')
+        .select()
+        .inFilter('id', ids);
+    return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
+  }
 }
 
 final propertyRepositoryProvider = Provider<PropertyRepository>((ref) {

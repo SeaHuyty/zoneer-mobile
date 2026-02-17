@@ -29,7 +29,7 @@ class NotificationModel {
       message: json['message'] as String,
       type: NotificationType.fromValue(json['notification_type']),
       isRead: json['is_read'] as bool,
-      metadata: json['metadata'] as Map<String, dynamic>,
+      metadata: json['metadata'] as Map<String, dynamic>?,
       createdAt: json['created_at'] as String?,
     );
   }

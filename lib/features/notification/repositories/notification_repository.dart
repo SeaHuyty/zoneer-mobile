@@ -64,6 +64,13 @@ class NotificationRepository {
   Future<void> deleteAllNotificationsByUserId(String userId) async {
     await _supabase.from('notifications').delete().eq('user_id', userId);
   }
+
+  Future<void> deleteMultipleNotifications(List<String> notificationIds) async {
+    await _supabase
+        .from('notifications')
+        .delete()
+        .inFilter('id', notificationIds);
+  }
 }
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {

@@ -8,7 +8,7 @@ import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/user/views/tenant/tenant_profile_setting.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
-import 'package:zoneer_mobile/features/property/views/map_view.dart';
+import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/user/views/landlord/landlord_profile.dart';
 
 class GoogleNavBar extends ConsumerStatefulWidget {
@@ -64,7 +64,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     final List<Widget> widgetOptions = [
       const HomeView(),
       const WishlistView(),
-      const MapView(),
+      const SearchScreen(),
       profileType == ProfileType.tenant
         ? const TenantProfileSetting()
         : const LandlordProfile(),

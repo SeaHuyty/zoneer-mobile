@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/media_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/widgets/fullscreen_image_viewer.dart';
 
 class ImageWidget extends ConsumerStatefulWidget {
   final String thumbnail;
@@ -26,6 +27,16 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
     super.dispose();
   }
 
+  void _openFullscreenViewer(BuildContext context, List<String> images) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            FullscreenImageViewer(images: images, initialIndex: currentPage),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaAsync = ref.watch(mediaViewmodelProvider(widget.propertyId));
@@ -34,49 +45,52 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
       data: (media) {
         final images = [widget.thumbnail, ...media.map((e) => e.url)];
 
-        return SizedBox(
-          height: 300,
-          width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              PageView.builder(
-                controller: pageController,
-                itemCount: images.length,
-                onPageChanged: (index) => setState(() => currentPage = index),
-                physics: const BouncingScrollPhysics(),
-                itemBuilder: (context, index) {
-                  return Image.network(
-                    images[index],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  );
-                },
-              ),
-              // Dots indicator
-              if (images.length > 1)
-                Positioned(
-                  bottom: 8,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(images.length, (index) {
-                      bool isActive = index == currentPage;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: isActive ? 12 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: isActive ? Colors.white : Colors.black26,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
+        return GestureDetector(
+          onTap: () => _openFullscreenViewer(context, images),
+          child: SizedBox(
+            height: 300,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                PageView.builder(
+                  controller: pageController,
+                  itemCount: images.length,
+                  onPageChanged: (index) => setState(() => currentPage = index),
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    return Image.network(
+                      images[index],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    );
+                  },
                 ),
-            ],
+                // Dots indicator
+                if (images.length > 1)
+                  Positioned(
+                    bottom: 8,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(images.length, (index) {
+                        bool isActive = index == currentPage;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: isActive ? 12 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: isActive ? Colors.white : Colors.black26,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },

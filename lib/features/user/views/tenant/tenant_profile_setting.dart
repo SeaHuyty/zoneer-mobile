@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
+import 'package:zoneer_mobile/features/inquiry/views/my_inquiries.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
+import 'package:zoneer_mobile/features/user/views/tenant/edit_profile_screen.dart';
 import 'package:zoneer_mobile/features/user/widgets/action_row.dart';
 import 'package:zoneer_mobile/features/user/widgets/profile_header_card.dart';
 import 'package:zoneer_mobile/features/user/widgets/section_card.dart';
+import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
 
 class TenantProfileSetting extends ConsumerWidget {
   const TenantProfileSetting({super.key});
@@ -32,7 +35,12 @@ class TenantProfileSetting extends ConsumerWidget {
             ProfileHeaderCard(
               user: user,
               onEdit: () {
-                // TODO: navigate to edit profile
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                  ),
+                );
               },
             ),
 
@@ -45,12 +53,26 @@ class TenantProfileSetting extends ConsumerWidget {
                 ActionRow(
                   icon: Icons.favorite_border,
                   label: "Saved Properties",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WishlistView(),
+                      ),
+                    );
+                  },
                 ),
                 ActionRow(
                   icon: Icons.assignment_outlined,
                   label: "My Applications",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MyInquiries(),
+                      ),
+                    );
+                  },
                 ),
                 ActionRow(
                   icon: Icons.chat_bubble_outline,

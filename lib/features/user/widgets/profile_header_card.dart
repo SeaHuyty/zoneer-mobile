@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/utils/app_decoration.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
 
@@ -20,24 +19,17 @@ class ProfileHeaderCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       child: Column(
         children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: const Color(0xFFE9E9E9),
-                child: const Icon(Icons.person, size: 48, color: Colors.grey),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: CircleAvatar(
-                  radius: 14,
-                  backgroundColor: AppColors.primary,
-                  child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
+          CircleAvatar(
+  radius: 48,
+  backgroundImage: (user.profileUrl != null && user.profileUrl!.isNotEmpty)
+      ? NetworkImage(user.profileUrl!)
+      : null,
+  backgroundColor: const Color(0xFFE9E9E9),
+  child: (user.profileUrl == null || user.profileUrl!.isEmpty)
+      ? const Icon(Icons.person, size: 48, color: Colors.grey)
+      : null,
+),
+
           const SizedBox(height: 12),
           Text(
             user.fullname,
@@ -49,10 +41,7 @@ class ProfileHeaderCard extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: Colors.grey),
           ),
           const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: onEdit,
-            child: const Text("Edit Profile"),
-          ),
+          OutlinedButton(onPressed: onEdit, child: const Text("Edit Profile")),
         ],
       ),
     );

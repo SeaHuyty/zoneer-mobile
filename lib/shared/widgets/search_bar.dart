@@ -1,61 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 
-class SearchBarApp extends StatefulWidget {
+class SearchBarApp extends StatelessWidget {
   const SearchBarApp({super.key});
 
   @override
-  State<SearchBarApp> createState() => _SearchBarAppState();
-}
-
-class _SearchBarAppState extends State<SearchBarApp> {
-
-  @override
   Widget build(BuildContext context) {
-
-    return SearchAnchor(
-      dividerColor: Colors.grey.shade300,
-      builder: (BuildContext context, SearchController controller) {
-        return SearchBar(
-          controller: controller,
-          hintText: "Search properties...",
-          padding: const WidgetStatePropertyAll<EdgeInsets>(
-            EdgeInsets.symmetric(horizontal: 16.0),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SearchScreen(),
           ),
-          elevation: const WidgetStatePropertyAll<double>(0),
-          shadowColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
-          onTap: () {
-            controller.openView();
-          },
-          onChanged: (_) {
-            controller.openView();
-          },
-          leading: const Icon(Icons.search),
-          trailing: <Widget>[
-            Tooltip(
-              message: 'filter',
-              child: IconButton(
-                // isSelected: () {},
-                onPressed: () {},
-                icon: const Icon(Icons.filter_list),
-                selectedIcon: const Icon(Icons.filter_list),
-              ),
-            ),
-          ],
         );
       },
-      suggestionsBuilder: (BuildContext context, SearchController controller) {
-        return List<ListTile>.generate(5, (int index) {
-          final String item = 'item $index';
-          return ListTile(
-            title: Text(item),
-            onTap: () {
-              setState(() {
-                controller.closeView(item);
-              });
-            },
-          );
-        });
-      },
+      child: Container(
+        height: 55,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.search, color: Colors.grey),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Search properties...",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Icon(Icons.filter_list, color: Colors.grey),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -83,6 +83,24 @@ class NotificationViewmodel extends AsyncNotifier<List<NotificationModel>> {
       return <NotificationModel>[];
     });
   }
+
+  Future<void> deleteMultipleNotifications(List<String> notificationIds) async {
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(notificationRepositoryProvider)
+          .deleteMultipleNotifications(notificationIds);
+
+      final currentState = state;
+
+      if (currentState is AsyncData<List<NotificationModel>>) {
+        return currentState.value
+            .where((n) => !notificationIds.contains(n.id))
+            .toList();
+      }
+
+      return currentState.value ?? <NotificationModel>[];
+    });
+  }
 }
 
 final notificationsViewModelProvider =

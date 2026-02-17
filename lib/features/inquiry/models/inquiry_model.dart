@@ -1,7 +1,7 @@
 import 'package:zoneer_mobile/features/inquiry/models/enums/inquiry_status.dart';
 
 class InquiryModel {
-  final String id;
+  final String? id;
   final String propertyId;
   final String userId;
   final String fullname;
@@ -13,7 +13,7 @@ class InquiryModel {
   final String? createdAt;
 
   const InquiryModel({
-    required this.id,
+    this.id,
     required this.propertyId,
     required this.userId,
     required this.fullname,
@@ -27,7 +27,7 @@ class InquiryModel {
 
   factory InquiryModel.fromJson(Map<String, dynamic> json) {
     return InquiryModel(
-      id: json['id'] as String,
+      id: json['id'] as String?,
       propertyId: json['property_id'] as String,
       userId: json['user_id'] as String,
       fullname: json['fullname'] as String,

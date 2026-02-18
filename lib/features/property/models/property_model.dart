@@ -9,6 +9,8 @@ class PropertyModel {
   final double squareArea;
   final String address;
   final String locationUrl;
+  final double? latitude;
+  final double? longitude;
   final String? description;
   final String thumbnail;
 
@@ -32,6 +34,8 @@ class PropertyModel {
     required this.locationUrl,
     required this.thumbnail,
     this.description,
+    this.latitude,
+    this.longitude,
     this.securityFeatures,
     this.propertyFeatures,
     this.badgeOptions,
@@ -51,6 +55,12 @@ class PropertyModel {
       squareArea: (json['square_area'] as num).toDouble(),
       address: json['address'] as String,
       locationUrl: json['location_url'] as String,
+      latitude: json['latitude'] != null
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: json['longitude'] != null
+          ? (json['longitude'] as num).toDouble()
+          : null,
       description: json['description'] as String?,
       thumbnail: json['thumbnail_url'] as String,
       securityFeatures: json['security_features'] is Map
@@ -77,6 +87,8 @@ class PropertyModel {
       'square_area': squareArea,
       'address': address,
       'location_url': locationUrl,
+      'latitude': latitude,
+      'longitude': longitude,
       'thumbnail_url': thumbnail,
       'description': description,
       'security_features': securityFeatures,
@@ -90,5 +102,47 @@ class PropertyModel {
 
     data.removeWhere((key, value) => value == null);
     return data;
+  }
+
+  PropertyModel copyWith({
+    String? id,
+    double? price,
+    int? bedroom,
+    int? bathroom,
+    double? squareArea,
+    String? address,
+    String? locationUrl,
+    double? latitude,
+    double? longitude,
+    String? description,
+    String? thumbnail,
+    Map<String, dynamic>? securityFeatures,
+    Map<String, dynamic>? propertyFeatures,
+    Map<String, dynamic>? badgeOptions,
+    VerifyStatus? verifyStatus,
+    PropertyStatus? propertyStatus,
+    String? landlordId,
+    String? verifiedByAdmin,
+  }) {
+    return PropertyModel(
+      id: id ?? this.id,
+      price: price ?? this.price,
+      bedroom: bedroom ?? this.bedroom,
+      bathroom: bathroom ?? this.bathroom,
+      squareArea: squareArea ?? this.squareArea,
+      address: address ?? this.address,
+      locationUrl: locationUrl ?? this.locationUrl,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      description: description ?? this.description,
+      thumbnail: thumbnail ?? this.thumbnail,
+      securityFeatures: securityFeatures ?? this.securityFeatures,
+      propertyFeatures: propertyFeatures ?? this.propertyFeatures,
+      badgeOptions: badgeOptions ?? this.badgeOptions,
+      verifyStatus: verifyStatus ?? this.verifyStatus,
+      propertyStatus: propertyStatus ?? this.propertyStatus,
+      landlordId: landlordId ?? this.landlordId,
+      verifiedByAdmin: verifiedByAdmin ?? this.verifiedByAdmin,
+    );
   }
 }

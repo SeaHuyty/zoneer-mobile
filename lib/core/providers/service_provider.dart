@@ -15,6 +15,11 @@ class CurrentCityNotifier extends Notifier<String> {
   @override
   String build() => 'Current Location';
 
+  // Update city directly (used when location is already available)
+  void updateCity(String city) {
+    state = city;
+  }
+
   // Fetch current location
   Future<LocationResult> fetchCurrentCity() async {
     final locationService = ref.read(locationServiceProvider);

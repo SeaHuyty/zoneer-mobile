@@ -55,6 +55,13 @@ class PropertyRepository {
         .inFilter('id', ids);
     return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
   }
+
+  /// Batch update properties with new data (for migrations)
+  Future<void> batchUpdateProperties(List<PropertyModel> properties) async {
+    for (final property in properties) {
+      await updateProperty(property);
+    }
+  }
 }
 
 final propertyRepositoryProvider = Provider<PropertyRepository>((ref) {

@@ -9,12 +9,18 @@ class HomePropertySection extends StatelessWidget {
   final AsyncValue<List<PropertyModel>> propertiesAsync;
   final VoidCallback? onSeeAll;
 
-  const HomePropertySection({super.key, required this.title, required this.propertiesAsync, this.onSeeAll});
+  const HomePropertySection({
+    super.key,
+    required this.title,
+    required this.propertiesAsync,
+    this.onSeeAll,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       spacing: 10,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -27,26 +33,30 @@ class HomePropertySection extends StatelessWidget {
           ],
         ),
         propertiesAsync.when(
-          data: (properties) => SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: properties
-                  .map(
-                    (property) => Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: GestureDetector(
-                        child: PropertyCard(property: property),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PropertyDetailPage(id: property.id),
+          data: (properties) => Align(
+            alignment: Alignment.centerLeft,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: properties
+                    .map(
+                      (property) => Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: GestureDetector(
+                          child: PropertyCard(property: property),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PropertyDetailPage(id: property.id),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                    )
+                    .toList(),
+              ),
             ),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),

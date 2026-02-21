@@ -2,65 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 
-/// Reusable property card widget for displaying property information.
+/// Reusable horizontal property card.
 ///
-/// Horizontal layout with image on left and details on right.
-/// Used across wishlist, search, and property browsing features.
-class WishlistPropertyCard extends StatefulWidget {
+/// Matches the wishlist card style from the design reference:
+/// image on the left, name + strikethrough price on the right,
+/// a full-width CTA button at the bottom, and an optional delete icon.
+///
+/// Parameters:
+/// - [onRemove]          : shows a trash icon; triggers removal confirmation.
+/// - [onTap]             : navigates to property detail.
+/// - [actionButtonLabel] : label for the CTA button (default "View Details").
+class WishlistPropertyCard extends StatelessWidget {
   final PropertyModel property;
   final VoidCallback? onRemove;
   final VoidCallback? onTap;
+  final String actionButtonLabel;
 
   const WishlistPropertyCard({
     super.key,
     required this.property,
     this.onRemove,
     this.onTap,
+    this.actionButtonLabel = 'View Details',
   });
 
-  @override
-  State<WishlistPropertyCard> createState() => _WishlistPropertyCardState();
-}
-
-class _WishlistPropertyCardState extends State<WishlistPropertyCard> {
-  late bool _isInWishlist;
-
-  @override
-  void initState() {
-    super.initState();
-    _isInWishlist = true;
-  }
-
-  void _showRemoveConfirmation(BuildContext context) {
+  void _confirmRemove(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Remove Property'),
-        content: const Text('Are you sure you want to remove this?'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Remove from Wishlist'),
+        content: const Text(
+          'Are you sure you want to remove this property from your wishlist?',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'No',
-              style: TextStyle(color: AppColors.grey, fontSize: 16),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: AppColors.grey)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              setState(() => _isInWishlist = false);
-              widget.onRemove?.call();
+              Navigator.pop(ctx);
+              onRemove?.call();
             },
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            child: Text(
+              'Remove',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
               ),
-            ),
-            child: const Text(
-              'Yes',
-              style: TextStyle(color: AppColors.white, fontSize: 16),
             ),
           ),
         ],
@@ -68,229 +58,138 @@ class _WishlistPropertyCardState extends State<WishlistPropertyCard> {
     );
   }
 
-  void _showMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Remove Property'),
-              onTap: () {
-                Navigator.pop(context);
-                _showRemoveConfirmation(context);
-              },
+  @override
+  Widget build(BuildContext context) {
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        // margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // Left: Property Image
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.greyLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(Icons.home, color: AppColors.grey, size: 50),
-                  ),
-                  // Heart button on image
-                  Positioned(
-                    top: 4,
-                    left: 4,
-                    child: GestureDetector(
-                      onTap: () => _showRemoveConfirmation(context),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _isInWishlist
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: AppColors.white,
-                          size: 16,
-                        ),
-                      ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ── Left: thumbnail ────────────────────────────────────
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  property.thumbnail,
+                  width: 95,
+                  height: 95,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 95,
+                    height: 95,
+                    color: AppColors.greyLight,
+                    child: Icon(
+                      Icons.home_outlined,
+                      color: AppColors.grey,
+                      size: 40,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-
-            // Right: Property Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title with menu button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.property.address,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+              const SizedBox(width: 12),
+              // ── Right: details ──────────────────────────────────────
+              Expanded(
+                child: Column(
+                  children: [
+                    // Name row + delete icon
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '\$${property.price.toStringAsFixed(0)}/month',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                          maxLines: 1,
+                        ),
+                        if (onRemove != null) ...[  
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => _confirmRemove(context),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: AppColors.greyLight,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: AppColors.primaryLight,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    // Address row
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          property.address,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.black,
+                          ),
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      // Menu button (3 dots)
-                      GestureDetector(
-                        onTap: () => _showMenu(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.more_vert,
-                            color: AppColors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Location
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.property.locationUrl,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Bedroom and Bathroom badges
-                  Row(
-                    children: [
-                      // Bedroom badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.bed_outlined,
-                              size: 14,
-                              color: AppColors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${widget.property.bedroom} bedroom',
+                        const SizedBox(height: 3),
+                        // CTA button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: onTap,
+                            label: Text(
+                              actionButtonLabel,
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Bathroom badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.bathtub_outlined,
-                              size: 14,
-                              color: AppColors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${widget.property.bathroom} bathroom',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w500,
+                            icon: Icon(Icons.remove_red_eye, color: Colors.white,),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Price
-                  Text(
-                    '\$${widget.property.price.toStringAsFixed(0)} / Month',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/utils/app_colors.dart';
 
 class HomePropertiesCategory extends StatefulWidget {
   const HomePropertiesCategory({super.key});
@@ -8,41 +9,75 @@ class HomePropertiesCategory extends StatefulWidget {
 }
 
 class _HomePropertiesCategoryState extends State<HomePropertiesCategory> {
-  final List<Map<String, String>> categories = [
-    {'icon': 'assets/icons/category1.png', 'label': 'Rent House'},
-    {'icon': 'assets/icons/category2.png', 'label': 'Apartment'},
-    {'icon': 'assets/icons/category3.png', 'label': 'Resident'},
-    {'icon': 'assets/icons/category4.png', 'label': 'Traditional'},
+  int _selectedIndex = 0;
+
+  final List<Map<String, dynamic>> categories = [
+    {'icon': Icons.home_outlined, 'label': 'Rent House'},
+    {'icon': Icons.apartment_outlined, 'label': 'Apartment'},
+    {'icon': Icons.villa_outlined, 'label': 'Resident'},
+    {'icon': Icons.cabin_outlined, 'label': 'Traditional'},
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: SizedBox(
-        height: 128,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          itemCount: categories.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
+    return SizedBox(
+      height: 44,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final isSelected = _selectedIndex == index;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedIndex = index),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : AppColors.white,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : const Color(0xFFE0E0E0),
+                  width: 1.2,
+                ),
+                boxShadow: isSelected
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                  : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(
-                    categories[index]['icon']!,
-                    width: 76,
-                    height: 76,
-                    fit: BoxFit.contain,
+                  Icon(
+                    categories[index]['icon'] as IconData,
+                    size: 20,
+                    color: isSelected ? AppColors.white : AppColors.grey,
                   ),
-                  const SizedBox(height: 8),
-                  Text(categories[index]['label']!),
+                  const SizedBox(width: 6),
+                  Text(
+                    categories[index]['label'] as String,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? AppColors.white : AppColors.textPrimary,
+                    ),
+                  ),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

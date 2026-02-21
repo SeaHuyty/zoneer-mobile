@@ -10,9 +10,9 @@ class PropertyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       child: Container(
-        width: 400,
+        width: 228,
         height: 200,
         decoration: BoxDecoration(
           color: Colors.white,
@@ -30,7 +30,6 @@ class PropertyCard extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
-
             // Gradient overlay at bottom
             Positioned(
               bottom: 0,
@@ -53,24 +52,6 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Checkmark icon (top left)
-            Positioned(
-              top: 12,
-              left: 12,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-
             // Price tag (top right)
             Positioned(
               top: 12,
@@ -95,7 +76,7 @@ class PropertyCard extends StatelessWidget {
                     const Text(
                       ' / Month',
                       style: TextStyle(
-                        color: AppColors.primaryDark,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w400,
                         fontSize: 12,
                       ),
@@ -104,7 +85,6 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
-
             // Property info at bottom
             Positioned(
               bottom: 12,

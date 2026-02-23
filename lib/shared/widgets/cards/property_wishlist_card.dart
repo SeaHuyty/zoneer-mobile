@@ -64,7 +64,6 @@ class WishlistPropertyCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -80,7 +79,6 @@ class WishlistPropertyCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ── Left: thumbnail ────────────────────────────────────
               ClipRRect(

@@ -12,7 +12,7 @@ class PropertyCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       child: Container(
-        width: 228,
+        width: 350,
         height: 200,
         decoration: BoxDecoration(
           color: Colors.white,

@@ -60,7 +60,7 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text('Error loading wishlist: $error'),
-              const SizedBox(height: 1),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
                   ref

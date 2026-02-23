@@ -179,7 +179,15 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(
+                  context,
+                  {
+                    'priceRange': priceRange,
+                    'beds': beds,
+                    'baths': baths,
+                    'selectedType': selectedType,
+                  },
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   elevation: 0,

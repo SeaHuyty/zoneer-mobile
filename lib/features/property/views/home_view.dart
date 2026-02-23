@@ -17,11 +17,16 @@ class HomeView extends ConsumerWidget {
         padding: EdgeInsets.symmetric(horizontal: 15),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SearchBarApp(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+            const Text(
+              'Category',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
             const HomePropertiesCategory(),
-
             const SizedBox(height: 10),
             HomePropertySection(title: 'Nearby', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.nearby))),
             HomePropertySection(title: 'Property in Siem Reap', propertiesAsync: ref.watch(propertySectionProvider(PropertySection.siemreap))),

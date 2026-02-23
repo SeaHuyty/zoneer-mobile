@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
-import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:zoneer_mobile/features/wishlist/widgets/wishlist_empty_state.dart';
+import 'package:zoneer_mobile/shared/widgets/cards/property_wishlist_card.dart';
 
 class WishlistView extends ConsumerStatefulWidget {
   const WishlistView({super.key});
@@ -38,11 +38,20 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
     final wishlistAsync = ref.watch(wishlistViewmodelProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
-        title: const Text('Wishlist'),
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFFF6F6F6),
         elevation: 0,
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.textPrimary,
+        centerTitle: true,
+        title: const Text(
+          'My Wishlist',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
       ),
       body: wishlistAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -68,7 +77,6 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
             return const WishlistEmptyState();
           }
 
-          // Watch the batch properties provider
           final propertiesAsync = ref.watch(wishlistPropertiesProvider);
 
           return propertiesAsync.when(
@@ -80,9 +88,7 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
                   Text('Error loading properties: $err'),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      ref.invalidate(wishlistPropertiesProvider);
-                    },
+                    onPressed: () => ref.invalidate(wishlistPropertiesProvider),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -90,29 +96,46 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
             ),
             data: (properties) {
               final propertyMap = {
-                for (var property in properties) property.id: property,
+                for (var p in properties) p.id: p,
               };
+              final validItems = wishlistItems
+                  .where((w) => propertyMap.containsKey(w.propertyId))
+                  .toList();
 
               return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: wishlistItems.length,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                itemCount: validItems.length + 1,
                 itemBuilder: (context, index) {
-                  final wishlistItem = wishlistItems[index];
-                  final property = propertyMap[wishlistItem.propertyId];
-
-                  if (property == null) {
-                    return const SizedBox.shrink();
+                  // header
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Text(
+                        '${validItems.length} ${validItems.length == 1 ? 'item' : 'items'} saved',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    );
                   }
 
-                  return GestureDetector(
-                    child: PropertyCard(property: property),
+                  final item = validItems[index - 1];
+                  final property = propertyMap[item.propertyId]!;
+
+                  return WishlistPropertyCard(
+                    property: property,
+                    actionButtonLabel: 'View Details',
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            PropertyDetailPage(id: property.id),
+                        builder: (_) => PropertyDetailPage(id: property.id),
                       ),
                     ),
+                    onRemove: () => ref
+                        .read(wishlistViewmodelProvider.notifier)
+                        .removeFromWishlist(authUser.id, property.id),
                   );
                 },
               );

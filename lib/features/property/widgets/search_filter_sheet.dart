@@ -10,112 +10,295 @@ class SearchFilterSheet extends StatefulWidget {
 
 class _SearchFilterSheetState extends State<SearchFilterSheet> {
   RangeValues priceRange = const RangeValues(500, 5000);
-
   int beds = 1;
   int baths = 1;
+  String selectedType = 'Apartment';
 
-  String selectedType = "Apartment";
+  void _reset() {
+    setState(() {
+      priceRange = const RangeValues(500, 5000);
+      beds = 1;
+      baths = 1;
+      selectedType = 'Apartment';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 12,
+        left: 20,
+        right: 20,
+      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Filters",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                )),
-
-            const SizedBox(height: 20),
-
-            /// PRICE
-            const Text("Price Range"),
-            RangeSlider(
-              values: priceRange,
-              min: 0,
-              max: 10000,
-              divisions: 100,
-              labels: RangeLabels(
-                "\$${priceRange.start.round()}",
-                "\$${priceRange.end.round()}",
+            // ── Drag handle ──────────────────────────────────────
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              onChanged: (values) {
-                setState(() => priceRange = values);
-              },
+            ),
+
+            // ── Header ───────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Filter',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _reset,
+                  child: const Text(
+                    'Reset',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 20),
 
-            /// BEDS
-            const Text("Bedrooms"),
+            // ── Price Range ───────────────────────────────────────
+            _SectionLabel('Price Range'),
+            const SizedBox(height: 8),
             Row(
-              children: List.generate(5, (index) {
-                return ChoiceChip(
-                  label: Text("${index + 1}+"),
-                  selected: beds == index + 1,
-                  onSelected: (_) {
-                    setState(() => beds = index + 1);
-                  },
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _PriceBadge('\$${priceRange.start.round()}'),
+                const Text('—',
+                    style: TextStyle(color: AppColors.grey, fontSize: 16)),
+                _PriceBadge('\$${priceRange.end.round()}'),
+              ],
+            ),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.primary.withOpacity(0.15),
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withOpacity(0.12),
+                rangeThumbShape:
+                    const RoundRangeSliderThumbShape(enabledThumbRadius: 10),
+                trackHeight: 4,
+              ),
+              child: RangeSlider(
+                values: priceRange,
+                min: 0,
+                max: 10000,
+                divisions: 100,
+                labels: RangeLabels(
+                  '\$${priceRange.start.round()}',
+                  '\$${priceRange.end.round()}',
+                ),
+                onChanged: (values) => setState(() => priceRange = values),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── Bedrooms ──────────────────────────────────────────
+            _SectionLabel('Bedrooms'),
+            const SizedBox(height: 10),
+            Row(
+              children: List.generate(5, (i) {
+                final val = i + 1;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _FilterChip(
+                    label: '$val+',
+                    selected: beds == val,
+                    onTap: () => setState(() => beds = val),
+                  ),
                 );
               }),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            /// BATHS
-            const Text("Bathrooms"),
+            // ── Bathrooms ─────────────────────────────────────────
+            _SectionLabel('Bathrooms'),
+            const SizedBox(height: 10),
             Row(
-              children: List.generate(5, (index) {
-                return ChoiceChip(
-                  label: Text("${index + 1}+"),
-                  selected: baths == index + 1,
-                  onSelected: (_) {
-                    setState(() => baths = index + 1);
-                  },
+              children: List.generate(5, (i) {
+                final val = i + 1;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _FilterChip(
+                    label: '$val+',
+                    selected: baths == val,
+                    onTap: () => setState(() => baths = val),
+                  ),
                 );
               }),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            /// HOUSE TYPE
-            const Text("Property Type"),
+            // ── Property Type ─────────────────────────────────────
+            _SectionLabel('Property Type'),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
-              children: ["Apartment", "House", "Villa", "Studio"]
+              runSpacing: 8,
+              children: ['Apartment', 'House', 'Villa', 'Studio']
                   .map(
-                    (type) => ChoiceChip(
-                      label: Text(type),
+                    (type) => _FilterChip(
+                      label: type,
                       selected: selectedType == type,
-                      onSelected: (_) {
-                        setState(() => selectedType = type);
-                      },
+                      onTap: () => setState(() => selectedType = type),
                     ),
                   )
                   .toList(),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 32),
 
-            /// APPLY BUTTON
+            // ── Apply Button ──────────────────────────────────────
             SizedBox(
               width: double.infinity,
+              height: 52,
               child: ElevatedButton(
+                onPressed: () => Navigator.pop(
+                  context,
+                  {
+                    'priceRange': priceRange,
+                    'beds': beds,
+                    'baths': baths,
+                    'selectedType': selectedType,
+                  },
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text("Apply Filters"),
+                child: const Text(
+                  'Apply Filters',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color:
+                selected ? AppColors.primary : const Color(0xFFE0E0E0),
+            width: 1.2,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textPrimary,
+            fontWeight:
+                selected ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PriceBadge extends StatelessWidget {
+  final String text;
+  const _PriceBadge(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
         ),
       ),
     );

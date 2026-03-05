@@ -70,9 +70,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         error: (error, stack) =>
             Center(child: Text('Error loading properties: $error')),
         data: (properties) {
+          final searchQueryLower = _searchQuery.toLowerCase();
           final filtered = properties.where((p) {
             if (_searchQuery.isNotEmpty &&
-                !p.address.toLowerCase().contains(_searchQuery.toLowerCase())) {
+                !p.address.toLowerCase().contains(searchQueryLower)) {
               return false;
             }
             if (_activeFilters != null) {

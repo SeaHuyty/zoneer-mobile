@@ -149,49 +149,45 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Stack(
-                  children: [
-                    ImageWidget(
-                      thumbnail: property.thumbnail,
-                      propertyId: widget.id,
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-
-                    SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CircleIcon(
+                          icon: Icons.arrow_back,
+                          onTap: () => Navigator.pop(context),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Row(
                           children: [
                             CircleIcon(
-                              icon: Icons.arrow_back,
-                              onTap: () => Navigator.pop(context),
+                              icon: Icons.share_outlined,
+                              onTap: () {},
                             ),
-                            Row(
-                              children: [
-                                CircleIcon(
-                                  icon: Icons.share_outlined,
-                                  onTap: () {},
-                                ),
-                                const SizedBox(width: 8),
-                                CircleIcon(
-                                  icon: isInWishlist
-                                      ? Icons.favorite
-                                      : Icons.favorite_border_outlined,
-                                  onTap: _isTogglingWishlist
-                                      ? null
-                                      : () => _toggleWishlist(context),
-                                  iconColor: isInWishlist ? Colors.red : null,
-                                ),
-                              ],
+                            const SizedBox(width: 8),
+                            CircleIcon(
+                              icon: isInWishlist
+                                  ? Icons.favorite
+                                  : Icons.favorite_border_outlined,
+                              onTap: _isTogglingWishlist
+                                  ? null
+                                  : () => _toggleWishlist(context),
+                              iconColor: isInWishlist ? Colors.red : null,
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+
+                ImageWidget(
+                  thumbnail: property.thumbnail,
+                  propertyId: widget.id,
                 ),
 
                 Padding(
@@ -282,8 +278,8 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                     ],
                   ),
                 ),
-              ],
-            ),
+              ]
+            )
           );
         },
       ),

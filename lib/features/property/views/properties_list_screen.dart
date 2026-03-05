@@ -16,6 +16,8 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Map<String, dynamic>? _activeFilters;
 
   @override
   void dispose() {
@@ -67,7 +69,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>
             Center(child: Text('Error loading properties: $error')),
-        data: (properties) => NestedScrollView(
+        data: (properties) {
+          final filtered = properties.where((p) {
+            if (_searchQuery.isNotEmpty &&
+                !p.address.toLowerCase().contains(_searchQuery.toLowerCase())) {
+              return false;
+            }
+            if (_activeFilters != null) {
+              final range = _activeFilters!['priceRange'] as RangeValues;
+              if (p.price < range.start || p.price > range.end) return false;
+              final beds = _activeFilters!['beds'] as int;
+              if (p.bedroom < beds) return false;
+              final baths = _activeFilters!['baths'] as int;
+              if (p.bathroom < baths) return false;
+            }
+            return true;
+          }).toList();
+          return NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverAppBar(
@@ -89,6 +107,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       prefixIcon: Icon(Icons.search),
                       border: InputBorder.none,
                     ),
+                    onChanged: (value) => setState(() => _searchQuery = value),
                   ),
                 ),
                 actions: [
@@ -98,9 +117,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.tune, color: AppColors.primary),
-                      onPressed: _openFilterSheet,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.tune, color: AppColors.primary),
+                          onPressed: _openFilterSheet,
+                        ),
+                        if (_activeFilters != null)
+                          Positioned(
+                            right: 6,
+                            top: 6,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   )
                 ],
@@ -116,15 +153,37 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 const HomePropertiesCategory(),
                 const SizedBox(height: 10),
                 Text(
-                  "${properties.length} Properties Found",
+                  "${filtered.length} Properties Found",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
+                if (_activeFilters != null)
+                  GestureDetector(
+                    onTap: () => setState(() => _activeFilters = null),
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Clear filters',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 10,),
                 Expanded(
-                  child: GridView.builder(
+                  child: filtered.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No properties match your criteria.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : GridView.builder(
                     padding: const EdgeInsets.only(bottom: 20),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -132,9 +191,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       mainAxisSpacing: 15,
                       childAspectRatio: 1.25,
                     ),
-                    itemCount: properties.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final property = properties[index];
+                      final property = filtered[index];
                       return GestureDetector(
                         onTap: () => Navigator.push(
                           context,
@@ -151,13 +210,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ],
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
 
-  void _openFilterSheet() {
-    showModalBottomSheet(
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -165,5 +225,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
       builder: (context) => const SearchFilterSheet(),
     );
+    if (result != null) {
+      setState(() => _activeFilters = result);
+    }
   }
 }

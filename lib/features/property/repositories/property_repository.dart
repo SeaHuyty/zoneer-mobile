@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/services/supabase_service.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 
@@ -27,7 +30,7 @@ class PropertyRepository {
     final response = await _supabase
         .from('properties')
         .select()
-        .eq('landlord_id', landlordId);
+                .eq('landlord_id', landlordId);
     return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
   }
 
@@ -44,6 +47,22 @@ class PropertyRepository {
 
   Future<void> deleteProperty(String id) async {
     await _supabase.from('properties').delete().eq('id', id);
+  }
+
+  Future<String> uploadThumbnail(
+    Uint8List bytes,
+    String ext,
+    String userId,
+  ) async {
+    final fileName =
+        'properties/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+    const bucketName = 'properties_image';
+    await _supabase.storage.from(bucketName).uploadBinary(
+          fileName,
+          bytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+    return _supabase.storage.from(bucketName).getPublicUrl(fileName);
   }
 
   Future<List<PropertyModel>> getPropertiesByIds(List<String> ids) async {

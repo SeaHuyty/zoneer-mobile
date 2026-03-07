@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/utils/app_decoration.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
 
 class ProfileHeaderCard extends StatelessWidget {
   final UserModel user;
   final VoidCallback onEdit;
+  final VoidCallback? onMyProperties;
 
   const ProfileHeaderCard({
     super.key,
     required this.user,
     required this.onEdit,
+    this.onMyProperties,
   });
 
   @override
@@ -20,15 +23,15 @@ class ProfileHeaderCard extends StatelessWidget {
       child: Column(
         children: [
           CircleAvatar(
-  radius: 48,
-  backgroundImage: (user.profileUrl != null && user.profileUrl!.isNotEmpty)
-      ? NetworkImage(user.profileUrl!)
-      : null,
-  backgroundColor: const Color(0xFFE9E9E9),
-  child: (user.profileUrl == null || user.profileUrl!.isEmpty)
-      ? const Icon(Icons.person, size: 48, color: Colors.grey)
-      : null,
-),
+            radius: 48,
+            backgroundImage: (user.profileUrl != null && user.profileUrl!.isNotEmpty)
+                ? NetworkImage(user.profileUrl!)
+                : null,
+            backgroundColor: const Color(0xFFE9E9E9),
+            child: (user.profileUrl == null || user.profileUrl!.isEmpty)
+                ? const Icon(Icons.person, size: 48, color: Colors.grey)
+                : null,
+          ),
 
           const SizedBox(height: 12),
           Text(
@@ -41,7 +44,37 @@ class ProfileHeaderCard extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: Colors.grey),
           ),
           const SizedBox(height: 10),
-          OutlinedButton(onPressed: onEdit, child: const Text("Edit Profile")),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text("Edit Profile"),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: onMyProperties,
+                icon: const Icon(Icons.apartment_outlined, size: 16),
+                label: const Text("My Properties"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

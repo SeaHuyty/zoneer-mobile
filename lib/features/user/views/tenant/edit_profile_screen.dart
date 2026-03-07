@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,7 +20,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   UserModel? user;
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
 
   bool _isSaving = false;
 
@@ -46,6 +46,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       String? imageUrl;
       if (_selectedImage != null) {
+        await _deleteOldProfileImages(userId);
         imageUrl = await _uploadProfileImage(userId);
       }
 
@@ -58,7 +59,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           })
           .eq('id', userId);
 
-      ref.invalidate(userByIdProvider(userId));
+      // Clear Flutter's image cache so the new photo shows immediately
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // ignore: unused_result
+      await ref.refresh(userByIdProvider(userId).future);
 
       if (mounted) {
         Navigator.pop(context);
@@ -86,71 +92,118 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
 
     if (image != null) {
+      final bytes = await image.readAsBytes();
       setState(() {
-        _selectedImage = File(image.path);
+        _selectedImage = image;
+        _selectedImageBytes = bytes;
       });
+    }
+  }
+
+  Future<void> _deleteOldProfileImages(String userId) async {
+    try {
+      final files = await Supabase.instance.client.storage
+          .from('profiles')
+          .list(path: userId);
+      if (files.isNotEmpty) {
+        final paths = files.map((f) => '$userId/${f.name}').toList();
+        await Supabase.instance.client.storage
+            .from('profiles')
+            .remove(paths);
+      }
+    } catch (_) {
+      // No existing files — nothing to delete
     }
   }
 
   Future<String?> _uploadProfileImage(String userId) async {
     if (_selectedImage == null) return null;
 
-    final extension = _selectedImage!.path.split('.').last;
+    final bytes = await _selectedImage!.readAsBytes();
+    final mimeType = _selectedImage!.mimeType ?? 'image/jpeg';
+    final extension = mimeType.split('/').last;
     final fileName = '$userId/profile.$extension';
 
     await Supabase.instance.client.storage
         .from('profiles')
-        .upload(
+        .uploadBinary(
           fileName,
-          _selectedImage!,
-          fileOptions: const FileOptions(upsert: true),
+          bytes,
+          fileOptions: FileOptions(upsert: true, contentType: mimeType),
         );
 
-    return Supabase.instance.client.storage
+    final publicUrl = Supabase.instance.client.storage
         .from('profiles')
         .getPublicUrl(fileName);
+    return '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Edit Profile")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          "Edit Profile",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 12),
+
+              // Avatar picker
               GestureDetector(
                 onTap: _pickImage,
                 child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundImage: _selectedImage != null
-                          ? FileImage(_selectedImage!)
-                          : (user?.profileUrl != null
-                                    ? NetworkImage(user!.profileUrl!)
-                                    : null)
-                                as ImageProvider?,
-                      child:
-                          (user?.profileUrl == null && _selectedImage == null)
-                          ? const Icon(Icons.person, size: 60)
-                          : null,
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.3),
+                          width: 3,
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 58,
+                        backgroundColor: AppColors.surface,
+                        backgroundImage: _selectedImageBytes != null
+                            ? MemoryImage(_selectedImageBytes!)
+                            : (user?.profileUrl != null
+                                ? NetworkImage(user!.profileUrl!)
+                                : null) as ImageProvider?,
+                        child: (user?.profileUrl == null && _selectedImageBytes == null)
+                            ? Icon(Icons.person, size: 52, color: AppColors.grey)
+                            : null,
+                      ),
                     ),
                     Positioned(
-                      bottom: 0,
-                      right: 0,
+                      bottom: 2,
+                      right: 2,
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: const Icon(
                           Icons.camera_alt,
                           color: Colors.white,
-                          size: 20,
+                          size: 16,
                         ),
                       ),
                     ),
@@ -158,31 +211,87 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: "Full Name"),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Name is required" : null,
+              const SizedBox(height: 8),
+              Text(
+                "Tap to change photo",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
 
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(labelText: "Phone Number"),
+              // Fields card
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: "Full Name",
+                        labelStyle: TextStyle(color: AppColors.textSecondary),
+                        prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? "Name is required" : null,
+                    ),
+                    Divider(height: 1, color: AppColors.grey.withOpacity(0.2)),
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: "Phone Number",
+                        labelStyle: TextStyle(color: AppColors.textSecondary),
+                        prefixIcon: Icon(Icons.phone_outlined, color: AppColors.primary),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 36),
 
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                   child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Save Changes"),
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          "Save Changes",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ],

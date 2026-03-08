@@ -6,6 +6,7 @@ import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/widgets/action_row.dart';
 import 'package:zoneer_mobile/features/user/widgets/profile_header_card.dart';
 import 'package:zoneer_mobile/features/user/widgets/section_card.dart';
+import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
 
 class LandlordProfileSetting extends ConsumerWidget {
   const LandlordProfileSetting({super.key});
@@ -187,7 +188,23 @@ class LandlordProfileSetting extends ConsumerWidget {
                   label: "Logout",
                   textColor: Colors.red,
                   onTap: () async {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
                     await Supabase.instance.client.auth.signOut();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const GoogleNavBar(),
+                        ),
+                        (route) => false,
+                      );
+                    }
                   },
                 ),
               ],

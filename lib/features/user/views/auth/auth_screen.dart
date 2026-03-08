@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/services/auth_service.dart';
+import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_mutation_viewmodel.dart';
 import 'package:zoneer_mobile/shared/models/enums/verify_status.dart';
@@ -26,6 +27,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -39,6 +41,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _goHome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const GoogleNavBar()),
+    );
   }
 
   void _submit() async {
@@ -81,18 +90,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text(
                   'Registration successful! Please check your email to verify your account.',
                 ),
                 backgroundColor: Colors.green,
               ),
             );
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const GoogleNavBar()),
-            );
+            _goHome();
           }
         }
       } else {
@@ -104,16 +109,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         if (response.user != null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text('Login successful!'),
                 backgroundColor: Colors.green,
               ),
             );
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const GoogleNavBar()),
-            );
+            _goHome();
           }
         }
       }
@@ -127,7 +128,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An error occured: $e'),
+            content: Text('An error occurred: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -141,78 +142,261 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: AppColors.grey),
+      filled: true,
+      fillColor: AppColors.greyLight,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.transparent),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      labelStyle: const TextStyle(color: AppColors.textSecondary),
+      floatingLabelStyle: const TextStyle(color: AppColors.primary),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(isRegister ? 'Register' : 'Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.secondary,
+          ),
+          tooltip: 'Back to Home',
+          onPressed: _goHome,
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (isRegister)
-                TextFormField(
-                  controller: _fullNameController,
-                  decoration: const InputDecoration(labelText: 'Full Name'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Enter your full name'
-                      : null,
+              const SizedBox(height: 8),
+
+              // Logo
+              Center(
+                child: Image.asset(
+                  '../../../../assets/logo/Zoneer-Logo-svg.png',
+                  height: 50,
+                  width: 50,
                 ),
-
-              if (isRegister) const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Enter your email' : null,
-              ),
-
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (value) => value == null || value.length < 8
-                    ? 'Password must be at least 8 characters'
-                    : null,
               ),
 
               const SizedBox(height: 24),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(isRegister ? 'Register' : 'Login'),
+              // Title
+              Text(
+                isRegister ? 'Create Account' : 'Welcome Back',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.secondary,
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
 
-              TextButton(
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        setState(() {
-                          isRegister = !isRegister;
-                          _formKey.currentState?.reset();
-                        });
-                      },
-                child: Text(
-                  isRegister
-                      ? 'Already have an account? Login'
-                      : 'Don’t have an account? Register',
+              Text(
+                isRegister
+                    ? 'Sign up to start finding your perfect space'
+                    : 'Sign in to continue to Zoneer',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    if (isRegister) ...[
+                      TextFormField(
+                        controller: _fullNameController,
+                        decoration: _inputDecoration(
+                          'Full Name',
+                          Icons.person_outline_rounded,
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                        validator: (value) =>
+                            value == null || value.isEmpty
+                                ? 'Enter your full name'
+                                : null,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: _inputDecoration(
+                        'Email',
+                        Icons.email_outlined,
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) =>
+                          value == null || value.isEmpty
+                              ? 'Enter your email'
+                              : null,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: _inputDecoration(
+                        'Password',
+                        Icons.lock_outline_rounded,
+                      ).copyWith(
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: _obscurePassword,
+                      validator: (value) => value == null || value.length < 8
+                          ? 'Password must be at least 8 characters'
+                          : null,
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Submit button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.white,
+                          disabledBackgroundColor:
+                              AppColors.primary.withValues(alpha: 0.6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.white,
+                                ),
+                              )
+                            : Text(
+                                isRegister ? 'Create Account' : 'Sign In',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Back to home button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _goHome,
+                        icon: const Icon(Icons.home_outlined, size: 18),
+                        label: const Text('Continue Browsing'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.secondary,
+                          side: const BorderSide(
+                            color: AppColors.secondary,
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Toggle login / register
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          isRegister
+                              ? 'Already have an account?'
+                              : "Don't have an account?",
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    isRegister = !isRegister;
+                                    _formKey.currentState?.reset();
+                                  });
+                                },
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          child: Text(
+                            isRegister ? 'Sign In' : 'Register',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
             ],

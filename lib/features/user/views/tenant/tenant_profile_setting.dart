@@ -211,15 +211,30 @@ class TenantProfileSetting extends ConsumerWidget {
                           child: CircularProgressIndicator(),
                         ),
                       );
-                      await Supabase.instance.client.auth.signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const GoogleNavBar(),
-                          ),
-                          (route) => false,
-                        );
+                      bool shouldNavigate = false;
+                      try {
+                        await Supabase.instance.client.auth.signOut();
+                        shouldNavigate = true;
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Logout failed. Please try again.'),
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (!context.mounted) return;
+                        Navigator.of(context, rootNavigator: true).pop();
+                        if (shouldNavigate) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const GoogleNavBar(),
+                            ),
+                            (route) => false,
+                          );
+                        }
                       }
                     },
                   ),

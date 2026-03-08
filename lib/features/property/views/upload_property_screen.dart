@@ -237,7 +237,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}'),
+                        RegExp(r'^\d+\.?\d{0,2}$'),
                       ),
                     ],
                     validator: (v) {

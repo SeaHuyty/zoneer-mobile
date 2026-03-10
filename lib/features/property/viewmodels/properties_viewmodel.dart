@@ -25,6 +25,15 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
           .getPropertiesByLandlordId(landlordId);
     });
   }
+
+  /// Remove a property from the current state (optimistic update)
+  void removePropertyFromState(String propertyId) {
+    state.whenData((properties) {
+      state = AsyncValue.data(
+        properties.where((p) => p.id != propertyId).toList(),
+      );
+    });
+  }
 }
 
 final propertiesViewModelProvider =

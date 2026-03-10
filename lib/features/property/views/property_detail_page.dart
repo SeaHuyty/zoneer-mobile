@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/inquiry/views/inquiry.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
@@ -133,8 +136,34 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     final isInWishlistAsync = ref.watch(
       isPropertyInWishlistProvider(widget.id),
     );
+    final isInWishlist = isInWishlistAsync.value ?? false;
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: CircleIcon(
+          icon: Icons.arrow_back,
+          onTap: () => Navigator.pop(context),
+        ),
+        actions: [
+          CircleIcon(
+            icon: Icons.share_outlined,
+            onTap: () {},
+          ),
+          const SizedBox(width: 4),
+          CircleIcon(
+            icon: isInWishlist
+                ? Icons.favorite
+                : Icons.favorite_border_outlined,
+            onTap: _isTogglingWishlist
+                ? null
+                : () => _toggleWishlist(context),
+            iconColor: isInWishlist ? Colors.red : null,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: property.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text(err.toString())),
@@ -143,48 +172,10 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
               ? ref.watch(userByIdProvider(property.landlordId!))
               : null;
 
-          final isInWishlist = isInWishlistAsync.value ?? false;
-
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CircleIcon(
-                          icon: Icons.arrow_back,
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        Row(
-                          children: [
-                            CircleIcon(
-                              icon: Icons.share_outlined,
-                              onTap: () {},
-                            ),
-                            const SizedBox(width: 8),
-                            CircleIcon(
-                              icon: isInWishlist
-                                  ? Icons.favorite
-                                  : Icons.favorite_border_outlined,
-                              onTap: _isTogglingWishlist
-                                  ? null
-                                  : () => _toggleWishlist(context),
-                              iconColor: isInWishlist ? Colors.red : null,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 ImageWidget(
                   thumbnail: property.thumbnail,
                   propertyId: widget.id,
@@ -270,6 +261,84 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
 
                       const SizedBox(height: 16),
 
+                      // Map section
+                      if (property.latitude != null && property.longitude != null) ...
+                        [
+                          const Text(
+                            'Location',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: SizedBox(
+                              height: 200,
+                              child: FlutterMap(
+                                options: MapOptions(
+                                  initialCenter: LatLng(
+                                    property.latitude!,
+                                    property.longitude!,
+                                  ),
+                                  initialZoom: 15,
+                                  interactionOptions: const InteractionOptions(
+                                    flags: InteractiveFlag.none,
+                                  ),
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.zoneer.mobile',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: LatLng(
+                                          property.latitude!,
+                                          property.longitude!,
+                                        ),
+                                        width: 36,
+                                        height: 36,
+                                        child: const Icon(
+                                          Icons.location_pin,
+                                          color: AppColors.primary,
+                                          size: 36,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final uri = Uri.parse(property.locationUrl);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.map_outlined, size: 18),
+                              label: const Text('Open in Google Maps'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(color: AppColors.primary),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
                       if (landlordAsync != null)
                         landlordAsync.maybeWhen(
                           data: (landlord) => LandlordCard(landlord: landlord),
@@ -278,8 +347,8 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                     ],
                   ),
                 ),
-              ]
-            )
+              ],
+            ),
           );
         },
       ),

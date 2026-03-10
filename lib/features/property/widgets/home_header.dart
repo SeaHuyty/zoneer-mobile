@@ -4,7 +4,9 @@ import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/service_provider.dart';
+import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
+import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
 class HomeHeader extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const HomeHeader({super.key});
@@ -43,52 +45,86 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
   }
 
   Future<void> _handleLocationRequest() async {
-    setState(() => _isLoadingLocation = true);
+    final permissionState = ref.read(locationPermissionProvider);
 
-    try {
-      final result = await ref
-          .read(currentCityProvider.notifier)
-          .fetchCurrentCity();
+    // If already has permission, just get city from current location
+    if (permissionState.hasPermission && permissionState.userLocation != null) {
+      setState(() => _isLoadingLocation = true);
+      try {
+        // Get city from the cached location in permission provider
+        final locationService = ref.read(locationServiceProvider);
+        final city = await locationService.getCityFromCoordinates(
+          permissionState.userLocation!.latitude,
+          permissionState.userLocation!.longitude,
+        );
 
-      // Show error dialog if location fetch failed
-      if (mounted && !result.success) {
-        _showLocationErrorDialog(result.errorInfo!);
+        if (city != null && mounted) {
+          ref.read(currentCityProvider.notifier).updateCity(city);
+        } else if (mounted) {
+          // Fallback to fetching fresh location
+          await ref.read(locationPermissionProvider.notifier).refreshLocation();
+          final updatedState = ref.read(locationPermissionProvider);
+
+          if (updatedState.userLocation != null) {
+            final newCity = await locationService.getCityFromCoordinates(
+              updatedState.userLocation!.latitude,
+              updatedState.userLocation!.longitude,
+            );
+            if (newCity != null) {
+              ref.read(currentCityProvider.notifier).updateCity(newCity);
+            }
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoadingLocation = false);
+        }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoadingLocation = false);
+      return;
+    }
+
+    // Show custom permission dialog
+    final granted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const LocationPermissionDialog(),
+    );
+
+    if (granted == true && mounted) {
+      setState(() => _isLoadingLocation = true);
+      try {
+        // After permission granted, get location and reverse geocode
+        final updatedState = ref.read(locationPermissionProvider);
+
+        if (updatedState.userLocation != null) {
+          final locationService = ref.read(locationServiceProvider);
+          final city = await locationService.getCityFromCoordinates(
+            updatedState.userLocation!.latitude,
+            updatedState.userLocation!.longitude,
+          );
+
+          if (city != null && mounted) {
+            ref.read(currentCityProvider.notifier).updateCity(city);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoadingLocation = false);
+        }
       }
     }
-  }
-
-  void _showLocationErrorDialog(dynamic errorInfo) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(errorInfo.title),
-        content: Text(errorInfo.message),
-        actions: [
-          if (errorInfo.canRequest)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _handleLocationRequest(); // Retry
-              },
-              child: const Text('Try Again'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(errorInfo.canRequest ? 'Cancel' : 'OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -171,7 +207,12 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                       },
                     ),
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationScreen(),
+                        ),
+                      );
                     },
                   ),
                 ],

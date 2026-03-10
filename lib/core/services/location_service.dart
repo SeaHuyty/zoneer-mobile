@@ -34,25 +34,25 @@ class LocationService {
     return permission;
   }
 
-  // Get current location
+  // Get current location (does NOT request permission, only gets position if already granted)
+  // Use locationPermissionProvider to request permission first
   Future<Position?> getCurrentLocation() async {
     try {
+      // Check permission first - do NOT request if denied
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        print(
+          'Location permission not granted. Please request permission first.',
+        );
+        return null;
+      }
+
       // Platform-specific handling
       if (kIsWeb) {
         // Web platform - browser geolocation API
-        print('Requesting location on web platform');
-
-        // Check permission first
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied) {
-            print(
-              'Location permissions are denied on web. User must allow in browser.',
-            );
-            return null;
-          }
-        }
+        print('Getting location on web platform');
 
         // For web, try to get location with more lenient settings
         return await Geolocator.getCurrentPosition(
@@ -71,24 +71,7 @@ class LocationService {
         );
       } else {
         // Mobile/Desktop platforms
-        // Check permission first (more important than service check on macOS)
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied) {
-            print('Location permissions are denied');
-            return null;
-          }
-        }
-
-        if (permission == LocationPermission.deniedForever) {
-          print(
-            'Location permissions are permanently denied. Please enable in system settings.',
-          );
-          return null;
-        }
-
-        // Check if service is enabled after permission check
+        // Check if service is enabled
         bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (!serviceEnabled) {
           print(
@@ -124,53 +107,122 @@ class LocationService {
     double latitude,
     double longitude,
   ) async {
+    print('🌍 getCityFromCoordinates called with: $latitude, $longitude');
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(
         latitude,
         longitude,
       );
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
 
-        // Build city string from available fields (handles null values on web)
-        String? locality = place.locality; // City
-        String? adminArea = place.administrativeArea; // Province/State
-        String? subLocality = place.subLocality; // District/Neighborhood
-        String? country = place.country;
+      print('✅ Placemarks received: ${placemarks.length}');
 
-        // Priority format for Cambodia and similar locations:
-        // "District, City" (e.g., "Chba Ampov, Phnom Penh")
-        // This provides the most useful location information
-
-        if (subLocality != null && locality != null) {
-          // Best case: District, City
-          return '$subLocality, $locality';
-        } else if (locality != null && adminArea != null) {
-          // Fallback: City, Province/State
-          return '$locality, $adminArea';
-        } else if (subLocality != null && adminArea != null) {
-          // Alternative: District, Province
-          return '$subLocality, $adminArea';
-        } else if (locality != null && country != null) {
-          // Fallback: City, Country
-          return '$locality, $country';
-        } else if (adminArea != null) {
-          // Only province/state
-          return adminArea;
-        } else if (locality != null) {
-          // Only city
-          return locality;
-        } else if (subLocality != null) {
-          // Only district
-          return subLocality;
-        } else if (country != null) {
-          // Only country
-          return country;
-        }
+      if (placemarks.isEmpty) {
+        print('❌ No placemarks found for coordinates: $latitude, $longitude');
+        return null;
       }
+
+      Placemark place = placemarks[0];
+
+      // Safely extract fields with extensive null/error handling for web compatibility
+      String? locality;
+      String? adminArea;
+      String? subLocality;
+      String? subAdminArea;
+      String? country;
+
+      try {
+        locality = place.locality?.isNotEmpty == true ? place.locality : null;
+      } catch (e) {
+        print('⚠️ Error reading locality: $e');
+        locality = null;
+      }
+
+      try {
+        adminArea = place.administrativeArea?.isNotEmpty == true
+            ? place.administrativeArea
+            : null;
+      } catch (e) {
+        print('⚠️ Error reading administrativeArea: $e');
+        adminArea = null;
+      }
+
+      try {
+        subLocality = place.subLocality?.isNotEmpty == true
+            ? place.subLocality
+            : null;
+      } catch (e) {
+        print('⚠️ Error reading subLocality: $e');
+        subLocality = null;
+      }
+
+      try {
+        subAdminArea = place.subAdministrativeArea?.isNotEmpty == true
+            ? place.subAdministrativeArea
+            : null;
+      } catch (e) {
+        print('⚠️ Error reading subAdministrativeArea: $e');
+        subAdminArea = null;
+      }
+
+      try {
+        country = place.country?.isNotEmpty == true ? place.country : null;
+      } catch (e) {
+        print('⚠️ Error reading country: $e');
+        country = null;
+      }
+
+      print(
+        '📍 Extracted - locality: $locality, adminArea: $adminArea, subLocality: $subLocality, subAdminArea: $subAdminArea, country: $country',
+      );
+
+      // Priority format for Cambodia and similar locations:
+      // "District, City" (e.g., "Chroy Changvar, Phnom Penh")
+      // This provides the most useful location information
+
+      String? result;
+
+      if (subLocality != null && locality != null) {
+        // Best case: District/Commune, City
+        result = '$subLocality, $locality';
+      } else if (locality != null && adminArea != null) {
+        // Fallback: City, Province/State
+        result = '$locality, $adminArea';
+      } else if (subAdminArea != null && locality != null) {
+        // Alternative: Sub-region, City
+        result = '$subAdminArea, $locality';
+      } else if (subLocality != null && adminArea != null) {
+        // Alternative: District, Province
+        result = '$subLocality, $adminArea';
+      } else if (locality != null && country != null) {
+        // Fallback: City, Country
+        result = '$locality, $country';
+      } else if (adminArea != null) {
+        // Only province/state
+        result = adminArea;
+      } else if (locality != null) {
+        // Only city
+        result = locality;
+      } else if (subLocality != null) {
+        // Only district
+        result = subLocality;
+      } else if (subAdminArea != null) {
+        // Only sub-region
+        result = subAdminArea;
+      } else if (country != null) {
+        // Only country
+        result = country;
+      }
+
+      if (result != null) {
+        print('✅ City found: $result');
+        return result;
+      }
+
+      print('❌ No valid location data found in placemark');
       return null;
-    } catch (e) {
-      print('Error getting city name: $e');
+    } catch (e, stackTrace) {
+      print('❌ Error getting city name: $e');
+      print('Stack trace: $stackTrace');
       return null;
     }
   }

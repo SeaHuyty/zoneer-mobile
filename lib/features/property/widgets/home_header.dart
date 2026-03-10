@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/service_provider.dart';
@@ -127,9 +128,39 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
     }
   }
 
+  Future<void> _autoUpdateCityFromLocation(LatLng location) async {
+    final currentCity = ref.read(currentCityProvider);
+    if (currentCity != 'Current Location') return;
+
+    try {
+      final locationService = ref.read(locationServiceProvider);
+      final city = await locationService.getCityFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      if (city != null && mounted) {
+        ref.read(currentCityProvider.notifier).updateCity(city);
+      }
+    } catch (_) {
+      // Silent failure — user can still tap to retry
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentCity = ref.watch(currentCityProvider);
+
+    ref.listen<LocationPermissionState>(
+      locationPermissionProvider,
+      (previous, next) {
+        final hadLocation = previous?.userLocation != null;
+        final hasLocation = next.userLocation != null;
+
+        if (!hadLocation && hasLocation && !_isLoadingLocation) {
+          _autoUpdateCityFromLocation(next.userLocation!);
+        }
+      },
+    );
 
     return AppBar(
       backgroundColor: AppColors.white,

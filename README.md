@@ -1,6 +1,8 @@
-# zoneer_mobile
+# zoneer_mobile_app
 
 A new Flutter project.
+
+Connect tenant to landlord
 
 ## Getting Started
 

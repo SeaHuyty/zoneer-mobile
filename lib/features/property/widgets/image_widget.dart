@@ -66,6 +66,25 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
                       images[index],
                       fit: BoxFit.cover,
                       width: double.infinity,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: Colors.black12,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.black12,
+                        child: const Center(
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            size: 64,
+                            color: Colors.black38,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),

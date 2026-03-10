@@ -28,6 +28,23 @@ class PropertyCard extends StatelessWidget {
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 200,
+                    color: Colors.black12,
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (_, __, ___) => Container(
+                  height: 200,
+                  color: Colors.black12,
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    size: 48,
+                    color: Colors.black38,
+                  ),
+                ),
               ),
             ),
             // Gradient overlay at bottom

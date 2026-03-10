@@ -1,7 +1,9 @@
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 
 class LocationService {
   // Check if the location service is enabled
@@ -102,12 +104,67 @@ class LocationService {
     }
   }
 
+  // Nominatim reverse geocoding for web (geocoding package doesn't support web)
+  Future<String?> _getCityFromCoordinatesWeb(
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
+        'lat': latitude.toString(),
+        'lon': longitude.toString(),
+        'format': 'json',
+        'addressdetails': '1',
+      });
+
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'ZoneerMobileApp/1.0'},
+      );
+
+      if (response.statusCode != 200) return null;
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final address = data['address'] as Map<String, dynamic>?;
+      if (address == null) return null;
+
+      final subLocality =
+          (address['suburb'] ?? address['quarter'] ?? address['neighbourhood'])
+              as String?;
+      final locality =
+          (address['city'] ?? address['town'] ?? address['village'])
+              as String?;
+      final adminArea = address['state'] as String?;
+      final country = address['country'] as String?;
+
+      if (subLocality != null && locality != null) {
+        return '$subLocality, $locality';
+      } else if (locality != null && adminArea != null) {
+        return '$locality, $adminArea';
+      } else if (locality != null) {
+        return locality;
+      } else if (adminArea != null) {
+        return adminArea;
+      } else if (country != null) {
+        return country;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Get city name from coordinates
   Future<String?> getCityFromCoordinates(
     double latitude,
     double longitude,
   ) async {
     print('🌍 getCityFromCoordinates called with: $latitude, $longitude');
+
+    if (kIsWeb) {
+      return _getCityFromCoordinatesWeb(latitude, longitude);
+    }
+
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(
         latitude,

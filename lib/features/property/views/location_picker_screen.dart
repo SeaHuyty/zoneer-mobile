@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -92,8 +93,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: AppConfig.mapboxTileUrl,
                 userAgentPackageName: 'com.zoneer.mobile',
               ),
               if (_selectedLocation != null)

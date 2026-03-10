@@ -2,11 +2,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
 
 class UploadPropertyScreen extends ConsumerStatefulWidget {
   /// If non-null, we are editing an existing property.
@@ -27,9 +30,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   late final TextEditingController _bedroomController;
   late final TextEditingController _bathroomController;
   late final TextEditingController _areaController;
-  late final TextEditingController _locationUrlController;
   late final TextEditingController _descriptionController;
 
+  LatLng? _selectedLocation;
   Uint8List? _thumbnailBytes;
   String? _thumbnailExt;
   String? _existingThumbnailUrl;
@@ -49,9 +52,11 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         TextEditingController(text: p != null ? p.bathroom.toString() : '');
     _areaController =
         TextEditingController(text: p != null ? p.squareArea.toString() : '');
-    _locationUrlController = TextEditingController(text: p?.locationUrl ?? '');
     _descriptionController = TextEditingController(text: p?.description ?? '');
     _existingThumbnailUrl = p?.thumbnail;
+    if (p?.latitude != null && p?.longitude != null) {
+      _selectedLocation = LatLng(p!.latitude!, p.longitude!);
+    }
   }
 
   @override
@@ -61,7 +66,6 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     _bedroomController.dispose();
     _bathroomController.dispose();
     _areaController.dispose();
-    _locationUrlController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -83,12 +87,39 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     }
   }
 
+  void _deleteThumbnail() {
+    setState(() {
+      _thumbnailBytes = null;
+      _thumbnailExt = null;
+      _existingThumbnailUrl = null;
+    });
+  }
+
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(initialLocation: _selectedLocation),
+      ),
+    );
+    if (result != null) {
+      setState(() => _selectedLocation = result);
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_thumbnailBytes == null && _existingThumbnailUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a thumbnail image.')),
+      );
+      return;
+    }
+
+    if (_selectedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please pick a location on the map.')),
       );
       return;
     }
@@ -104,7 +135,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             bathroom: int.parse(_bathroomController.text.trim()),
             squareArea: double.parse(_areaController.text.trim()),
             address: _addressController.text.trim(),
-            locationUrl: _locationUrlController.text.trim(),
+            latitude: _selectedLocation!.latitude,
+            longitude: _selectedLocation!.longitude,
             description: _descriptionController.text.trim(),
           );
 
@@ -167,28 +199,69 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     border: Border.all(color: Colors.black12),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: _thumbnailBytes != null
-                      ? Image.memory(_thumbnailBytes!, fit: BoxFit.cover)
-                      : _existingThumbnailUrl != null
-                          ? Image.network(
-                              _existingThumbnailUrl!,
-                              fit: BoxFit.cover,
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                  size: 48,
-                                  color: AppColors.primary,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Tap to select thumbnail',
-                                  style: TextStyle(color: Colors.black54),
-                                ),
-                              ],
+                  child: Stack(
+                    children: [
+                      // Image display
+                      if (_thumbnailBytes != null)
+                        SizedBox.expand(
+                          child: Image.memory(_thumbnailBytes!, fit: BoxFit.cover),
+                        )
+                      else if (_existingThumbnailUrl != null)
+                        SizedBox.expand(
+                          child: Image.network(
+                            _existingThumbnailUrl!,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      else
+                        const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_photo_alternate_outlined,
+                                size: 48,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Tap to select thumbnail',
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                            ],
+                          ),
+                        ),
+                      
+                      // Delete button (only show when image exists)
+                      if (_thumbnailBytes != null || _existingThumbnailUrl != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: _deleteThumbnail,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.9),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               if (_thumbnailBytes != null || _existingThumbnailUrl != null)
@@ -212,14 +285,108 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 14),
-                  _buildField(
-                    controller: _locationUrlController,
-                    label: 'Google Maps URL',
-                    hint: 'https://maps.google.com/...',
-                    icon: Icons.map_outlined,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
+                  // Map location picker
+                  if (_selectedLocation != null) ...
+                    [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          height: 150,
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: _selectedLocation!,
+                              initialZoom: 15,
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.none,
+                              ),
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.zoneer.mobile',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: _selectedLocation!,
+                                    width: 32,
+                                    height: 32,
+                                    child: const Icon(
+                                      Icons.location_pin,
+                                      color: AppColors.primary,
+                                      size: 32,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on,
+                            color: AppColors.primary,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${_selectedLocation!.latitude.toStringAsFixed(5)}, '
+                              '${_selectedLocation!.longitude.toStringAsFixed(5)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _openLocationPicker,
+                            icon: const Icon(Icons.edit_outlined, size: 14),
+                            label: const Text('Change'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]
+                  else
+                    GestureDetector(
+                      onTap: _openLocationPicker,
+                      child: Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.black12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_location_alt_outlined,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Tap to pick location on map',
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
 

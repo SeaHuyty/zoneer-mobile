@@ -22,9 +22,11 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required int bathroom,
     required double squareArea,
     required String address,
-    required String locationUrl,
+    required double latitude,
+    required double longitude,
     required String description,
   }) async {
+    final locationUrl = 'https://www.google.com/maps?q=$latitude,$longitude';
     state = true;
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
@@ -49,6 +51,8 @@ class UploadPropertyViewModel extends Notifier<bool> {
             squareArea: squareArea,
             address: address,
             locationUrl: locationUrl,
+            latitude: latitude,
+            longitude: longitude,
             description: description,
             thumbnail: thumbnailUrl,
             landlordId: userId,
@@ -66,6 +70,8 @@ class UploadPropertyViewModel extends Notifier<bool> {
             squareArea: squareArea,
             address: address,
             locationUrl: locationUrl,
+            latitude: latitude,
+            longitude: longitude,
             description: description,
             thumbnail: thumbnailUrl,
             landlordId: userId,

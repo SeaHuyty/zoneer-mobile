@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -304,8 +305,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                                 ),
                                 children: [
                                   TileLayer(
-                                    urlTemplate:
-                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    urlTemplate: AppConfig.mapboxTileUrl,
                                     userAgentPackageName: 'com.zoneer.mobile',
                                   ),
                                   MarkerLayer(

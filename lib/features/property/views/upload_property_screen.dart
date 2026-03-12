@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -302,8 +303,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             ),
                             children: [
                               TileLayer(
-                                urlTemplate:
-                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                urlTemplate: AppConfig.mapboxTileUrl,
                                 userAgentPackageName: 'com.zoneer.mobile',
                               ),
                               MarkerLayer(

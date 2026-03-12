@@ -81,7 +81,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
 
       ref
           .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(userId);
+          .loadProperties();
     } finally {
       state = false;
     }

@@ -48,11 +48,13 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
         return GestureDetector(
           onTap: () => _openFullscreenViewer(context, images),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            height: 300,
+            height: 360,
             width: double.infinity,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
               child: Stack(
               fit: StackFit.expand,
               children: [

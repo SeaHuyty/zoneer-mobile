@@ -26,6 +26,20 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
     });
   }
 
+  Future<void> updateProperty(PropertyModel propertyId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(propertyRepositoryProvider).updateProperty(propertyId);
+      return ref.read(propertyRepositoryProvider).getProperties();
+    });
+  }
+
+  Future<void> removeProperty(String propertyId) async {
+    await ref.read(propertyRepositoryProvider).deleteProperty(propertyId);
+
+    removePropertyFromState(propertyId);
+  }
+
   /// Remove a property from the current state (optimistic update)
   void removePropertyFromState(String propertyId) {
     state.whenData((properties) {

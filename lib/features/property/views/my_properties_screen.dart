@@ -123,26 +123,6 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
             fontSize: 18,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton.icon(
-              onPressed: () => _goToUpload(),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Upload'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: propertiesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

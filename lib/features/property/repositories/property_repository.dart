@@ -46,7 +46,11 @@ class PropertyRepository {
   }
 
   Future<void> deleteProperty(String id) async {
-    await _supabase.from('properties').delete().eq('id', id);
+    await _supabase
+      .from('properties')
+      .delete()
+      .eq('id', id)
+      .select();
   }
 
   Future<String> uploadThumbnail(

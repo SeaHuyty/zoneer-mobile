@@ -202,7 +202,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               // Logo
               Center(
                 child: Image.asset(
-                  '../../../../assets/logo/Zoneer-Logo-svg.png',
+                  'assets/logo/Zoneer-Logo-svg.png',
                   height: 50,
                   width: 50,
                 ),

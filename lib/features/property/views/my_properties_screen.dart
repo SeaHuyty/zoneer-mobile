@@ -60,19 +60,31 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     if (confirmed != true) return;
 
     try {
-      await ref.read(propertyRepositoryProvider).deleteProperty(id);
-      ref
-          .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
+      // Optimistically remove from UI first for instant feedback
+      ref.read(propertiesViewModelProvider.notifier).removePropertyFromState(id);
+      
+      // Show success message immediately
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Property deleted.')),
         );
       }
+      
+      // Delete from database in the background
+      await ref.read(propertyRepositoryProvider).deleteProperty(id);
+      
+      // Reload to ensure consistency with database
+      await ref
+          .read(propertiesViewModelProvider.notifier)
+          .loadLandlordProperties(_userId);
     } catch (e) {
+      // Reload the list to restore UI if delete failed
+      await ref
+          .read(propertiesViewModelProvider.notifier)
+          .loadLandlordProperties(_userId);
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: Text('Delete failed: ${e.toString()}')));
       }
     }
   }

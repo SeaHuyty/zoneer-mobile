@@ -49,8 +49,7 @@ class PropertyRepository {
     await _supabase
       .from('properties')
       .delete()
-      .eq('id', id)
-      .select();
+      .eq('id', id);
   }
 
   Future<String> uploadThumbnail(

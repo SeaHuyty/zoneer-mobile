@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -139,12 +140,17 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     final isInWishlist = isInWishlistAsync.value ?? false;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: CircleIcon(
-          icon: Icons.arrow_back,
-          onTap: () => Navigator.pop(context),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: CircleIcon(
+            icon: Icons.arrow_back,
+            onTap: () => Navigator.pop(context),
+          ),
         ),
         actions: [
           CircleIcon(
@@ -163,6 +169,18 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
           ),
           const SizedBox(width: 8),
         ],
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
       ),
       body: property.when(
         loading: () => const Center(child: CircularProgressIndicator()),

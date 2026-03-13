@@ -16,6 +16,7 @@ import 'package:zoneer_mobile/features/property/widgets/property_filter_sheet.da
 import 'package:zoneer_mobile/features/property/widgets/property_map_controls.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_detail_sheet.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_marker.dart';
+import 'package:zoneer_mobile/features/property/widgets/property_price_pin.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
 class PropertyMapPage extends ConsumerStatefulWidget {
@@ -28,12 +29,15 @@ class PropertyMapPage extends ConsumerStatefulWidget {
 class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
+
   PropertyModel? _selectedProperty;
+
+  /// Property whose thumbnail callout is visible (price-pin mode only).
+  PropertyModel? _calloutProperty;
 
   // Map style
   bool _isSatellite = false;
 
-  // Zoom level for heatmap switching
   double _currentZoom = 12;
 
   static const LatLng _initialCenter = LatLng(11.5564, 104.9282);
@@ -114,7 +118,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: false,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => PropertyMapDetailSheet(
         selectedProperty: property,
@@ -126,7 +130,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
           }
         },
       ),
-    ).whenComplete(() => setState(() => _selectedProperty = null));
+    ).whenComplete(() => setState(() {
+          _selectedProperty = null;
+          _calloutProperty = null;
+        }));
   }
 
   void _showFilterSheet() {
@@ -138,77 +145,91 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
     );
   }
 
-  List<Marker> _buildMarkers(
-    List<PropertyModel> properties,
-    LatLng? userLocation,
-  ) {
-    final markers = <Marker>[];
+  // ── Marker builders ────────────────────────────────────────────────
 
-    for (final property in properties) {
-      if (property.latitude == null || property.longitude == null) continue;
-
-      final isSelected = _selectedProperty?.id == property.id;
-      final cardWidth = isSelected ? 125.0 : 110.0;
-      final cardHeight = isSelected ? 128.0 : 113.0;
-
-      markers.add(
-        Marker(
-          width: cardWidth,
-          height: cardHeight,
-          point: LatLng(property.latitude!, property.longitude!),
-          alignment: Alignment.bottomCenter,
-          child: PropertyMapMarker(
-            property: property,
-            isSelected: isSelected,
-            onTap: () => _onMarkerTapped(property, properties),
-          ),
-        ),
-      );
-    }
-
-    // User location — clean blue dot with white ring
-    if (userLocation != null) {
-      markers.add(
-        Marker(
-          width: 24,
-          height: 24,
-          point: userLocation,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-              ],
+  /// Thumbnail card markers shown when zoomed in (zoom ≥ 12).
+  List<Marker> _buildThumbnailMarkers(List<PropertyModel> properties) {
+    return [
+      for (final property in properties)
+        if (property.latitude != null && property.longitude != null)
+          Marker(
+            width: _selectedProperty?.id == property.id ? 125.0 : 110.0,
+            height: _selectedProperty?.id == property.id ? 128.0 : 113.0,
+            point: LatLng(property.latitude!, property.longitude!),
+            alignment: Alignment.bottomCenter,
+            child: PropertyMapMarker(
+              property: property,
+              isSelected: _selectedProperty?.id == property.id,
+              onTap: () => _onMarkerTapped(property, properties),
             ),
           ),
+    ];
+  }
+
+  /// Price-pill markers shown when zoomed out (zoom < 12).
+  /// The selected property is skipped here — its callout marker replaces it.
+  List<Marker> _buildPricePinMarkers(List<PropertyModel> properties) {
+    return [
+      for (final property in properties)
+        if (property.latitude != null &&
+            property.longitude != null &&
+            _calloutProperty?.id != property.id)
+          Marker(
+            width: 80,
+            height: 38,
+            point: LatLng(property.latitude!, property.longitude!),
+            alignment: Alignment.bottomCenter,
+            child: PropertyPricePin(
+              property: property,
+              isSelected: false,
+              onTap: () =>
+                  setState(() => _calloutProperty = property),
+            ),
+          ),
+    ];
+  }
+
+  /// Single callout card shown above the tapped price pin.
+  /// Uses the same thumbnail-card widget so the arrow points down to the pin.
+  Marker _buildCalloutMarker(
+      PropertyModel property, List<PropertyModel> all) {
+    return Marker(
+      width: 140,
+      height: 143,
+      point: LatLng(property.latitude!, property.longitude!),
+      alignment: Alignment.bottomCenter,
+      child: PropertyMapMarker(
+        property: property,
+        isSelected: true,
+        onTap: () {
+          setState(() => _calloutProperty = null);
+          _onMarkerTapped(property, all);
+        },
+      ),
+    );
+  }
+
+  /// Blue dot for the user's current location — always visible.
+  Marker _buildUserLocationMarker(LatLng location) {
+    return Marker(
+      width: 24,
+      height: 24,
+      point: location,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withValues(alpha: 0.4),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
         ),
-      );
-    }
-
-    return markers;
-  }
-
-  List<CircleMarker> _buildHeatmapCircles(List<PropertyModel> properties) {
-    return properties
-        .where((p) => p.latitude != null && p.longitude != null)
-        .map((p) => CircleMarker(
-              point: LatLng(p.latitude!, p.longitude!),
-              radius: 20,
-              color: _heatmapColor(p.price),
-            ))
-        .toList();
-  }
-
-  Color _heatmapColor(double price) {
-    if (price < 200) return Colors.green.withValues(alpha: 0.6);
-    if (price <= 500) return Colors.amber.withValues(alpha: 0.6);
-    return Colors.red.withValues(alpha: 0.6);
+      ),
+    );
   }
 
   @override
@@ -227,7 +248,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
     final allProperties = propertiesAsync.asData?.value ?? [];
     final filteredProperties = _filterProperties(allProperties, filter);
     final userLocation = permissionState.userLocation;
-    final useHeatmap = _currentZoom < 12;
+    final usePricePins = _currentZoom < 12;
 
     final tileUrl =
         _isSatellite ? AppConfig.mapboxSatelliteUrl : AppConfig.mapboxTileUrl;
@@ -244,10 +265,15 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
               minZoom: 5,
               maxZoom: 18,
               onPositionChanged: (camera, hasGesture) {
-                final crossedThreshold =
-                    (_currentZoom < 12) != (camera.zoom < 12);
-                if (crossedThreshold) {
-                  setState(() => _currentZoom = camera.zoom);
+                final wasZoomedOut = _currentZoom < 12;
+                final isZoomedOut = camera.zoom < 12;
+
+                if (wasZoomedOut != isZoomedOut) {
+                  setState(() {
+                    _currentZoom = camera.zoom;
+                    // Dismiss callout when zooming into thumbnail-card mode
+                    if (!isZoomedOut) _calloutProperty = null;
+                  });
                 } else {
                   _currentZoom = camera.zoom;
                 }
@@ -259,15 +285,24 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 userAgentPackageName: 'com.zoneer.mobile',
               ),
 
-              // Heatmap (zoom < 12) ↔ thumbnail card markers (zoom ≥ 12)
-              if (useHeatmap)
-                CircleLayer(
-                  circles: _buildHeatmapCircles(filteredProperties),
-                )
+              // ── Property markers: price pins or thumbnail cards ──
+              if (usePricePins)
+                MarkerLayer(
+                    markers: _buildPricePinMarkers(filteredProperties))
               else
                 MarkerLayer(
-                  markers: _buildMarkers(filteredProperties, userLocation),
-                ),
+                    markers: _buildThumbnailMarkers(filteredProperties)),
+
+              // ── Callout popup (price-pin mode only) ──────────────
+              if (usePricePins && _calloutProperty != null)
+                MarkerLayer(markers: [
+                  _buildCalloutMarker(_calloutProperty!, filteredProperties),
+                ]),
+
+              // ── User location dot (always visible) ───────────────
+              if (userLocation != null)
+                MarkerLayer(
+                    markers: [_buildUserLocationMarker(userLocation)]),
             ],
           ),
 

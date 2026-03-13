@@ -27,7 +27,7 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(propertiesViewModelProvider.notifier)
-          .loadProperties();
+          .loadLandlordProperties(_userId);
     });
   }
 
@@ -76,12 +76,12 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
       // Reload to ensure consistency with database
       await ref
           .read(propertiesViewModelProvider.notifier)
-          .loadProperties();
+          .loadLandlordProperties(_userId);
     } catch (e) {
       // Reload the list to restore UI if delete failed
       await ref
           .read(propertiesViewModelProvider.notifier)
-          .loadProperties();
+          .loadLandlordProperties(_userId);
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Delete failed: ${e.toString()}')));
@@ -99,7 +99,7 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     // Refresh after returning
     ref
         .read(propertiesViewModelProvider.notifier)
-      .loadProperties();
+      .loadLandlordProperties(_userId);
   }
 
   @override

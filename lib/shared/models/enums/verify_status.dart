@@ -1,5 +1,5 @@
 enum VerifyStatus {
-  defaultStatus('default'),
+  defaultStatus('rejected'),
   verified('verified'),
   pending('pending');
 
@@ -10,7 +10,7 @@ enum VerifyStatus {
   static VerifyStatus fromValue(String? value) {
     return VerifyStatus.values.firstWhere(
       (e) => e.value == value,
-      orElse: () => VerifyStatus.defaultStatus,
+      orElse: () => VerifyStatus.pending,
     );
   }
 }

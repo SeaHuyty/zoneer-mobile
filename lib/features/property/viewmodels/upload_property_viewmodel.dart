@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
-import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 
 class UploadPropertyViewModel extends Notifier<bool> {
   @override
@@ -116,12 +115,6 @@ class UploadPropertyViewModel extends Notifier<bool> {
         );
       }
 
-      // Confirm true server state
-      propertiesNotifier.loadProperties();
-    } catch (e) {
-      // Rollback optimistic update on error
-      propertiesNotifier.loadProperties();
-      rethrow;
     } finally {
       state = false;
     }

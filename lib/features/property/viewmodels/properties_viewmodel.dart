@@ -9,12 +9,6 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
   }
 
   Future<void> loadProperties() async {
-    // Only show loading spinner when there is no data yet.
-    // When refreshing after an optimistic update keep existing markers visible.
-    if (!state.hasValue) {
-      state = const AsyncValue.loading();
-    }
-
     state = await AsyncValue.guard(() async {
       return ref.read(propertyRepositoryProvider).getProperties();
     });

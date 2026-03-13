@@ -49,6 +49,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       MaterialPageRoute(builder: (_) => const GoogleNavBar()),
     );
   }
+  Future<void> _googleLogin() async {
+    try {
+      final authService = ref.read(authServiceProvider);
+
+      await authService.signInWithGoogle();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google login failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -357,6 +373,36 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
                     const SizedBox(height: 20),
 
+                    Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text("OR"),
+                        ),
+                        Expanded(child: Divider()),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: _googleLogin,
+                        icon: Image.asset('assets/logo/google.png', height: 20),
+                        label: const Text(
+                          "Continue with Google",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
                     // Toggle login / register
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

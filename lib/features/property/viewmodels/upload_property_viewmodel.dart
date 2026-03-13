@@ -27,6 +27,43 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required String description,
   }) async {
     final locationUrl = 'https://www.google.com/maps?q=$latitude,$longitude';
+    final propertiesNotifier =
+        ref.read(propertiesViewModelProvider.notifier);
+
+    // --- Optimistic local state update ---
+    if (existingProperty != null) {
+      propertiesNotifier.optimisticallyUpdate(
+        existingProperty.copyWith(
+          price: price,
+          bedroom: bedroom,
+          bathroom: bathroom,
+          squareArea: squareArea,
+          address: address,
+          locationUrl: locationUrl,
+          latitude: latitude,
+          longitude: longitude,
+          description: description,
+          thumbnail: existingThumbnailUrl ?? existingProperty.thumbnail,
+        ),
+      );
+    } else {
+      propertiesNotifier.optimisticallyAdd(
+        PropertyModel(
+          id: 'optimistic-${DateTime.now().millisecondsSinceEpoch}',
+          price: price,
+          bedroom: bedroom,
+          bathroom: bathroom,
+          squareArea: squareArea,
+          address: address,
+          locationUrl: locationUrl,
+          latitude: latitude,
+          longitude: longitude,
+          description: description,
+          thumbnail: existingThumbnailUrl ?? '',
+        ),
+      );
+    }
+
     state = true;
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
@@ -79,9 +116,12 @@ class UploadPropertyViewModel extends Notifier<bool> {
         );
       }
 
-      ref
-          .read(propertiesViewModelProvider.notifier)
-          .loadProperties();
+      // Confirm true server state
+      propertiesNotifier.loadProperties();
+    } catch (e) {
+      // Rollback optimistic update on error
+      propertiesNotifier.loadProperties();
+      rethrow;
     } finally {
       state = false;
     }

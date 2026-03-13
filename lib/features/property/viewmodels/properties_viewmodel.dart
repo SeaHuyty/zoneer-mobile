@@ -9,7 +9,11 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
   }
 
   Future<void> loadProperties() async {
-    state = const AsyncValue.loading();
+    // Only show loading spinner when there is no data yet.
+    // When refreshing after an optimistic update keep existing markers visible.
+    if (!state.hasValue) {
+      state = const AsyncValue.loading();
+    }
 
     state = await AsyncValue.guard(() async {
       return ref.read(propertyRepositoryProvider).getProperties();
@@ -47,6 +51,22 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
     state.whenData((properties) {
       state = AsyncValue.data(
         properties.where((p) => p.id != propertyId).toList(),
+      );
+    });
+  }
+
+  /// Optimistically insert a property at the front of the list.
+  void optimisticallyAdd(PropertyModel property) {
+    state.whenData((properties) {
+      state = AsyncValue.data([property, ...properties]);
+    });
+  }
+
+  /// Optimistically replace a property with the same id in the list.
+  void optimisticallyUpdate(PropertyModel property) {
+    state.whenData((properties) {
+      state = AsyncValue.data(
+        properties.map((p) => p.id == property.id ? property : p).toList(),
       );
     });
   }

@@ -278,6 +278,17 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                           property.description!.isNotEmpty)
                         Text(property.description!),
 
+                      // Amenities
+                      if (_hasAnyAmenities(property)) ...[
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Amenities',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildAmenitiesSection(property),
+                      ],
+
                       const SizedBox(height: 16),
 
                       // Map section
@@ -434,6 +445,135 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Amenity helpers
+  // -------------------------------------------------------------------------
+
+  static const _kPropertyFeatures = {
+    'wifi': ('WiFi', Icons.wifi),
+    'air_con': ('Air Conditioning', Icons.ac_unit),
+    'parking': ('Parking', Icons.local_parking),
+    'balcony': ('Balcony', Icons.balcony),
+    'pool': ('Swimming Pool', Icons.pool),
+    'gym': ('Gym', Icons.fitness_center),
+    'elevator': ('Elevator', Icons.elevator),
+    'furnished': ('Furnished', Icons.chair),
+    'washing_machine': ('Washing Machine', Icons.local_laundry_service),
+    'kitchen': ('Kitchen', Icons.kitchen),
+  };
+
+  static const _kSecurityFeatures = {
+    'cctv': ('CCTV', Icons.videocam),
+    'security_guard': ('Security Guard', Icons.security),
+    'key_card': ('Key Card Access', Icons.credit_card),
+    'gated': ('Gated Community', Icons.fence),
+  };
+
+  static const _kBadgeOptions = {
+    'pet_friendly': ('Pet Friendly', Icons.pets),
+    'utilities_included': ('Utilities Included', Icons.electrical_services),
+    'near_school': ('Near School', Icons.school),
+    'near_market': ('Near Market', Icons.storefront),
+  };
+
+  bool _hasAnyAmenities(PropertyModel p) {
+    bool hasEntries(Map<String, dynamic>? map) =>
+        map != null && map.entries.any((e) => e.value == true);
+    return hasEntries(p.propertyFeatures) ||
+        hasEntries(p.securityFeatures) ||
+        hasEntries(p.badgeOptions);
+  }
+
+  Widget _buildAmenitiesSection(PropertyModel p) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (p.propertyFeatures != null)
+          _buildAmenityGroup(
+            'Property Features',
+            p.propertyFeatures!,
+            _kPropertyFeatures,
+          ),
+        if (p.securityFeatures != null)
+          _buildAmenityGroup(
+            'Security',
+            p.securityFeatures!,
+            _kSecurityFeatures,
+          ),
+        if (p.badgeOptions != null)
+          _buildAmenityGroup(
+            'Highlights',
+            p.badgeOptions!,
+            _kBadgeOptions,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAmenityGroup(
+    String title,
+    Map<String, dynamic> values,
+    Map<String, (String, IconData)> definitions,
+  ) {
+    final active = values.entries
+        .where((e) => e.value == true && definitions.containsKey(e.key))
+        .toList();
+    if (active.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: active.map((e) {
+              final (label, icon) = definitions[e.key]!;
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 5),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }

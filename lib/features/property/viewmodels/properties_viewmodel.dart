@@ -48,6 +48,22 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
       );
     });
   }
+
+  /// Optimistically insert a property at the front of the list.
+  void optimisticallyAdd(PropertyModel property) {
+    state.whenData((properties) {
+      state = AsyncValue.data([property, ...properties]);
+    });
+  }
+
+  /// Optimistically replace a property with the same id in the list.
+  void optimisticallyUpdate(PropertyModel property) {
+    state.whenData((properties) {
+      state = AsyncValue.data(
+        properties.map((p) => p.id == property.id ? property : p).toList(),
+      );
+    });
+  }
 }
 
 final propertiesViewModelProvider =

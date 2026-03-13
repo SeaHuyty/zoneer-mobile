@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
+import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
 
@@ -140,6 +141,11 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             longitude: _selectedLocation!.longitude,
             description: _descriptionController.text.trim(),
           );
+
+      // Animate the map to the new/updated property location
+      if (_selectedLocation != null) {
+        ref.read(mapFocusProvider.notifier).focus(_selectedLocation!);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

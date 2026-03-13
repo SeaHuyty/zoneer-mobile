@@ -14,7 +14,9 @@ class PropertyRepository {
   Future<List<PropertyModel>> getProperties() async {
     final response = await _supabase
         .from('properties')
-        .select('id, price, bedroom, bathroom, address, thumbnail_url, square_area')
+        .select(
+          'id, price, bedroom, bathroom, address, thumbnail_url, square_area, latitude, longitude, verify_status, property_status',
+        )
         .eq('verify_status', VerifyStatus.verified.value);
     return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
   }

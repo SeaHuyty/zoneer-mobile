@@ -39,7 +39,7 @@ class PropertyModel {
     this.securityFeatures,
     this.propertyFeatures,
     this.badgeOptions,
-    this.verifyStatus = VerifyStatus.pending,
+    this.verifyStatus = VerifyStatus.defaultStatus,
     this.propertyStatus = PropertyStatus.available,
     this.landlordId,
     this.verifiedByAdmin,

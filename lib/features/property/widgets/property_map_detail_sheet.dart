@@ -1,17 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
-import 'package:zoneer_mobile/features/property/providers/saved_properties_provider.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 
-/// Simple bottom sheet card shown when a map marker is tapped.
-/// Shows thumbnail + key info and lets the user navigate to the full detail page.
-class PropertyMapDetailSheet extends ConsumerWidget {
+/// Full property card shown in the bottom sheet when a marker is tapped.
+/// Photo grid · title · price + badge · location · amenity chips · description · CTA.
+class PropertyMapDetailSheet extends StatelessWidget {
   final PropertyModel selectedProperty;
 
-  // Kept for API compatibility but not used in this simplified design.
+  // Kept for API compatibility.
   final List<PropertyModel> allProperties;
   final void Function(PropertyModel) onPropertySelected;
 
@@ -23,10 +22,9 @@ class PropertyMapDetailSheet extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final p = selectedProperty;
-    final savedIds = ref.watch(savedPropertiesProvider);
-    final isSaved = savedIds.contains(p.id);
+    final isRented = p.propertyStatus == PropertyStatus.rented;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -41,167 +39,286 @@ class PropertyMapDetailSheet extends ConsumerWidget {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Drag handle ──────────────────────────────────────
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 12),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          // ── Card row ─────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Thumbnail
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 110,
-                    height: 90,
-                    child: p.thumbnail.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: p.thumbnail,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) =>
-                                Container(color: Colors.grey[200]),
-                            errorWidget: (_, __, ___) => Container(
-                              color: Colors.grey[300],
-                              child: const Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.home, color: Colors.grey),
-                          ),
-                  ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Drag handle ──────────────────────────────────────
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 14),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(width: 12),
+              ),
+            ),
 
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Price + favorite
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '\$${p.price.toStringAsFixed(0)}/mo',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => ref
-                                .read(savedPropertiesProvider.notifier)
-                                .toggle(p.id),
-                            child: Icon(
-                              isSaved
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: AppColors.primary,
-                              size: 22,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Address
-                      Text(
-                        p.address,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          height: 1.3,
+            // ── Photo grid ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                height: 200,
+                child: Row(
+                  children: [
+                    // Large image — left half
+                    Expanded(
+                      flex: 3,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
+                        ),
+                        child: SizedBox(
+                          height: double.infinity,
+                          child: _buildImage(p.thumbnail),
                         ),
                       ),
-                      const SizedBox(height: 8),
-
-                      // Beds / Baths / Area
-                      Row(
+                    ),
+                    const SizedBox(width: 4),
+                    // Two stacked images — right half
+                    Expanded(
+                      flex: 2,
+                      child: Column(
                         children: [
-                          _chip(Icons.bed, '${p.bedroom}'),
-                          const SizedBox(width: 8),
-                          _chip(Icons.bathroom, '${p.bathroom}'),
-                          const SizedBox(width: 8),
-                          _chip(Icons.square_foot,
-                              '${p.squareArea.toInt()} m²'),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(12),
+                              ),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: _buildImage(p.thumbnail),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                bottomRight: Radius.circular(12),
+                              ),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: _buildImage(p.thumbnail),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── View Details button ───────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PropertyDetailPage(id: p.id),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
+                  ],
                 ),
-                child: const Text(
-                  'View Full Details',
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // ── Title ─────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                p.address,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // ── Price + status badge ──────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '\$${p.price.toStringAsFixed(0)}/Month',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isRented ? Colors.grey[600] : AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isRented ? 'Rented' : 'For Rent',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // ── Location row ──────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(Icons.place_outlined,
+                      size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      p.address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ── Amenity chips ─────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  _amenityChip(Icons.king_bed_outlined, '${p.bedroom} Beds'),
+                  _amenityChip(
+                      Icons.bathtub_outlined, '${p.bathroom} Baths'),
+                  _amenityChip(
+                      Icons.square_foot, '${p.squareArea.toInt()} m²'),
+                ],
+              ),
+            ),
+
+            // ── Description ───────────────────────────────────────
+            if (p.description != null && p.description!.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Description',
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  p.description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // ── View Full Details button ──────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PropertyDetailPage(id: p.id),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'View Full Details',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _chip(IconData icon, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: Colors.grey[600]),
-        const SizedBox(width: 3),
-        Text(label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-      ],
+  Widget _buildImage(String url) {
+    if (url.isEmpty) return Container(color: Colors.grey[300]);
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => Container(color: Colors.grey[200]),
+      errorWidget: (_, __, ___) => Container(
+        color: Colors.grey[300],
+        child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _amenityChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.grey[700]),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

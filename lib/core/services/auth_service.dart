@@ -3,8 +3,10 @@
 // Handles login, logout, token management, and authentication state
 // Provides authentication status across the entire app
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   final SupabaseClient _client;
@@ -18,6 +20,18 @@ class AuthService {
   Session? get currentSession => _client.auth.currentSession;
 
   Stream<AuthState> get authStateChange => _client.auth.onAuthStateChange;
+
+
+
+Future<void> signInWithGoogle() async {
+    final redirectUrl = kIsWeb ? dotenv.env['REDIRECT_URL']! : 'zoneer://login-callback/';
+
+  await _client.auth.signInWithOAuth(
+    OAuthProvider.google,
+    redirectTo: redirectUrl
+
+  );
+}
 
   Future<AuthResponse> register({
     required String email,

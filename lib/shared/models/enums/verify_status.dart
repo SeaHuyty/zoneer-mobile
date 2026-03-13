@@ -1,7 +1,7 @@
 enum VerifyStatus {
-  defaultStatus('default'),
+  defaultStatus('pending'),
   verified('verified'),
-  pending('pending');
+  rejected('rejected');
 
   final String value;
 

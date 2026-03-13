@@ -77,7 +77,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     fullname: _fullNameController.text.trim(),
                     email: _emailController.text.trim(),
                     role: 'tenant',
-                    verifyStatus: VerifyStatus.pending,
+                    verifyStatus: VerifyStatus.defaultStatus,
                   ),
                 );
           } catch (e) {

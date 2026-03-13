@@ -334,7 +334,11 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: () async {
-                                final uri = Uri.parse(property.locationUrl);
+                                final url = property.locationUrl?.trim();
+                                if (url == null || url.isEmpty) {
+                                  return;
+                                }
+                                final uri = Uri.parse(url);
                                 if (await canLaunchUrl(uri)) {
                                   await launchUrl(
                                     uri,

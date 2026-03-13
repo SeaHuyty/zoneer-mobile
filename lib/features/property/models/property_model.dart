@@ -8,7 +8,7 @@ class PropertyModel {
   final int bathroom;
   final double squareArea;
   final String address;
-  final String locationUrl;
+  final String? locationUrl;
   final double? latitude;
   final double? longitude;
   final String? description;
@@ -31,7 +31,7 @@ class PropertyModel {
     required this.bathroom,
     required this.squareArea,
     required this.address,
-    required this.locationUrl,
+    this.locationUrl,
     required this.thumbnail,
     this.description,
     this.latitude,
@@ -54,7 +54,7 @@ class PropertyModel {
       bathroom: json['bathroom'] as int,
       squareArea: (json['square_area'] as num).toDouble(),
       address: json['address'] as String,
-      locationUrl: json['location_url'] as String,
+      locationUrl: json['location_url'] as String?,
       latitude: json['latitude'] != null
           ? (json['latitude'] as num).toDouble()
           : null,

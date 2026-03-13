@@ -9,8 +9,6 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
   }
 
   Future<void> loadProperties() async {
-    state = const AsyncValue.loading();
-
     state = await AsyncValue.guard(() async {
       return ref.read(propertyRepositoryProvider).getProperties();
     });

@@ -27,7 +27,7 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
+          .loadProperties();
     });
   }
 
@@ -76,12 +76,12 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
       // Reload to ensure consistency with database
       await ref
           .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
+          .loadProperties();
     } catch (e) {
       // Reload the list to restore UI if delete failed
       await ref
           .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
+          .loadProperties();
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Delete failed: ${e.toString()}')));
@@ -99,7 +99,7 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     // Refresh after returning
     ref
         .read(propertiesViewModelProvider.notifier)
-        .loadLandlordProperties(_userId);
+      .loadProperties();
   }
 
   @override
@@ -128,7 +128,10 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
         data: (properties) {
-          if (properties.isEmpty) {
+          final myProperties =
+              properties.where((p) => p.landlordId == _userId).toList();
+
+          if (myProperties.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -159,9 +162,9 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
 
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            itemCount: properties.length,
+            itemCount: myProperties.length,
             itemBuilder: (context, index) {
-              final property = properties[index];
+              final property = myProperties[index];
               return _PropertyManageCard(
                 key: ValueKey(property.id),
                 property: property,

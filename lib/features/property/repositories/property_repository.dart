@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/services/supabase_service.dart';
+import 'package:zoneer_mobile/features/property/models/media_model.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/shared/models/enums/verify_status.dart';
 
@@ -59,9 +60,19 @@ class PropertyRepository {
     Uint8List bytes,
     String ext,
     String userId,
-  ) async {
+  ) => uploadImage(bytes, ext, userId);
+
+  /// Uploads a single image to storage and returns the public URL.
+  /// [index] is appended to the filename to prevent collisions when uploading
+  /// multiple images in the same millisecond.
+  Future<String> uploadImage(
+    Uint8List bytes,
+    String ext,
+    String userId, {
+    int index = 0,
+  }) async {
     final fileName =
-        'properties/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+        'properties/$userId/${DateTime.now().millisecondsSinceEpoch}_$index.$ext';
     const bucketName = 'properties_image';
     await _supabase.storage
         .from(bucketName)
@@ -71,6 +82,46 @@ class PropertyRepository {
           fileOptions: const FileOptions(upsert: true),
         );
     return _supabase.storage.from(bucketName).getPublicUrl(fileName);
+  }
+
+  Future<List<MediaModel>> getPropertyMedias(String propertyId) async {
+    final response = await _supabase
+        .from('media')
+        .select()
+        .eq('property_id', propertyId);
+    return (response as List).map((e) => MediaModel.fromJson(e)).toList();
+  }
+
+  Future<void> insertPropertyMedias(
+    String propertyId,
+    List<String> urls,
+  ) async {
+    if (urls.isEmpty) return;
+    await _supabase.from('media').insert(
+          urls.map((url) => {'url': url, 'property_id': propertyId}).toList(),
+        );
+  }
+
+  Future<void> deletePropertyMediasByPropertyId(String propertyId) async {
+    await _supabase
+        .from('media')
+        .delete()
+        .eq('property_id', propertyId);
+  }
+
+  /// Deletes image files from Supabase Storage given their public URLs.
+  Future<void> deleteStorageImages(List<String> publicUrls) async {
+    const bucketName = 'properties_image';
+    const marker = '$bucketName/';
+    final paths = publicUrls
+        .map((url) {
+          final idx = url.indexOf(marker);
+          return idx == -1 ? null : url.substring(idx + marker.length);
+        })
+        .whereType<String>()
+        .toList();
+    if (paths.isEmpty) return;
+    await _supabase.storage.from(bucketName).remove(paths);
   }
 
   Future<List<PropertyModel>> getPropertiesByIds(List<String> ids) async {

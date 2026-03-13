@@ -8,6 +8,19 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
     return ref.read(propertyRepositoryProvider).getProperties();
   }
 
+  /// Silently fetches fresh data from the server and replaces the current
+  /// state — no loading flash. Call this after a successful upload/edit to
+  /// reconcile the optimistic item with the real server data.
+  Future<void> refreshProperties() async {
+    try {
+      final fresh =
+          await ref.read(propertyRepositoryProvider).getProperties();
+      state = AsyncValue.data(fresh);
+    } catch (_) {
+      // Keep existing state on failure
+    }
+  }
+
   Future<void> loadProperties() async {
     state = await AsyncValue.guard(() async {
       return ref.read(propertyRepositoryProvider).getProperties();
@@ -42,27 +55,27 @@ class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
 
   /// Remove a property from the current state (optimistic update)
   void removePropertyFromState(String propertyId) {
-    state.whenData((properties) {
-      state = AsyncValue.data(
-        properties.where((p) => p.id != propertyId).toList(),
-      );
-    });
+    final current = state.asData?.value;
+    if (current == null) return;
+    state = AsyncValue.data(
+      current.where((p) => p.id != propertyId).toList(),
+    );
   }
 
   /// Optimistically insert a property at the front of the list.
   void optimisticallyAdd(PropertyModel property) {
-    state.whenData((properties) {
-      state = AsyncValue.data([property, ...properties]);
-    });
+    final current = state.asData?.value;
+    if (current == null) return;
+    state = AsyncValue.data([property, ...current]);
   }
 
   /// Optimistically replace a property with the same id in the list.
   void optimisticallyUpdate(PropertyModel property) {
-    state.whenData((properties) {
-      state = AsyncValue.data(
-        properties.map((p) => p.id == property.id ? property : p).toList(),
-      );
-    });
+    final current = state.asData?.value;
+    if (current == null) return;
+    state = AsyncValue.data(
+      current.map((p) => p.id == property.id ? property : p).toList(),
+    );
   }
 }
 

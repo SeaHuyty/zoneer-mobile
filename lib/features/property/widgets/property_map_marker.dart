@@ -5,11 +5,23 @@ import 'package:zoneer_mobile/features/property/models/enums/property_status.dar
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 
 /// Thumbnail card marker shown on the map.
-/// Anchor is at bottom-center of the triangle tail.
+///
+/// The Marker in flutter_map must always declare [markerWidth] × [markerHeight]
+/// with alignment: Alignment.bottomCenter so the coordinate is always pinned
+/// to the very tip of the triangle tail — the layout never moves.
+///
+/// Selection is expressed through border color, shadow intensity, and the
+/// price-strip background — no scale animation so the tail tip never drifts.
 class PropertyMapMarker extends StatelessWidget {
   final PropertyModel property;
   final bool isSelected;
   final VoidCallback onTap;
+
+  /// These MUST match the Marker(width:, height:) declared in the map page.
+  static const double markerWidth = 125.0;
+  static const double markerHeight = 128.0; // cardHeight(120) + tailHeight(8)
+  static const double _tailHeight = 8.0;
+  static const double _cardHeight = markerHeight - _tailHeight; // 120.0
 
   const PropertyMapMarker({
     super.key,
@@ -28,88 +40,94 @@ class PropertyMapMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRented = property.propertyStatus == PropertyStatus.rented;
-    final cardWidth = isSelected ? 125.0 : 110.0;
-    final cardHeight = isSelected ? 120.0 : 105.0;
     final borderColor = isSelected ? AppColors.primary : Colors.white;
     final borderWidth = isSelected ? 2.0 : 1.5;
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Card body ────────────────────────────────────────
-          Container(
-            width: cardWidth,
-            height: cardHeight,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: borderColor, width: borderWidth),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                      alpha: isSelected ? 0.25 : 0.15),
-                  blurRadius: isSelected ? 12 : 8,
-                  offset: const Offset(0, 3),
+      child: SizedBox(
+          width: markerWidth,
+          height: markerHeight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ── Card body ──────────────────────────────────────────
+              Container(
+                width: markerWidth,
+                height: _cardHeight,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: borderColor, width: borderWidth),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                          alpha: isSelected ? 0.25 : 0.15),
+                      blurRadius: isSelected ? 12 : 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // ── Thumbnail ────────────────────────────────
-                Expanded(
-                  flex: 7,
-                  child: ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(9)),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildImage(isRented),
-                          if (isRented) _buildRentedOverlay(),
-                        ],
+                child: Column(
+                  children: [
+                    // ── Thumbnail ──────────────────────────────────
+                    Expanded(
+                      flex: 7,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(9)),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _buildImage(isRented),
+                              if (isRented) _buildRentedOverlay(),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                // ── Price strip ──────────────────────────────
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : Colors.white,
-                      borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(9)),
-                    ),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      _formatPrice(property.price),
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                    // ── Price strip ────────────────────────────────
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primary : Colors.white,
+                          borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(9)),
+                        ),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          _formatPrice(property.price),
+                          style: TextStyle(
+                            color:
+                                isSelected ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // ── Triangle tail — tip is the coordinate anchor ────────
+              // Drawn at the exact bottom-center of the SizedBox so
+              // Alignment.bottomCenter in the Marker maps the coordinate
+              // to the tip of this triangle.
+              CustomPaint(
+                size: const Size(16, _tailHeight),
+                painter: _TrianglePainter(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                ),
+              ),
+            ],
           ),
-          // ── Downward triangle tail ───────────────────────────
-          CustomPaint(
-            size: const Size(16, 8),
-            painter: _TrianglePainter(
-              color: isSelected ? AppColors.primary : Colors.white,
-            ),
-          ),
-        ],
-      ),
+        ),
     );
   }
 

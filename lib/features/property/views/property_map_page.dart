@@ -116,6 +116,14 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
   void _onMarkerTapped(PropertyModel property, List<PropertyModel> all) {
     setState(() => _selectedProperty = property);
 
+    // Pan map to the selected marker (Google Maps behavior)
+    if (property.latitude != null && property.longitude != null) {
+      _mapController.move(
+        LatLng(property.latitude!, property.longitude!),
+        _currentZoom < 14 ? 14.0 : _currentZoom,
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -149,20 +157,29 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
   /// Thumbnail card markers shown when zoomed in (zoom ≥ 12).
   List<Marker> _buildThumbnailMarkers(List<PropertyModel> properties) {
+    // Sort selected marker to end so it renders on top of others
+    final sorted = properties
+        .where((p) => p.latitude != null && p.longitude != null)
+        .toList();
+    if (_selectedProperty != null) {
+      final idx = sorted.indexWhere((p) => p.id == _selectedProperty!.id);
+      if (idx != -1) sorted.add(sorted.removeAt(idx));
+    }
     return [
-      for (final property in properties)
-        if (property.latitude != null && property.longitude != null)
-          Marker(
-            width: _selectedProperty?.id == property.id ? 125.0 : 110.0,
-            height: _selectedProperty?.id == property.id ? 128.0 : 113.0,
-            point: LatLng(property.latitude!, property.longitude!),
-            alignment: Alignment.bottomCenter,
-            child: PropertyMapMarker(
-              property: property,
-              isSelected: _selectedProperty?.id == property.id,
-              onTap: () => _onMarkerTapped(property, properties),
-            ),
+      for (final property in sorted)
+        Marker(
+          // Fixed size always — anchor never repositions on selection.
+          // Visual size change is handled by AnimatedScale inside the widget.
+          width: 125.0,
+          height: 128.0,
+          point: LatLng(property.latitude!, property.longitude!),
+          alignment: Alignment.topCenter,
+          child: PropertyMapMarker(
+            property: property,
+            isSelected: _selectedProperty?.id == property.id,
+            onTap: () => _onMarkerTapped(property, properties),
           ),
+        ),
     ];
   }
 
@@ -175,15 +192,20 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
             property.longitude != null &&
             _calloutProperty?.id != property.id)
           Marker(
-            width: 80,
-            height: 38,
+            width: 80.0,
+            height: 44.0,
             point: LatLng(property.latitude!, property.longitude!),
-            alignment: Alignment.bottomCenter,
+            alignment: Alignment.topCenter,
             child: PropertyPricePin(
               property: property,
               isSelected: false,
-              onTap: () =>
-                  setState(() => _calloutProperty = property),
+              onTap: () {
+                setState(() => _calloutProperty = property);
+                _mapController.move(
+                  LatLng(property.latitude!, property.longitude!),
+                  _currentZoom,
+                );
+              },
             ),
           ),
     ];
@@ -194,10 +216,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
   Marker _buildCalloutMarker(
       PropertyModel property, List<PropertyModel> all) {
     return Marker(
-      width: 140,
-      height: 143,
+      width: 125.0,
+      height: 128.0,
       point: LatLng(property.latitude!, property.longitude!),
-      alignment: Alignment.bottomCenter,
+      alignment: Alignment.topCenter,
       child: PropertyMapMarker(
         property: property,
         isSelected: true,
@@ -264,6 +286,14 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
               initialZoom: 12,
               minZoom: 5,
               maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onTap: (tapPosition, point) {
+                if (_calloutProperty != null) {
+                  setState(() => _calloutProperty = null);
+                }
+              },
               onPositionChanged: (camera, hasGesture) {
                 final wasZoomedOut = _currentZoom < 12;
                 final isZoomedOut = camera.zoom < 12;

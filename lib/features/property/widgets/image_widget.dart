@@ -50,11 +50,7 @@ class ImageWidgetState extends ConsumerState<ImageWidget> {
           child: Container(
             height: 360,
             width: double.infinity,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
+            child: ClipRect(
               child: Stack(
               fit: StackFit.expand,
               children: [

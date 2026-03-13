@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zoneer_mobile/core/utils/app_config.dart';
@@ -10,8 +8,58 @@ import 'package:latlong2/latlong.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
+import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
+
+// ---------------------------------------------------------------------------
+// Amenity definitions
+// ---------------------------------------------------------------------------
+
+const _kPropertyFeatures = {
+  'wifi': ('WiFi', Icons.wifi),
+  'air_con': ('Air Conditioning', Icons.ac_unit),
+  'parking': ('Parking', Icons.local_parking),
+  'balcony': ('Balcony', Icons.balcony),
+  'pool': ('Swimming Pool', Icons.pool),
+  'gym': ('Gym', Icons.fitness_center),
+  'elevator': ('Elevator', Icons.elevator),
+  'furnished': ('Furnished', Icons.chair),
+  'washing_machine': ('Washing Machine', Icons.local_laundry_service),
+  'kitchen': ('Kitchen', Icons.kitchen),
+};
+
+const _kSecurityFeatures = {
+  'cctv': ('CCTV', Icons.videocam),
+  'security_guard': ('Security Guard', Icons.security),
+  'key_card': ('Key Card Access', Icons.credit_card),
+  'gated': ('Gated Community', Icons.fence),
+};
+
+const _kBadgeOptions = {
+  'pet_friendly': ('Pet Friendly', Icons.pets),
+  'utilities_included': ('Utilities Included', Icons.electrical_services),
+  'near_school': ('Near School', Icons.school),
+  'near_market': ('Near Market', Icons.storefront),
+};
+
+// ---------------------------------------------------------------------------
+// Photo entry helper
+// ---------------------------------------------------------------------------
+
+class _PhotoEntry {
+  Uint8List? bytes;
+  String? ext;
+  String? existingUrl;
+
+  _PhotoEntry({this.bytes, this.ext, this.existingUrl});
+
+  bool get hasImage => bytes != null || existingUrl != null;
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
 
 class UploadPropertyScreen extends ConsumerStatefulWidget {
   /// If non-null, we are editing an existing property.
@@ -25,6 +73,8 @@ class UploadPropertyScreen extends ConsumerStatefulWidget {
 }
 
 class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
+  static const int _maxPhotos = 10;
+
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _addressController;
@@ -35,9 +85,16 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   late final TextEditingController _descriptionController;
 
   LatLng? _selectedLocation;
-  Uint8List? _thumbnailBytes;
-  String? _thumbnailExt;
-  String? _existingThumbnailUrl;
+
+  // Photos: index 0 = thumbnail, 1–9 = additional
+  final List<_PhotoEntry> _photos = [];
+  // Existing storage URLs that the user removed — deleted from storage on submit
+  final List<String> _removedExistingUrls = [];
+
+  // Amenity selections
+  final Set<String> _selectedPropertyFeatures = {};
+  final Set<String> _selectedSecurityFeatures = {};
+  final Set<String> _selectedBadgeOptions = {};
 
   bool get _isEditing => widget.existingProperty != null;
 
@@ -55,10 +112,54 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     _areaController =
         TextEditingController(text: p != null ? p.squareArea.toString() : '');
     _descriptionController = TextEditingController(text: p?.description ?? '');
-    _existingThumbnailUrl = p?.thumbnail;
+
     if (p?.latitude != null && p?.longitude != null) {
       _selectedLocation = LatLng(p!.latitude!, p.longitude!);
     }
+
+    // Bootstrap thumbnail slot
+    if (p?.thumbnail != null && p!.thumbnail.isNotEmpty) {
+      _photos.add(_PhotoEntry(existingUrl: p.thumbnail));
+    }
+
+    // Pre-select amenities from existing property
+    if (p?.propertyFeatures != null) {
+      _selectedPropertyFeatures.addAll(
+        p!.propertyFeatures!.keys
+            .where((k) => p.propertyFeatures![k] == true),
+      );
+    }
+    if (p?.securityFeatures != null) {
+      _selectedSecurityFeatures.addAll(
+        p!.securityFeatures!.keys
+            .where((k) => p.securityFeatures![k] == true),
+      );
+    }
+    if (p?.badgeOptions != null) {
+      _selectedBadgeOptions.addAll(
+        p!.badgeOptions!.keys.where((k) => p.badgeOptions![k] == true),
+      );
+    }
+
+    // Load additional media for edit mode
+    if (_isEditing) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _loadExistingMedia());
+    }
+  }
+
+  Future<void> _loadExistingMedia() async {
+    final repo = ref.read(propertyRepositoryProvider);
+    final medias =
+        await repo.getPropertyMedias(widget.existingProperty!.id);
+    if (!mounted) return;
+    setState(() {
+      for (final m in medias) {
+        if (_photos.length < _maxPhotos) {
+          _photos.add(_PhotoEntry(existingUrl: m.url));
+        }
+      }
+    });
   }
 
   @override
@@ -72,7 +173,11 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     super.dispose();
   }
 
-  Future<void> _pickThumbnail() async {
+  // -------------------------------------------------------------------------
+  // Photo helpers
+  // -------------------------------------------------------------------------
+
+  Future<void> _pickPhoto(int index) async {
     final picker = ImagePicker();
     final image = await picker.pickImage(
       source: ImageSource.gallery,
@@ -80,28 +185,39 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       maxWidth: 1200,
       imageQuality: 85,
     );
-    if (image != null) {
-      final bytes = await image.readAsBytes();
-      setState(() {
-        _thumbnailBytes = bytes;
-        _thumbnailExt = image.path.split('.').last;
-      });
-    }
-  }
-
-  void _deleteThumbnail() {
+    if (image == null) return;
+    final bytes = await image.readAsBytes();
+    final ext = image.path.split('.').last;
     setState(() {
-      _thumbnailBytes = null;
-      _thumbnailExt = null;
-      _existingThumbnailUrl = null;
+      if (index < _photos.length) {
+        _photos[index] = _PhotoEntry(bytes: bytes, ext: ext);
+      } else {
+        // Adding a new slot
+        _photos.add(_PhotoEntry(bytes: bytes, ext: ext));
+      }
     });
   }
+
+  void _removePhoto(int index) {
+    setState(() {
+      final photo = _photos[index];
+      if (photo.existingUrl != null) {
+        _removedExistingUrls.add(photo.existingUrl!);
+      }
+      _photos.removeAt(index);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Location
+  // -------------------------------------------------------------------------
 
   Future<void> _openLocationPicker() async {
     final result = await Navigator.push<LatLng>(
       context,
       MaterialPageRoute(
-        builder: (_) => LocationPickerScreen(initialLocation: _selectedLocation),
+        builder: (_) =>
+            LocationPickerScreen(initialLocation: _selectedLocation),
       ),
     );
     if (result != null) {
@@ -109,12 +225,17 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Submit
+  // -------------------------------------------------------------------------
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_thumbnailBytes == null && _existingThumbnailUrl == null) {
+    final hasThumbnail = _photos.isNotEmpty && _photos[0].hasImage;
+    if (!hasThumbnail) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a thumbnail image.')),
+        const SnackBar(content: Text('Please select at least a thumbnail image.')),
       );
       return;
     }
@@ -126,11 +247,32 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       return;
     }
 
+    final thumbnail = _photos[0];
+    final additional = _photos.length > 1
+        ? _photos.sublist(1).map((p) => (
+              bytes: p.bytes,
+              ext: p.ext,
+              existingUrl: p.existingUrl,
+            )).toList()
+        : <PhotoData>[];
+
+    final propertyFeatures = _selectedPropertyFeatures.isEmpty
+        ? null
+        : {for (final k in _selectedPropertyFeatures) k: true};
+    final securityFeatures = _selectedSecurityFeatures.isEmpty
+        ? null
+        : {for (final k in _selectedSecurityFeatures) k: true};
+    final badgeOptions = _selectedBadgeOptions.isEmpty
+        ? null
+        : {for (final k in _selectedBadgeOptions) k: true};
+
     try {
       await ref.read(uploadPropertyViewModelProvider.notifier).submit(
-            thumbnailBytes: _thumbnailBytes,
-            thumbnailExt: _thumbnailExt,
-            existingThumbnailUrl: _existingThumbnailUrl,
+            thumbnailBytes: thumbnail.bytes,
+            thumbnailExt: thumbnail.ext,
+            existingThumbnailUrl: thumbnail.existingUrl,
+            additionalPhotos: additional,
+            removedImageUrls: _removedExistingUrls,
             existingProperty: widget.existingProperty,
             price: double.parse(_priceController.text.trim()),
             bedroom: int.parse(_bedroomController.text.trim()),
@@ -140,9 +282,11 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             latitude: _selectedLocation!.latitude,
             longitude: _selectedLocation!.longitude,
             description: _descriptionController.text.trim(),
+            propertyFeatures: propertyFeatures,
+            securityFeatures: securityFeatures,
+            badgeOptions: badgeOptions,
           );
 
-      // Animate the map to the new/updated property location
       if (_selectedLocation != null) {
         ref.read(mapFocusProvider.notifier).focus(_selectedLocation!);
       }
@@ -166,6 +310,10 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       }
     }
   }
+
+  // -------------------------------------------------------------------------
+  // Build
+  // -------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -195,91 +343,22 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Thumbnail picker
-              GestureDetector(
-                onTap: _pickThumbnail,
-                child: Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.black12),
+              // ── Photos ──────────────────────────────────────────────────
+              _buildCard(
+                title: 'Photos (${_photos.where((p) => p.hasImage).length}/$_maxPhotos)',
+                children: [
+                  const Text(
+                    'First photo is the thumbnail. Up to 10 photos total.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    children: [
-                      // Image display
-                      if (_thumbnailBytes != null)
-                        SizedBox.expand(
-                          child: Image.memory(_thumbnailBytes!, fit: BoxFit.cover),
-                        )
-                      else if (_existingThumbnailUrl != null)
-                        SizedBox.expand(
-                          child: Image.network(
-                            _existingThumbnailUrl!,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      else
-                        const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.add_photo_alternate_outlined,
-                                size: 48,
-                                color: AppColors.primary,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Tap to select thumbnail',
-                                style: TextStyle(color: Colors.black54),
-                              ),
-                            ],
-                          ),
-                        ),
-                      
-                      // Delete button (only show when image exists)
-                      if (_thumbnailBytes != null || _existingThumbnailUrl != null)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: GestureDetector(
-                            onTap: _deleteThumbnail,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.9),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: 12),
+                  _buildPhotoGrid(),
+                ],
               ),
-              if (_thumbnailBytes != null || _existingThumbnailUrl != null)
-                TextButton.icon(
-                  onPressed: _pickThumbnail,
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Change thumbnail'),
-                ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
+              // ── Location ────────────────────────────────────────────────
               _buildCard(
                 title: 'Location',
                 children: [
@@ -292,78 +371,70 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 14),
-                  // Map location picker
-                  if (_selectedLocation != null) ...
-                    [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: SizedBox(
-                          height: 150,
-                          child: FlutterMap(
-                            options: MapOptions(
-                              initialCenter: _selectedLocation!,
-                              initialZoom: 15,
-                              interactionOptions: const InteractionOptions(
-                                flags: InteractiveFlag.none,
-                              ),
+                  if (_selectedLocation != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        height: 150,
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: _selectedLocation!,
+                            initialZoom: 15,
+                            interactionOptions: const InteractionOptions(
+                              flags: InteractiveFlag.none,
                             ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: AppConfig.mapboxTileUrl,
-                                userAgentPackageName: 'com.zoneer.mobile',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: _selectedLocation!,
-                                    width: 32,
-                                    height: 32,
-                                    child: const Icon(
-                                      Icons.location_pin,
-                                      color: AppColors.primary,
-                                      size: 32,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: AppConfig.mapboxTileUrl,
+                              userAgentPackageName: 'com.zoneer.mobile',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: _selectedLocation!,
+                                  width: 32,
+                                  height: 32,
+                                  child: const Icon(
+                                    Icons.location_pin,
+                                    color: AppColors.primary,
+                                    size: 32,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            color: AppColors.primary,
-                            size: 14,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on,
+                            color: AppColors.primary, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '${_selectedLocation!.latitude.toStringAsFixed(5)}, '
+                            '${_selectedLocation!.longitude.toStringAsFixed(5)}',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${_selectedLocation!.latitude.toStringAsFixed(5)}, '
-                              '${_selectedLocation!.longitude.toStringAsFixed(5)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
-                              ),
-                            ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _openLocationPicker,
+                          icon: const Icon(Icons.edit_outlined, size: 14),
+                          label: const Text('Change'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          TextButton.icon(
-                            onPressed: _openLocationPicker,
-                            icon: const Icon(Icons.edit_outlined, size: 14),
-                            label: const Text('Change'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ]
-                  else
+                        ),
+                      ],
+                    ),
+                  ] else
                     GestureDetector(
                       onTap: _openLocationPicker,
                       child: Container(
@@ -376,18 +447,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.add_location_alt_outlined,
-                              color: AppColors.primary,
-                              size: 24,
-                            ),
+                            Icon(Icons.add_location_alt_outlined,
+                                color: AppColors.primary, size: 24),
                             const SizedBox(width: 8),
                             const Text(
                               'Tap to pick location on map',
                               style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 14,
-                              ),
+                                  color: Colors.black54, fontSize: 14),
                             ),
                           ],
                         ),
@@ -398,6 +464,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
               const SizedBox(height: 14),
 
+              // ── Details ─────────────────────────────────────────────────
               _buildCard(
                 title: 'Details',
                 children: [
@@ -410,8 +477,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}$'),
-                      ),
+                          RegExp(r'^\d+\.?\d{0,2}$')),
                     ],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
@@ -475,8 +541,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}'),
-                      ),
+                          RegExp(r'^\d+\.?\d{0,2}')),
                     ],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
@@ -491,6 +556,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
               const SizedBox(height: 14),
 
+              // ── Description ──────────────────────────────────────────────
               _buildCard(
                 title: 'Description',
                 children: [
@@ -500,16 +566,16 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     decoration: InputDecoration(
                       hintText: 'Describe your property...',
                       hintStyle: const TextStyle(
-                        color: Colors.black38,
-                        fontSize: 14,
-                      ),
+                          color: Colors.black38, fontSize: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.black12),
+                        borderSide:
+                            const BorderSide(color: Colors.black12),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.black12),
+                        borderSide:
+                            const BorderSide(color: Colors.black12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -517,6 +583,32 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                       ),
                       contentPadding: const EdgeInsets.all(12),
                     ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // ── Amenities ────────────────────────────────────────────────
+              _buildCard(
+                title: 'Amenities',
+                children: [
+                  _buildAmenitySection(
+                    label: 'Property Features',
+                    definitions: _kPropertyFeatures,
+                    selected: _selectedPropertyFeatures,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAmenitySection(
+                    label: 'Security',
+                    definitions: _kSecurityFeatures,
+                    selected: _selectedSecurityFeatures,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAmenitySection(
+                    label: 'Highlights',
+                    definitions: _kBadgeOptions,
+                    selected: _selectedBadgeOptions,
                   ),
                 ],
               ),
@@ -546,9 +638,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     : Text(
                         _isEditing ? 'Save Changes' : 'Upload Property',
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
 
@@ -559,6 +649,194 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       ),
     );
   }
+
+  // -------------------------------------------------------------------------
+  // Photo grid
+  // -------------------------------------------------------------------------
+
+  Widget _buildPhotoGrid() {
+    // Build slot list: filled photos + one "add" slot (if under limit)
+    final filledCount = _photos.length;
+    final showAdd = filledCount < _maxPhotos;
+    final totalSlots = filledCount + (showAdd ? 1 : 0);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemCount: totalSlots,
+      itemBuilder: (context, i) {
+        if (i < filledCount) {
+          return _buildFilledSlot(i);
+        }
+        // "Add" slot
+        return _buildAddSlot(filledCount);
+      },
+    );
+  }
+
+  Widget _buildFilledSlot(int index) {
+    final photo = _photos[index];
+    final isThumbnail = index == 0;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Image — tappable to replace, but sits below the delete button
+        GestureDetector(
+          onTap: () => _pickPhoto(index),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: photo.bytes != null
+                ? Image.memory(photo.bytes!, fit: BoxFit.cover)
+                : Image.network(photo.existingUrl!, fit: BoxFit.cover),
+          ),
+        ),
+        // Thumbnail badge
+        if (isThumbnail)
+          Positioned(
+            left: 4,
+            bottom: 4,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Cover',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ),
+        // Delete button — rendered last so it sits on top
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _removePhoto(index),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddSlot(int nextIndex) {
+    return GestureDetector(
+      onTap: () => _pickPhoto(nextIndex),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.4),
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_photo_alternate_outlined,
+                color: AppColors.primary, size: 28),
+            const SizedBox(height: 4),
+            Text(
+              nextIndex == 0 ? 'Add Cover' : 'Add Photo',
+              style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Amenity section
+  // -------------------------------------------------------------------------
+
+  Widget _buildAmenitySection({
+    required String label,
+    required Map<String, (String, IconData)> definitions,
+    required Set<String> selected,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: definitions.entries.map((entry) {
+            final key = entry.key;
+            final (name, icon) = entry.value;
+            final isSelected = selected.contains(key);
+            return FilterChip(
+              label: Text(name,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected ? Colors.white : Colors.black87)),
+              avatar: Icon(icon,
+                  size: 15,
+                  color: isSelected ? Colors.white : AppColors.primary),
+              selected: isSelected,
+              onSelected: (val) {
+                setState(() {
+                  if (val) {
+                    selected.add(key);
+                  } else {
+                    selected.remove(key);
+                  }
+                });
+              },
+              selectedColor: AppColors.primary,
+              checkmarkColor: Colors.white,
+              backgroundColor: Colors.grey.shade100,
+              side: BorderSide(
+                color: isSelected
+                    ? AppColors.primary
+                    : Colors.black12,
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+              showCheckmark: false,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Shared helpers
+  // -------------------------------------------------------------------------
 
   Widget _buildCard({required String title, required List<Widget> children}) {
     return Container(
@@ -580,9 +858,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
+                fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 14),
           ...children,
@@ -608,7 +884,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
+        hintStyle:
+            const TextStyle(color: Colors.black38, fontSize: 13),
         prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),

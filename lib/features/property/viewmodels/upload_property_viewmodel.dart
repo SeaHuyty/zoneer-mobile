@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
-import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 
 /// Holds data for one photo slot (either new bytes or an existing URL).
 typedef PhotoData = ({Uint8List? bytes, String? ext, String? existingUrl});

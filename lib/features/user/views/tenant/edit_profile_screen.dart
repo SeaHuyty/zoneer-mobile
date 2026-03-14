@@ -173,7 +173,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           width: 3,
                         ),
                       ),
@@ -244,7 +244,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       validator: (value) =>
                           value == null || value.isEmpty ? "Name is required" : null,
                     ),
-                    Divider(height: 1, color: AppColors.grey.withOpacity(0.2)),
+                    Divider(
+                      height: 1,
+                      color: AppColors.grey.withValues(alpha: 0.2),
+                    ),
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,

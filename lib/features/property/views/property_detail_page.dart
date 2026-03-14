@@ -280,12 +280,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
 
                       // Amenities
                       if (_hasAnyAmenities(property)) ...[
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Amenities',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 5),
                         _buildAmenitiesSection(property),
                       ],
 
@@ -538,7 +533,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.black54,
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 8),

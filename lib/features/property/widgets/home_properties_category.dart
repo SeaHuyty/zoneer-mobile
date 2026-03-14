@@ -43,14 +43,14 @@ class _HomePropertiesCategoryState extends State<HomePropertiesCategory> {
                 boxShadow: isSelected
                   ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
                   ]
                   : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
@@ -41,7 +42,7 @@ class MapMigrationService {
 
       return updatedProperties.length;
     } catch (e) {
-      print('Error adding coordinates to properties: $e');
+      debugPrint('Error adding coordinates to properties: $e');
       return 0;
     }
   }

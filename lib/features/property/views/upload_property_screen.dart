@@ -520,10 +520,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty)
+                            if (v == null || v.trim().isEmpty) {
                               return 'Required';
-                            if (int.tryParse(v.trim()) == null) {
-                              return 'Integer only';
                             }
                             return null;
                           },
@@ -541,10 +539,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty)
+                            if (v == null || v.trim().isEmpty) {
                               return 'Required';
-                            if (int.tryParse(v.trim()) == null) {
-                              return 'Integer only';
                             }
                             return null;
                           },

@@ -13,11 +13,11 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provider.dart';
-import 'package:zoneer_mobile/features/property/widgets/property_filter_sheet.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_controls.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_detail_sheet.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_marker.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_price_pin.dart';
+import 'package:zoneer_mobile/features/property/widgets/search_filter_sheet.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
 class PropertyMapPage extends ConsumerStatefulWidget {
@@ -152,7 +152,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const PropertyFilterSheet(),
+      builder: (context) => const SearchFilterSheet(),
     );
   }
 

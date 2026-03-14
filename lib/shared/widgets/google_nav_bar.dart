@@ -4,13 +4,11 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
-import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/property_map_page.dart';
 import 'package:zoneer_mobile/features/user/views/tenant/tenant_profile_setting.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
-import 'package:zoneer_mobile/features/user/views/landlord/landlord_profile.dart';
 
 class GoogleNavBar extends ConsumerStatefulWidget {
   const GoogleNavBar({super.key});
@@ -59,19 +57,15 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationProvider);
-    final profileType = ref.watch(profileTypeProvider);
     final mode = ref.watch(mapTabViewProvider);
 
-    // Dynamically build widget list based on profile type
     final List<Widget> widgetOptions = [
       const HomeView(),
       const WishlistView(),
       mode == MapTabView.search
-      ? const SearchScreen()
-      : const PropertyMapPage(),
-      profileType == ProfileType.tenant
-          ? const TenantProfileSetting()
-          : const LandlordProfile(),
+          ? const SearchScreen()
+          : const PropertyMapPage(),
+      const TenantProfileSetting(),
     ];
 
     return Scaffold(

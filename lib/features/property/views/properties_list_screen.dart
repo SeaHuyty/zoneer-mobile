@@ -4,7 +4,6 @@ import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
-import 'package:zoneer_mobile/features/property/widgets/home_properties_category.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
 import 'package:zoneer_mobile/features/property/widgets/search_filter_sheet.dart';
 
@@ -84,7 +83,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   elevation: 0,
                   bottom: PreferredSize(
                     preferredSize: Size.fromHeight(
-                      _activeFilters != null ? 120 : 100,
+                      _activeFilters != null ? 70 : 50,
                     ),
                     child: Container(
                       width: double.infinity,
@@ -93,9 +92,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 10),
-                          const HomePropertiesCategory(),
-                          const SizedBox(height: 10),
                           Text(
                             '${filtered.length} Properties Found',
                             style: const TextStyle(
@@ -123,57 +119,69 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                     ),
                   ),
-                  title: Container(
-                    height: 45,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: "Search location...",
-                        prefixIcon: Icon(Icons.search),
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                    ),
-                  ),
-                  actions: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 15),
-                      decoration: const BoxDecoration(
+                  titleSpacing: 15,
+                  title: Material(
+                    borderRadius: BorderRadius.circular(16),
+                    elevation: 4,
+                    shadowColor: Colors.black26,
+                    child: Container(
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
+                      child: Row(
                         children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.tune,
-                              color: AppColors.primary,
-                            ),
-                            onPressed: _openFilterSheet,
-                          ),
-                          if (_activeFilters != null)
-                            Positioned(
-                              right: 6,
-                              top: 6,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (value) =>
+                                  setState(() => _searchQuery = value),
+                              decoration: InputDecoration(
+                                hintText: 'Search properties...',
+                                hintStyle: TextStyle(color: Colors.grey[400]),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: Colors.grey[600],
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
                                 ),
                               ),
                             ),
+                          ),
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: _openFilterSheet,
+                                icon: Icon(
+                                  Icons.tune,
+                                  color: _activeFilters != null
+                                      ? AppColors.primary
+                                      : Colors.grey[700],
+                                ),
+                              ),
+                              if (_activeFilters != null)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ];
             },

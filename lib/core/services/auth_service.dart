@@ -5,6 +5,7 @@
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -23,16 +24,28 @@ class AuthService {
 
 
 
-Future<void> signInWithGoogle() async {
-    final redirectUrl = kIsWeb ? dotenv.env['REDIRECT_URL']! : 'zoneer://login-callback/';
+  Future<void> signInWithGoogle() async {
+    if (kIsWeb) {
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'http://localhost:3000',
+      );
+    } else {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final googleUser = await googleSignIn.signIn();
 
-  await _client.auth.signInWithOAuth(
-    OAuthProvider.google,
-    redirectTo: redirectUrl
+      if (googleUser == null) return;
 
-  );
-}
+      final googleAuth = await googleUser.authentication;
 
+      await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: googleAuth.idToken!,
+        accessToken: googleAuth.accessToken,
+      );
+    }
+  }
+  
   Future<AuthResponse> register({
     required String email,
     required String password,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -70,8 +71,8 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
       if (prefs.getBool(migrationKey) ?? false) return;
 
       final migrationService = ref.read(mapMigrationServiceProvider);
-      final updatedCount =
-          await migrationService.addCoordinatesToExistingProperties();
+      final updatedCount = await migrationService
+          .addCoordinatesToExistingProperties();
       await prefs.setBool(migrationKey, true);
 
       if (updatedCount > 0) {
@@ -138,10 +139,12 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
           }
         },
       ),
-    ).whenComplete(() => setState(() {
-          _selectedProperty = null;
-          _calloutProperty = null;
-        }));
+    ).whenComplete(
+      () => setState(() {
+        _selectedProperty = null;
+        _calloutProperty = null;
+      }),
+    );
   }
 
   void _showFilterSheet() {
@@ -213,8 +216,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
   /// Single callout card shown above the tapped price pin.
   /// Uses the same thumbnail-card widget so the arrow points down to the pin.
-  Marker _buildCalloutMarker(
-      PropertyModel property, List<PropertyModel> all) {
+  Marker _buildCalloutMarker(PropertyModel property, List<PropertyModel> all) {
     return Marker(
       width: 125.0,
       height: 128.0,
@@ -272,8 +274,9 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
     final userLocation = permissionState.userLocation;
     final usePricePins = _currentZoom < 12;
 
-    final tileUrl =
-        _isSatellite ? AppConfig.mapboxSatelliteUrl : AppConfig.mapboxTileUrl;
+    final tileUrl = _isSatellite
+        ? AppConfig.mapboxSatelliteUrl
+        : AppConfig.mapboxTileUrl;
 
     return Scaffold(
       body: Stack(
@@ -317,22 +320,23 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
               // ── Property markers: price pins or thumbnail cards ──
               if (usePricePins)
-                MarkerLayer(
-                    markers: _buildPricePinMarkers(filteredProperties))
+                MarkerLayer(markers: _buildPricePinMarkers(filteredProperties))
               else
                 MarkerLayer(
-                    markers: _buildThumbnailMarkers(filteredProperties)),
+                  markers: _buildThumbnailMarkers(filteredProperties),
+                ),
 
               // ── Callout popup (price-pin mode only) ──────────────
               if (usePricePins && _calloutProperty != null)
-                MarkerLayer(markers: [
-                  _buildCalloutMarker(_calloutProperty!, filteredProperties),
-                ]),
+                MarkerLayer(
+                  markers: [
+                    _buildCalloutMarker(_calloutProperty!, filteredProperties),
+                  ],
+                ),
 
               // ── User location dot (always visible) ───────────────
               if (userLocation != null)
-                MarkerLayer(
-                    markers: [_buildUserLocationMarker(userLocation)]),
+                MarkerLayer(markers: [_buildUserLocationMarker(userLocation)]),
             ],
           ),
 
@@ -356,7 +360,9 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 color: Colors.red.shade50,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.error_outline, color: Colors.red),
@@ -404,8 +410,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                         decoration: InputDecoration(
                           hintText: 'Search properties...',
                           hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon:
-                              Icon(Icons.search, color: Colors.grey[600]),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[600],
+                          ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -455,8 +463,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
               duration: const Duration(milliseconds: 300),
               child: Container(
                 key: ValueKey(filteredProperties.length),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(20),
@@ -495,8 +505,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                     barrierDismissible: false,
                     builder: (context) => const LocationPermissionDialog(),
                   );
-                  final loc =
-                      ref.read(locationPermissionProvider).userLocation;
+                  final loc = ref.read(locationPermissionProvider).userLocation;
                   if (granted == true && loc != null) {
                     _mapController.move(loc, 15);
                   }
@@ -517,6 +526,16 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 _isSatellite ? Icons.satellite_alt : Icons.map,
                 color: AppColors.primary,
               ),
+            ),
+          ),
+          Positioned(
+            bottom: 30,
+            left: 10,
+            child: IconButton(
+              onPressed: () {
+                ref.read(mapTabViewProvider.notifier).showSearch();
+              },
+              icon: const Icon(Icons.list_alt, color: AppColors.primary),
             ),
           ),
         ],

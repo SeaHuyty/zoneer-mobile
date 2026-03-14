@@ -13,9 +13,7 @@ class InquiryCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => InquiryDetail(inquiry: inquiry),
-          ),
+          MaterialPageRoute(builder: (_) => InquiryDetail(inquiry: inquiry)),
         );
       },
       child: Container(
@@ -36,10 +34,7 @@ class InquiryCard extends StatelessWidget {
           children: [
             Text(
               inquiry.fullname,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
             Text(
@@ -51,10 +46,7 @@ class InquiryCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               "Sent recently",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
             ),
           ],
         ),

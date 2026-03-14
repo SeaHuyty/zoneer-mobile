@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 
-class SearchBarApp extends StatelessWidget {
+class SearchBarApp extends ConsumerWidget {
   const SearchBarApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const SearchScreen(),
-          ),
-        );
+        ref.read(navigationProvider.notifier).changeTab(NavigationTab.map);
+        ref.read(mapTabViewProvider.notifier).showSearch();
       },
       child: Container(
         height: 55,

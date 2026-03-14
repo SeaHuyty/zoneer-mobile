@@ -103,14 +103,18 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     super.initState();
     final p = widget.existingProperty;
     _addressController = TextEditingController(text: p?.address ?? '');
-    _priceController =
-        TextEditingController(text: p != null ? p.price.toString() : '');
-    _bedroomController =
-        TextEditingController(text: p != null ? p.bedroom.toString() : '');
-    _bathroomController =
-        TextEditingController(text: p != null ? p.bathroom.toString() : '');
-    _areaController =
-        TextEditingController(text: p != null ? p.squareArea.toString() : '');
+    _priceController = TextEditingController(
+      text: p != null ? p.price.toString() : '',
+    );
+    _bedroomController = TextEditingController(
+      text: p != null ? p.bedroom.toString() : '',
+    );
+    _bathroomController = TextEditingController(
+      text: p != null ? p.bathroom.toString() : '',
+    );
+    _areaController = TextEditingController(
+      text: p != null ? p.squareArea.toString() : '',
+    );
     _descriptionController = TextEditingController(text: p?.description ?? '');
 
     if (p?.latitude != null && p?.longitude != null) {
@@ -125,14 +129,12 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     // Pre-select amenities from existing property
     if (p?.propertyFeatures != null) {
       _selectedPropertyFeatures.addAll(
-        p!.propertyFeatures!.keys
-            .where((k) => p.propertyFeatures![k] == true),
+        p!.propertyFeatures!.keys.where((k) => p.propertyFeatures![k] == true),
       );
     }
     if (p?.securityFeatures != null) {
       _selectedSecurityFeatures.addAll(
-        p!.securityFeatures!.keys
-            .where((k) => p.securityFeatures![k] == true),
+        p!.securityFeatures!.keys.where((k) => p.securityFeatures![k] == true),
       );
     }
     if (p?.badgeOptions != null) {
@@ -143,15 +145,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
     // Load additional media for edit mode
     if (_isEditing) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _loadExistingMedia());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadExistingMedia());
     }
   }
 
   Future<void> _loadExistingMedia() async {
     final repo = ref.read(propertyRepositoryProvider);
-    final medias =
-        await repo.getPropertyMedias(widget.existingProperty!.id);
+    final medias = await repo.getPropertyMedias(widget.existingProperty!.id);
     if (!mounted) return;
     setState(() {
       for (final m in medias) {
@@ -235,7 +235,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     final hasThumbnail = _photos.isNotEmpty && _photos[0].hasImage;
     if (!hasThumbnail) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least a thumbnail image.')),
+        const SnackBar(
+          content: Text('Please select at least a thumbnail image.'),
+        ),
       );
       return;
     }
@@ -249,11 +251,12 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
     final thumbnail = _photos[0];
     final additional = _photos.length > 1
-        ? _photos.sublist(1).map((p) => (
-              bytes: p.bytes,
-              ext: p.ext,
-              existingUrl: p.existingUrl,
-            )).toList()
+        ? _photos
+              .sublist(1)
+              .map(
+                (p) => (bytes: p.bytes, ext: p.ext, existingUrl: p.existingUrl),
+              )
+              .toList()
         : <PhotoData>[];
 
     final propertyFeatures = _selectedPropertyFeatures.isEmpty
@@ -267,7 +270,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         : {for (final k in _selectedBadgeOptions) k: true};
 
     try {
-      await ref.read(uploadPropertyViewModelProvider.notifier).submit(
+      await ref
+          .read(uploadPropertyViewModelProvider.notifier)
+          .submit(
             thumbnailBytes: thumbnail.bytes,
             thumbnailExt: thumbnail.ext,
             existingThumbnailUrl: thumbnail.existingUrl,
@@ -305,8 +310,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -345,7 +351,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             children: [
               // ── Photos ──────────────────────────────────────────────────
               _buildCard(
-                title: 'Photos (${_photos.where((p) => p.hasImage).length}/$_maxPhotos)',
+                title:
+                    'Photos (${_photos.where((p) => p.hasImage).length}/$_maxPhotos)',
                 children: [
                   const Text(
                     'First photo is the thumbnail. Up to 10 photos total.',
@@ -410,15 +417,20 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.location_on,
-                            color: AppColors.primary, size: 14),
+                        const Icon(
+                          Icons.location_on,
+                          color: AppColors.primary,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             '${_selectedLocation!.latitude.toStringAsFixed(5)}, '
                             '${_selectedLocation!.longitude.toStringAsFixed(5)}',
                             style: const TextStyle(
-                                fontSize: 12, color: Colors.black54),
+                              fontSize: 12,
+                              color: Colors.black54,
+                            ),
                           ),
                         ),
                         TextButton.icon(
@@ -447,13 +459,18 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_location_alt_outlined,
-                                color: AppColors.primary, size: 24),
+                            Icon(
+                              Icons.add_location_alt_outlined,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
                             const SizedBox(width: 8),
                             const Text(
                               'Tap to pick location on map',
                               style: TextStyle(
-                                  color: Colors.black54, fontSize: 14),
+                                color: Colors.black54,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
@@ -473,11 +490,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     label: 'Price per month (\$)',
                     hint: '300',
                     icon: Icons.attach_money,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d+\.?\d{0,2}$')),
+                        RegExp(r'^\d+\.?\d{0,2}$'),
+                      ),
                     ],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
@@ -501,7 +520,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Required';
+                            if (v == null || v.trim().isEmpty)
+                              return 'Required';
                             if (int.tryParse(v.trim()) == null) {
                               return 'Integer only';
                             }
@@ -521,7 +541,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Required';
+                            if (v == null || v.trim().isEmpty)
+                              return 'Required';
                             if (int.tryParse(v.trim()) == null) {
                               return 'Integer only';
                             }
@@ -537,11 +558,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     label: 'Square Area (m²)',
                     hint: '50',
                     icon: Icons.square_foot_outlined,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d+\.?\d{0,2}')),
+                        RegExp(r'^\d+\.?\d{0,2}'),
+                      ),
                     ],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
@@ -566,16 +589,16 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     decoration: InputDecoration(
                       hintText: 'Describe your property...',
                       hintStyle: const TextStyle(
-                          color: Colors.black38, fontSize: 14),
+                        color: Colors.black38,
+                        fontSize: 14,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: Colors.black12),
+                        borderSide: const BorderSide(color: Colors.black12),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            const BorderSide(color: Colors.black12),
+                        borderSide: const BorderSide(color: Colors.black12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -638,7 +661,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                     : Text(
                         _isEditing ? 'Save Changes' : 'Upload Property',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
 
@@ -704,8 +729,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             bottom: 4,
             child: IgnorePointer(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(6),
@@ -713,9 +737,10 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                 child: const Text(
                   'Cover',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -756,14 +781,15 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate_outlined,
-                color: AppColors.primary, size: 28),
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              color: AppColors.primary,
+              size: 28,
+            ),
             const SizedBox(height: 4),
             Text(
               nextIndex == 0 ? 'Add Cover' : 'Add Photo',
-              style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 11),
+              style: const TextStyle(color: Colors.black54, fontSize: 11),
             ),
           ],
         ),
@@ -786,9 +812,10 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         Text(
           label,
           style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -799,13 +826,18 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             final (name, icon) = entry.value;
             final isSelected = selected.contains(key);
             return FilterChip(
-              label: Text(name,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: isSelected ? Colors.white : Colors.black87)),
-              avatar: Icon(icon,
-                  size: 15,
-                  color: isSelected ? Colors.white : AppColors.primary),
+              label: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isSelected ? Colors.white : Colors.black87,
+                ),
+              ),
+              avatar: Icon(
+                icon,
+                size: 15,
+                color: isSelected ? Colors.white : AppColors.primary,
+              ),
               selected: isSelected,
               onSelected: (val) {
                 setState(() {
@@ -820,12 +852,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
               checkmarkColor: Colors.white,
               backgroundColor: Colors.grey.shade100,
               side: BorderSide(
-                color: isSelected
-                    ? AppColors.primary
-                    : Colors.black12,
+                color: isSelected ? AppColors.primary : Colors.black12,
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
               showCheckmark: false,
             );
           }).toList(),
@@ -857,8 +886,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 14),
           ...children,
@@ -884,8 +912,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        hintStyle:
-            const TextStyle(color: Colors.black38, fontSize: 13),
+        hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
         prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),

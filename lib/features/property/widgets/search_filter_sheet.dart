@@ -95,9 +95,9 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.primary.withOpacity(0.15),
+                inactiveTrackColor: AppColors.primary.withValues(alpha: 0.15),
                 thumbColor: AppColors.primary,
-                overlayColor: AppColors.primary.withOpacity(0.12),
+                overlayColor: AppColors.primary.withValues(alpha: 0.12),
                 rangeThumbShape:
                     const RoundRangeSliderThumbShape(enabledThumbRadius: 10),
                 trackHeight: 4,
@@ -260,7 +260,7 @@ class _FilterChip extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   )
@@ -290,7 +290,7 @@ class _PriceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
+        color: AppColors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(

@@ -77,21 +77,21 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
+            BoxShadow(blurRadius: 20, color: Colors.black.withValues(alpha: .1)),
           ],
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
             child: GNav(
-              rippleColor: AppColors.primaryLight.withOpacity(0.2),
+              rippleColor: AppColors.primaryLight.withValues(alpha: 0.2),
               hoverColor: AppColors.greyLight,
               gap: 8,
               activeColor: AppColors.primary,
               iconSize: 24,
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               duration: Duration(milliseconds: 400),
-              tabBackgroundColor: AppColors.primary.withOpacity(0.1),
+              tabBackgroundColor: AppColors.primary.withValues(alpha: 0.1),
               color: AppColors.secondary,
               tabs: [
                 GButton(

@@ -707,7 +707,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.85),
+                  color: AppColors.primary.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
@@ -730,7 +730,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.9),
+                color: Colors.red.withValues(alpha: 0.9),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.close, color: Colors.white, size: 14),
@@ -749,7 +749,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.4),
+            color: AppColors.primary.withValues(alpha: 0.4),
             style: BorderStyle.solid,
           ),
         ),
@@ -845,7 +845,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

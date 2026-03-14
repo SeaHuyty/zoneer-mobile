@@ -12,42 +12,53 @@ class HomeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: const HomeHeader(),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SearchBarApp(),
-            const SizedBox(height: 10),
-            const Text(
-              'Category',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            flexibleSpace: const HomeHeader(),
+            floating: true,
+            pinned: false,
+            snap: true,
+            toolbarHeight: 140,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            automaticallyImplyLeading: false,
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const SearchBarApp(),
+                const SizedBox(height: 10),
+                const Text(
+                  'Category',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                const HomePropertiesCategory(),
+                const SizedBox(height: 10),
+                HomePropertySection(
+                  title: 'Nearby',
+                  propertiesAsync: ref.watch(
+                    propertySectionProvider(PropertySection.nearby),
+                  ),
+                ),
+                HomePropertySection(
+                  title: 'Property in Siem Reap',
+                  propertiesAsync: ref.watch(
+                    propertySectionProvider(PropertySection.siemreap),
+                  ),
+                ),
+                HomePropertySection(
+                  title: 'Property in Phnom Penh',
+                  propertiesAsync: ref.watch(
+                    propertySectionProvider(PropertySection.phnompenh),
+                  ),
+                ),
+              ]),
             ),
-            const SizedBox(height: 10),
-            const HomePropertiesCategory(),
-            const SizedBox(height: 10),
-            HomePropertySection(
-              title: 'Nearby',
-              propertiesAsync: ref.watch(
-                propertySectionProvider(PropertySection.nearby),
-              ),
-            ),
-            HomePropertySection(
-              title: 'Property in Siem Reap',
-              propertiesAsync: ref.watch(
-                propertySectionProvider(PropertySection.siemreap),
-              ),
-            ),
-            HomePropertySection(
-              title: 'Property in Phnom Penh',
-              propertiesAsync: ref.watch(
-                propertySectionProvider(PropertySection.phnompenh),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

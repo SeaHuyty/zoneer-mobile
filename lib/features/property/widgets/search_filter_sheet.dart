@@ -87,8 +87,10 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _PriceBadge('\$${priceRange.start.round()}'),
-                const Text('—',
-                    style: TextStyle(color: AppColors.grey, fontSize: 16)),
+                const Text(
+                  '—',
+                  style: TextStyle(color: AppColors.grey, fontSize: 16),
+                ),
                 _PriceBadge('\$${priceRange.end.round()}'),
               ],
             ),
@@ -98,8 +100,9 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
                 inactiveTrackColor: AppColors.primary.withValues(alpha: 0.15),
                 thumbColor: AppColors.primary,
                 overlayColor: AppColors.primary.withValues(alpha: 0.12),
-                rangeThumbShape:
-                    const RoundRangeSliderThumbShape(enabledThumbRadius: 10),
+                rangeThumbShape: const RoundRangeSliderThumbShape(
+                  enabledThumbRadius: 10,
+                ),
                 trackHeight: 4,
               ),
               child: RangeSlider(
@@ -179,15 +182,12 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(
-                  context,
-                  {
-                    'priceRange': priceRange,
-                    'beds': beds,
-                    'baths': baths,
-                    'selectedType': selectedType,
-                  },
-                ),
+                onPressed: () => Navigator.pop(context, {
+                  'priceRange': priceRange,
+                  'beds': beds,
+                  'baths': baths,
+                  'selectedType': selectedType,
+                }),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   elevation: 0,
@@ -253,8 +253,7 @@ class _FilterChip extends StatelessWidget {
           color: selected ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color:
-                selected ? AppColors.primary : const Color(0xFFE0E0E0),
+            color: selected ? AppColors.primary : const Color(0xFFE0E0E0),
             width: 1.2,
           ),
           boxShadow: selected
@@ -263,7 +262,7 @@ class _FilterChip extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : [],
         ),
@@ -271,8 +270,7 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             color: selected ? Colors.white : AppColors.textPrimary,
-            fontWeight:
-                selected ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             fontSize: 13,
           ),
         ),

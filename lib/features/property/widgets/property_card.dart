@@ -4,7 +4,7 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;
-  
+
   const PropertyCard({super.key, required this.property});
 
   @override
@@ -74,7 +74,10 @@ class PropertyCard extends StatelessWidget {
               top: 12,
               right: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -135,11 +138,7 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.bed,
-                        color: Colors.white,
-                        size: 16,
-                      ),
+                      const Icon(Icons.bed, color: Colors.white, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         property.bedroom.toString(),

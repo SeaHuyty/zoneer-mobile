@@ -6,6 +6,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
+import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/property_map_page.dart';
 import 'package:zoneer_mobile/features/user/views/tenant/tenant_profile_setting.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
@@ -59,12 +60,15 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationProvider);
     final profileType = ref.watch(profileTypeProvider);
+    final mode = ref.watch(mapTabViewProvider);
 
     // Dynamically build widget list based on profile type
     final List<Widget> widgetOptions = [
       const HomeView(),
       const WishlistView(),
-      const PropertyMapPage(),
+      mode == MapTabView.search
+      ? const SearchScreen()
+      : const PropertyMapPage(),
       profileType == ProfileType.tenant
           ? const TenantProfileSetting()
           : const LandlordProfile(),
@@ -77,7 +81,10 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(blurRadius: 20, color: Colors.black.withValues(alpha: .1)),
+            BoxShadow(
+              blurRadius: 20,
+              color: Colors.black.withValues(alpha: .1),
+            ),
           ],
         ),
         child: SafeArea(
@@ -321,6 +328,10 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
               onTabChange: (index) {
                 ref.read(navigationProvider.notifier).changeTab(index);
                 // Play animation for selected tab
+                if (index == NavigationTab.map) {
+                  ref.read(mapTabViewProvider.notifier).showMap();
+                }
+
                 switch (index) {
                   case 0:
                     _homeController.forward(from: 0);

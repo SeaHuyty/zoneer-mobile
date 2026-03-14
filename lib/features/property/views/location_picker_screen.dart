@@ -52,9 +52,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not get location: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not get location: $e')));
       }
     } finally {
       if (mounted) setState(() => _loadingLocation = false);
@@ -193,7 +193,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.touch_app, color: Colors.black38, size: 18),
+                          Icon(
+                            Icons.touch_app,
+                            color: Colors.black38,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -212,8 +216,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed:
-                              _loadingLocation ? null : _goToCurrentLocation,
+                          onPressed: _loadingLocation
+                              ? null
+                              : _goToCurrentLocation,
                           icon: _loadingLocation
                               ? const SizedBox(
                                   width: 16,
@@ -244,8 +249,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),

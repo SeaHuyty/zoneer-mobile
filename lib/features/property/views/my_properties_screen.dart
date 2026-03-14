@@ -61,18 +61,20 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
 
     try {
       // Optimistically remove from UI first for instant feedback
-      ref.read(propertiesViewModelProvider.notifier).removePropertyFromState(id);
-      
+      ref
+          .read(propertiesViewModelProvider.notifier)
+          .removePropertyFromState(id);
+
       // Show success message immediately
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Property deleted.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Property deleted.')));
       }
-      
+
       // Delete from database in the background
       await ref.read(propertyRepositoryProvider).deleteProperty(id);
-      
+
       // Reload to ensure consistency with database
       await ref
           .read(propertiesViewModelProvider.notifier)
@@ -83,8 +85,9 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
           .read(propertiesViewModelProvider.notifier)
           .loadLandlordProperties(_userId);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Delete failed: ${e.toString()}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Delete failed: ${e.toString()}')),
+        );
       }
     }
   }
@@ -99,7 +102,7 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     // Refresh after returning
     ref
         .read(propertiesViewModelProvider.notifier)
-      .loadLandlordProperties(_userId);
+        .loadLandlordProperties(_userId);
   }
 
   @override
@@ -128,8 +131,9 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
         data: (properties) {
-          final myProperties =
-              properties.where((p) => p.landlordId == _userId).toList();
+          final myProperties = properties
+              .where((p) => p.landlordId == _userId)
+              .toList();
 
           if (myProperties.isEmpty) {
             return Center(
@@ -208,8 +212,7 @@ class _PropertyManageCard extends StatelessWidget {
         children: [
           // Thumbnail
           ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(15)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             child: Image.network(
               property.thumbnail,
               height: 160,
@@ -274,31 +277,46 @@ class _PropertyManageCard extends StatelessWidget {
                 // Stats row
                 Row(
                   children: [
-                    const Icon(Icons.bed_outlined,
-                        size: 15, color: Colors.black54),
+                    const Icon(
+                      Icons.bed_outlined,
+                      size: 15,
+                      color: Colors.black54,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${property.bedroom} bed',
                       style: const TextStyle(
-                          fontSize: 13, color: Colors.black54),
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.bathtub_outlined,
-                        size: 15, color: Colors.black54),
+                    const Icon(
+                      Icons.bathtub_outlined,
+                      size: 15,
+                      color: Colors.black54,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${property.bathroom} bath',
                       style: const TextStyle(
-                          fontSize: 13, color: Colors.black54),
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.square_foot_outlined,
-                        size: 15, color: Colors.black54),
+                    const Icon(
+                      Icons.square_foot_outlined,
+                      size: 15,
+                      color: Colors.black54,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${property.squareArea.toStringAsFixed(0)} m²',
                       style: const TextStyle(
-                          fontSize: 13, color: Colors.black54),
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
                     ),
                   ],
                 ),

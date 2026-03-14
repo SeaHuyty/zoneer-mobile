@@ -9,11 +9,8 @@ import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
-class HomeHeader extends ConsumerStatefulWidget implements PreferredSizeWidget {
+class HomeHeader extends ConsumerStatefulWidget {
   const HomeHeader({super.key});
-
-  @override
-  Size get preferredSize => const Size.fromHeight(140);
 
   @override
   ConsumerState<HomeHeader> createState() => _HomeHeaderState();
@@ -150,24 +147,21 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
   Widget build(BuildContext context) {
     final currentCity = ref.watch(currentCityProvider);
 
-    ref.listen<LocationPermissionState>(
-      locationPermissionProvider,
-      (previous, next) {
-        final hadLocation = previous?.userLocation != null;
-        final hasLocation = next.userLocation != null;
+    ref.listen<LocationPermissionState>(locationPermissionProvider, (
+      previous,
+      next,
+    ) {
+      final hadLocation = previous?.userLocation != null;
+      final hasLocation = next.userLocation != null;
 
-        if (!hadLocation && hasLocation && !_isLoadingLocation) {
-          _autoUpdateCityFromLocation(next.userLocation!);
-        }
-      },
-    );
+      if (!hadLocation && hasLocation && !_isLoadingLocation) {
+        _autoUpdateCityFromLocation(next.userLocation!);
+      }
+    });
 
-    return AppBar(
-      backgroundColor: AppColors.white,
-      elevation: 0,
-      toolbarHeight: 140,
-      automaticallyImplyLeading: false,
-      flexibleSpace: SafeArea(
+    return Container(
+      color: AppColors.white,
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
@@ -189,7 +183,7 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                           height: 32,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       GestureDetector(
                         onTap: _isLoadingLocation
                             ? null
@@ -222,7 +216,6 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                       ),
                     ],
                   ),
-
                   IconButton(
                     style: IconButton.styleFrom(
                       side: const BorderSide(color: AppColors.greyLight),
@@ -249,7 +242,7 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                 ],
               ),
               const Text(
-                "Discover your perfect place to stay today.",
+                'Discover your perfect place to stay today.',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ],

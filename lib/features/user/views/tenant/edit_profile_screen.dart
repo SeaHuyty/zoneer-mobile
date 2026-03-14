@@ -107,9 +107,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           .list(path: userId);
       if (files.isNotEmpty) {
         final paths = files.map((f) => '$userId/${f.name}').toList();
-        await Supabase.instance.client.storage
-            .from('profiles')
-            .remove(paths);
+        await Supabase.instance.client.storage.from('profiles').remove(paths);
       }
     } catch (_) {
       // No existing files — nothing to delete
@@ -183,10 +181,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         backgroundImage: _selectedImageBytes != null
                             ? MemoryImage(_selectedImageBytes!)
                             : (user?.profileUrl != null
-                                ? NetworkImage(user!.profileUrl!)
-                                : null) as ImageProvider?,
-                        child: (user?.profileUrl == null && _selectedImageBytes == null)
-                            ? Icon(Icons.person, size: 52, color: AppColors.grey)
+                                      ? NetworkImage(user!.profileUrl!)
+                                      : null)
+                                  as ImageProvider?,
+                        child:
+                            (user?.profileUrl == null &&
+                                _selectedImageBytes == null)
+                            ? Icon(
+                                Icons.person,
+                                size: 52,
+                                color: AppColors.grey,
+                              )
                             : null,
                       ),
                     ),
@@ -214,10 +219,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               const SizedBox(height: 8),
               Text(
                 "Tap to change photo",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 32),
@@ -228,7 +230,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Column(
                   children: [
                     TextFormField(
@@ -236,13 +241,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       decoration: InputDecoration(
                         labelText: "Full Name",
                         labelStyle: TextStyle(color: AppColors.textSecondary),
-                        prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: AppColors.primary,
+                        ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                       ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? "Name is required" : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? "Name is required"
+                          : null,
                     ),
                     Divider(
                       height: 1,
@@ -254,7 +263,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       decoration: InputDecoration(
                         labelText: "Phone Number",
                         labelStyle: TextStyle(color: AppColors.textSecondary),
-                        prefixIcon: Icon(Icons.phone_outlined, color: AppColors.primary),
+                        prefixIcon: Icon(
+                          Icons.phone_outlined,
+                          color: AppColors.primary,
+                        ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,

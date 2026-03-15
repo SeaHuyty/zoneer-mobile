@@ -10,6 +10,10 @@ class PropertyFilterNotifier extends Notifier<PropertyFilterModel> {
   @override
   PropertyFilterModel build() => const PropertyFilterModel();
 
+  void setFilter(PropertyFilterModel filter) {
+    state = filter;
+  }
+
   void updatePropertyType(String? type) {
     state = state.copyWith(propertyType: type, clearPropertyType: type == null);
   }

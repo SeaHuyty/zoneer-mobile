@@ -27,7 +27,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(propertiesViewModelProvider);
+    final range =
+        (_activeFilters?['priceRange'] as RangeValues?) ??
+        const RangeValues(0, 10000);
+    final minBeds = (_activeFilters?['beds'] as int?) ?? 1;
+    final minBaths = (_activeFilters?['baths'] as int?) ?? 1;
+
+    final propertiesAsync = ref.watch(
+      searchPropertiesProvider((
+        query: _searchQuery,
+        minPrice: range.start,
+        maxPrice: range.end,
+        minBeds: minBeds,
+        minBaths: minBaths,
+      )),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
@@ -55,23 +69,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>
             Center(child: Text('Error loading properties: $error')),
-        data: (properties) {
-          final searchQueryLower = _searchQuery.toLowerCase();
-          final filtered = properties.where((p) {
-            if (_searchQuery.isNotEmpty &&
-                !p.address.toLowerCase().contains(searchQueryLower)) {
-              return false;
-            }
-            if (_activeFilters != null) {
-              final range = _activeFilters!['priceRange'] as RangeValues;
-              if (p.price < range.start || p.price > range.end) return false;
-              final beds = _activeFilters!['beds'] as int;
-              if (p.bedroom < beds) return false;
-              final baths = _activeFilters!['baths'] as int;
-              if (p.bathroom < baths) return false;
-            }
-            return true;
-          }).toList();
+        data: (filtered) {
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
@@ -239,7 +237,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => const SearchFilterSheet(),
+      builder: (context) => SearchFilterSheet(initialFilters: _activeFilters),
     );
     if (result != null) {
       setState(() => _activeFilters = result);

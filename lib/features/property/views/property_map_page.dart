@@ -76,42 +76,11 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
       await prefs.setBool(migrationKey, true);
 
       if (updatedCount > 0) {
-        ref.invalidate(propertiesViewModelProvider);
+        ref.invalidate(mapPropertiesProvider);
       }
     } catch (e) {
       debugPrint('Map coordinate migration error: $e');
     }
-  }
-
-  List<PropertyModel> _filterProperties(
-    List<PropertyModel> properties,
-    PropertyFilterModel filter,
-  ) {
-    var filtered = properties
-        .where((p) => p.latitude != null && p.longitude != null)
-        .toList();
-
-    if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
-      final q = filter.searchQuery!.toLowerCase();
-      filtered = filtered.where((p) {
-        return p.address.toLowerCase().contains(q) ||
-            (p.description?.toLowerCase().contains(q) ?? false);
-      }).toList();
-    }
-
-    filtered = filtered
-        .where((p) => p.price >= filter.minPrice && p.price <= filter.maxPrice)
-        .toList();
-
-    if (filter.beds != null) {
-      if (filter.beds == 5) {
-        filtered = filtered.where((p) => p.bedroom >= 5).toList();
-      } else {
-        filtered = filtered.where((p) => p.bedroom == filter.beds).toList();
-      }
-    }
-
-    return filtered;
   }
 
   void _onMarkerTapped(PropertyModel property, List<PropertyModel> all) {
@@ -147,13 +116,18 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
     );
   }
 
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const SearchFilterSheet(),
-    );
+  Future<void> _showFilterSheet() async {
+    final PropertyFilterModel? result =
+        await showModalBottomSheet<PropertyFilterModel?>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const SearchFilterSheet(),
+        );
+
+    if (!mounted || result == null) return;
+
+    ref.read(propertyFilterProvider.notifier).setFilter(result);
   }
 
   // ── Marker builders ────────────────────────────────────────────────
@@ -258,7 +232,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(propertiesViewModelProvider);
+    final propertiesAsync = ref.watch(mapPropertiesProvider);
     final filter = ref.watch(propertyFilterProvider);
     final permissionState = ref.watch(locationPermissionProvider);
 
@@ -269,8 +243,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
       }
     });
 
-    final allProperties = propertiesAsync.asData?.value ?? [];
-    final filteredProperties = _filterProperties(allProperties, filter);
+    final filteredProperties = propertiesAsync.asData?.value ?? [];
     final userLocation = permissionState.userLocation;
     final usePricePins = _currentZoom < 12;
 
@@ -374,9 +347,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => ref
-                            .read(propertiesViewModelProvider.notifier)
-                            .loadProperties(),
+                        onPressed: () => ref.invalidate(mapPropertiesProvider),
                         child: const Text('Retry'),
                       ),
                     ],

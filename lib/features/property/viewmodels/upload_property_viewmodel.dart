@@ -1,4 +1,8 @@
 import 'dart:typed_data';
+import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
+import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/viewmodels/property_sections_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -38,48 +42,6 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required Map<String, dynamic>? badgeOptions,
   }) async {
     final locationUrl = 'https://www.google.com/maps?q=$latitude,$longitude';
-    final propertiesNotifier =
-        ref.read(propertiesViewModelProvider.notifier);
-
-    // --- Optimistic local state update ---
-    if (existingProperty != null) {
-      propertiesNotifier.optimisticallyUpdate(
-        existingProperty.copyWith(
-          price: price,
-          bedroom: bedroom,
-          bathroom: bathroom,
-          squareArea: squareArea,
-          address: address,
-          locationUrl: locationUrl,
-          latitude: latitude,
-          longitude: longitude,
-          description: description,
-          thumbnail: existingThumbnailUrl ?? existingProperty.thumbnail,
-          propertyFeatures: propertyFeatures,
-          securityFeatures: securityFeatures,
-          badgeOptions: badgeOptions,
-        ),
-      );
-    } else {
-      propertiesNotifier.optimisticallyAdd(
-        PropertyModel(
-          id: 'optimistic-${DateTime.now().millisecondsSinceEpoch}',
-          price: price,
-          bedroom: bedroom,
-          bathroom: bathroom,
-          squareArea: squareArea,
-          address: address,
-          locationUrl: locationUrl,
-          latitude: latitude,
-          longitude: longitude,
-          description: description,
-          thumbnail: existingThumbnailUrl ?? '',
-          propertyFeatures: propertyFeatures,
-          securityFeatures: securityFeatures,
-          badgeOptions: badgeOptions,
-        ),
-      );
-    }
 
     state = true;
     try {
@@ -162,10 +124,21 @@ class UploadPropertyViewModel extends Notifier<bool> {
         );
         // Fetch the newly created property to get its ID
         final created = await repo.getPropertiesByLandlordId(userId);
-        propertyId = created
-            .where((p) => p.thumbnail == thumbnailUrl)
-            .first
-            .id;
+        propertyId = created.where((p) => p.thumbnail == thumbnailUrl).first.id;
+
+        // Notify user the newly created property is under review.
+        var helper = NotificationHelper.upload;
+        await ref
+            .read(notificationsViewModelProvider.notifier)
+            .createNotification(
+              NotificationModel(
+                id: userId,
+                userId: userId,
+                title: helper.title,
+                message: helper.message,
+                type: NotificationType.system,
+              ),
+            );
       }
 
       // --- Manage property_media records ---
@@ -182,10 +155,13 @@ class UploadPropertyViewModel extends Notifier<bool> {
         await repo.deleteStorageImages(removedImageUrls);
       }
 
-      // --- Sync home screen with real server data ---
-      // Replaces the optimistic item (fake ID) with the real record from
-      // Supabase — no loading flash, guaranteed to appear on mobile.
-      await propertiesNotifier.refreshProperties();
+      // Refresh only targeted property queries used by screens.
+      ref.invalidate(landlordPropertiesProvider(userId));
+      ref.invalidate(mapPropertiesProvider);
+      ref.invalidate(propertySectionProvider(PropertySection.nearby));
+      ref.invalidate(propertySectionProvider(PropertySection.featured));
+      ref.invalidate(propertySectionProvider(PropertySection.phnompenh));
+      ref.invalidate(propertySectionProvider(PropertySection.siemreap));
     } finally {
       state = false;
     }
@@ -194,5 +170,5 @@ class UploadPropertyViewModel extends Notifier<bool> {
 
 final uploadPropertyViewModelProvider =
     NotifierProvider<UploadPropertyViewModel, bool>(
-  UploadPropertyViewModel.new,
-);
+      UploadPropertyViewModel.new,
+    );

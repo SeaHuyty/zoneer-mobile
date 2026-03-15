@@ -1,27 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
-import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 
-enum PropertySection {
-  nearby,
-  featured,
-  phnompenh,
-  siemreap
-}
+enum PropertySection { nearby, featured, phnompenh, siemreap }
 
-final propertySectionProvider = Provider.family<AsyncValue<List<PropertyModel>>, PropertySection>((ref, section) {
-  final propertiesAsync = ref.watch(propertiesViewModelProvider);
+final propertySectionProvider =
+    FutureProvider.family<List<PropertyModel>, PropertySection>((
+      ref,
+      section,
+    ) async {
+      final repo = ref.read(propertyRepositoryProvider);
 
-  return propertiesAsync.whenData((properties) {
-    switch (section) {
-      case PropertySection.nearby:
-        return properties.where((p) => p.bathroom >= 1).toList();
-      case PropertySection.featured:
-        return properties.where((p) => p.bedroom >= 1).toList();
-      case PropertySection.phnompenh:
-        return properties.where((p) => p.address.contains('Phnom Penh')).toList();
-      case PropertySection.siemreap:
-        return properties.where((p) => p.address.contains('Siem Reap')).toList();
-    }
-  });
-});
+      switch (section) {
+        case PropertySection.nearby:
+          return repo.getVerifiedPropertiesSection(limit: 20, minBathroom: 1);
+        case PropertySection.featured:
+          return repo.getVerifiedPropertiesSection(limit: 20, minBedroom: 1);
+        case PropertySection.phnompenh:
+          return repo.getVerifiedPropertiesSection(
+            limit: 20,
+            addressContains: 'Phnom Penh',
+          );
+        case PropertySection.siemreap:
+          return repo.getVerifiedPropertiesSection(
+            limit: 20,
+            addressContains: 'Siem Reap',
+          );
+      }
+    });

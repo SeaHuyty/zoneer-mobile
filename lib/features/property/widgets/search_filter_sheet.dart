@@ -2,24 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 
 class SearchFilterSheet extends StatefulWidget {
-  const SearchFilterSheet({super.key});
+  const SearchFilterSheet({super.key, this.initialFilters});
+
+  final Map<String, dynamic>? initialFilters;
 
   @override
   State<SearchFilterSheet> createState() => _SearchFilterSheetState();
 }
 
 class _SearchFilterSheetState extends State<SearchFilterSheet> {
-  RangeValues priceRange = const RangeValues(500, 5000);
-  int beds = 1;
-  int baths = 1;
-  String selectedType = 'Apartment';
+  static const RangeValues _defaultPriceRange = RangeValues(0, 10000);
+  static const int _defaultBeds = 1;
+  static const int _defaultBaths = 1;
+  static const String _defaultType = 'Apartment';
+
+  late RangeValues priceRange;
+  late int beds;
+  late int baths;
+  late String selectedType;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialFilters;
+    priceRange = (initial?['priceRange'] as RangeValues?) ?? _defaultPriceRange;
+    beds = (initial?['beds'] as int?) ?? _defaultBeds;
+    baths = (initial?['baths'] as int?) ?? _defaultBaths;
+    selectedType = (initial?['selectedType'] as String?) ?? _defaultType;
+  }
 
   void _reset() {
     setState(() {
-      priceRange = const RangeValues(500, 5000);
-      beds = 1;
-      baths = 1;
-      selectedType = 'Apartment';
+      priceRange = _defaultPriceRange;
+      beds = _defaultBeds;
+      baths = _defaultBaths;
+      selectedType = _defaultType;
     });
   }
 

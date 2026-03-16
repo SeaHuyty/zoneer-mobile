@@ -12,10 +12,10 @@ class _HomePropertiesCategoryState extends State<HomePropertiesCategory> {
   int _selectedIndex = 0;
 
   final List<Map<String, dynamic>> categories = [
-    {'icon': Icons.home_outlined, 'label': 'Rent House'},
+    {'icon': Icons.home_outlined, 'label': 'Room'},
     {'icon': Icons.apartment_outlined, 'label': 'Apartment'},
-    {'icon': Icons.villa_outlined, 'label': 'Resident'},
-    {'icon': Icons.cabin_outlined, 'label': 'Traditional'},
+    {'icon': Icons.villa_outlined, 'label': 'Condo'},
+    {'icon': Icons.cabin_outlined, 'label': 'House'},
   ];
 
   @override

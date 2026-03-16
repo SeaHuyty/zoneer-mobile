@@ -14,12 +14,28 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
   static const RangeValues _defaultPriceRange = RangeValues(0, 10000);
   static const int _defaultBeds = 1;
   static const int _defaultBaths = 1;
-  static const String _defaultType = 'Apartment';
+  static const String _defaultType = 'Any';
+  static const List<(String label, String value)> _propertyTypes = [
+    ('Any', 'Any'),
+    ('Room', 'room'),
+    ('Apartment', 'apartment'),
+    ('Condo', 'condo'),
+    ('House', 'house'),
+  ];
 
   late RangeValues priceRange;
   late int beds;
   late int baths;
   late String selectedType;
+
+  String _normalizeType(String? rawType) {
+    final normalized = rawType?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty || normalized == 'any') {
+      return _defaultType;
+    }
+    final match = _propertyTypes.where((type) => type.$2 == normalized);
+    return match.isEmpty ? _defaultType : normalized;
+  }
 
   @override
   void initState() {
@@ -28,7 +44,7 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
     priceRange = (initial?['priceRange'] as RangeValues?) ?? _defaultPriceRange;
     beds = (initial?['beds'] as int?) ?? _defaultBeds;
     baths = (initial?['baths'] as int?) ?? _defaultBaths;
-    selectedType = (initial?['selectedType'] as String?) ?? _defaultType;
+    selectedType = _normalizeType(initial?['selectedType'] as String?);
   }
 
   void _reset() {
@@ -181,12 +197,13 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: ['Apartment', 'House', 'Villa', 'Studio']
+              children: _propertyTypes
                   .map(
-                    (type) => _FilterChip(
-                      label: type,
-                      selected: selectedType == type,
-                      onTap: () => setState(() => selectedType = type),
+                    (propertyType) => _FilterChip(
+                      label: propertyType.$1,
+                      selected: selectedType == propertyType.$2,
+                      onTap: () =>
+                          setState(() => selectedType = propertyType.$2),
                     ),
                   )
                   .toList(),

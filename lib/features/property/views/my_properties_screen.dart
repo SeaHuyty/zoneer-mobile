@@ -214,7 +214,7 @@ class _PropertyManageCard extends StatelessWidget {
                 // Status chip
                 Row(
                   children: [
-                    _StatusChip(status: property.propertyStatus.value),
+                    _StatusChip(status: property.propertyStatus!.value),
                     const Spacer(),
                     Text(
                       '\$${property.price.toStringAsFixed(0)}/mo',

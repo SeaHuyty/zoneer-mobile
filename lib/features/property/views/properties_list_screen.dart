@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
@@ -27,15 +28,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final providerType = ref.watch(
+      propertyFilterProvider.select((filter) => filter.propertyType),
+    );
+    final hasProviderTypeFilter = providerType.toLowerCase() != 'any';
     final range =
         (_activeFilters?['priceRange'] as RangeValues?) ??
         const RangeValues(0, 10000);
     final minBeds = (_activeFilters?['beds'] as int?) ?? 1;
     final minBaths = (_activeFilters?['baths'] as int?) ?? 1;
+    final selectedType = hasProviderTypeFilter
+        ? providerType
+        : (_activeFilters?['selectedType'] as String?);
+    final queryType =
+        selectedType != null && selectedType.toLowerCase() != 'any'
+        ? selectedType
+        : null;
 
     final propertiesAsync = ref.watch(
       searchPropertiesProvider((
         query: _searchQuery,
+        type: queryType,
         minPrice: range.start,
         maxPrice: range.end,
         minBeds: minBeds,
@@ -81,7 +94,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   elevation: 0,
                   bottom: PreferredSize(
                     preferredSize: Size.fromHeight(
-                      _activeFilters != null ? 70 : 50,
+                      (_activeFilters != null || hasProviderTypeFilter)
+                          ? 70
+                          : 50,
                     ),
                     child: Container(
                       width: double.infinity,
@@ -97,10 +112,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               fontSize: 16,
                             ),
                           ),
-                          if (_activeFilters != null)
+                          if (_activeFilters != null || hasProviderTypeFilter)
                             GestureDetector(
-                              onTap: () =>
-                                  setState(() => _activeFilters = null),
+                              onTap: () => setState(() {
+                                _activeFilters = null;
+                                ref
+                                    .read(propertyFilterProvider.notifier)
+                                    .updatePropertyType('Any');
+                              }),
                               child: const Padding(
                                 padding: EdgeInsets.only(top: 4),
                                 child: Text(
@@ -156,12 +175,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 onPressed: _openFilterSheet,
                                 icon: Icon(
                                   Icons.tune,
-                                  color: _activeFilters != null
+                                  color:
+                                      (_activeFilters != null ||
+                                          hasProviderTypeFilter)
                                       ? AppColors.primary
                                       : Colors.grey[700],
                                 ),
                               ),
-                              if (_activeFilters != null)
+                              if (_activeFilters != null ||
+                                  hasProviderTypeFilter)
                                 Positioned(
                                   top: 8,
                                   right: 8,
@@ -237,10 +259,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => SearchFilterSheet(initialFilters: _activeFilters),
+      builder: (context) => SearchFilterSheet(
+        initialFilters:
+            _activeFilters ??
+            {'selectedType': ref.read(propertyFilterProvider).propertyType},
+      ),
     );
     if (result != null) {
       setState(() => _activeFilters = result);
+      ref
+          .read(propertyFilterProvider.notifier)
+          .updatePropertyType(result['selectedType'] as String?);
     }
   }
 }

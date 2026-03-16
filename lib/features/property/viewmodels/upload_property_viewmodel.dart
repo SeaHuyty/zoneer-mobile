@@ -36,6 +36,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required double latitude,
     required double longitude,
     required String description,
+    required String type,
     // Amenities
     required Map<String, dynamic>? propertyFeatures,
     required Map<String, dynamic>? securityFeatures,
@@ -92,6 +93,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             longitude: longitude,
             description: description,
             thumbnail: thumbnailUrl,
+            type: type,
             landlordId: userId,
             verifyStatus: existingProperty.verifyStatus,
             propertyStatus: existingProperty.propertyStatus,
@@ -116,6 +118,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             longitude: longitude,
             description: description,
             thumbnail: thumbnailUrl,
+            type: type,
             landlordId: userId,
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
@@ -158,10 +161,10 @@ class UploadPropertyViewModel extends Notifier<bool> {
       // Refresh only targeted property queries used by screens.
       ref.invalidate(landlordPropertiesProvider(userId));
       ref.invalidate(mapPropertiesProvider);
-      ref.invalidate(propertySectionProvider(PropertySection.nearby));
-      ref.invalidate(propertySectionProvider(PropertySection.featured));
-      ref.invalidate(propertySectionProvider(PropertySection.phnompenh));
-      ref.invalidate(propertySectionProvider(PropertySection.siemreap));
+      ref.invalidate(propertySectionProvider(PropertySection.room));
+      ref.invalidate(propertySectionProvider(PropertySection.condo));
+      ref.invalidate(propertySectionProvider(PropertySection.apartment));
+      ref.invalidate(propertySectionProvider(PropertySection.house));
     } finally {
       state = false;
     }

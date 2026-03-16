@@ -5,6 +5,7 @@ import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provi
 
 typedef SearchPropertiesParams = ({
   String query,
+  String? type,
   double minPrice,
   double maxPrice,
   int minBeds,
@@ -38,6 +39,7 @@ final searchPropertiesProvider =
             maxPrice: params.maxPrice,
             minBeds: params.minBeds,
             minBaths: params.minBaths,
+            type: params.type,
             limit: 200,
           );
     });

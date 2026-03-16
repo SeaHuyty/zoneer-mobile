@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 
-enum PropertySection { nearby, featured, phnompenh, siemreap }
+enum PropertySection { room, condo, apartment, house }
 
 final propertySectionProvider =
     FutureProvider.family<List<PropertyModel>, PropertySection>((
@@ -12,16 +12,16 @@ final propertySectionProvider =
       final repo = ref.read(propertyRepositoryProvider);
 
       switch (section) {
-        case PropertySection.nearby:
+        case PropertySection.room:
           return repo.getVerifiedPropertiesSection(limit: 20, minBathroom: 1);
-        case PropertySection.featured:
+        case PropertySection.condo:
           return repo.getVerifiedPropertiesSection(limit: 20, minBedroom: 1);
-        case PropertySection.phnompenh:
+        case PropertySection.apartment:
           return repo.getVerifiedPropertiesSection(
             limit: 20,
             addressContains: 'Phnom Penh',
           );
-        case PropertySection.siemreap:
+        case PropertySection.house:
           return repo.getVerifiedPropertiesSection(
             limit: 20,
             addressContains: 'Siem Reap',

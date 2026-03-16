@@ -38,21 +38,31 @@ class HomeView extends ConsumerWidget {
                 const HomePropertiesCategory(),
                 const SizedBox(height: 10),
                 HomePropertySection(
-                  title: 'Nearby',
+                  title: 'House',
+                  sectionType: 'house',
                   propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.nearby),
+                    propertySectionProvider(PropertySection.house),
                   ),
                 ),
                 HomePropertySection(
-                  title: 'Property in Siem Reap',
+                  title: 'Condo',
+                  sectionType: 'condo',
                   propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.siemreap),
+                    propertySectionProvider(PropertySection.condo),
                   ),
                 ),
                 HomePropertySection(
-                  title: 'Property in Phnom Penh',
+                  title: 'Apartment',
+                  sectionType: 'apartment',
                   propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.phnompenh),
+                    propertySectionProvider(PropertySection.apartment),
+                  ),
+                ),
+                HomePropertySection(
+                  title: 'Room',
+                  sectionType: 'room',
+                  propertiesAsync: ref.watch(
+                    propertySectionProvider(PropertySection.room),
                   ),
                 ),
               ]),

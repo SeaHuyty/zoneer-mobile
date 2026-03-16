@@ -117,17 +117,40 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
   }
 
   Future<void> _showFilterSheet() async {
-    final PropertyFilterModel? result =
-        await showModalBottomSheet<PropertyFilterModel?>(
+    final current = ref.read(propertyFilterProvider);
+    final Map<String, dynamic>? result =
+        await showModalBottomSheet<Map<String, dynamic>?>(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (context) => const SearchFilterSheet(),
+          builder: (context) => SearchFilterSheet(
+            initialFilters: {
+              'priceRange': RangeValues(current.minPrice, current.maxPrice),
+              'beds': current.beds ?? 1,
+              'selectedType': current.propertyType,
+            },
+          ),
         );
 
     if (!mounted || result == null) return;
 
-    ref.read(propertyFilterProvider.notifier).setFilter(result);
+    final range = result['priceRange'] as RangeValues?;
+    final beds = result['beds'] as int?;
+    final selectedType = result['selectedType'] as String?;
+
+    ref
+        .read(propertyFilterProvider.notifier)
+        .setFilter(
+          current.copyWith(
+            minPrice: range?.start,
+            maxPrice: range?.end,
+            beds: beds,
+            clearBeds: beds == null,
+            propertyType: selectedType,
+            clearPropertyType:
+                selectedType == null || selectedType.trim().isEmpty,
+          ),
+        );
   }
 
   // ── Marker builders ────────────────────────────────────────────────

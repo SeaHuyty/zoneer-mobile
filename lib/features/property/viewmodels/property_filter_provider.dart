@@ -15,7 +15,10 @@ class PropertyFilterNotifier extends Notifier<PropertyFilterModel> {
   }
 
   void updatePropertyType(String? type) {
-    state = state.copyWith(propertyType: type, clearPropertyType: type == null);
+    final normalized = (type == null || type.trim().isEmpty)
+        ? 'Any'
+        : type.trim();
+    state = state.copyWith(propertyType: normalized);
   }
 
   void updatePriceRange(double min, double max) {

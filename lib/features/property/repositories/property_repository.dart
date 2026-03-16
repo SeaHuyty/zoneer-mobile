@@ -88,6 +88,11 @@ class PropertyRepository {
           : query.eq('bedroom', filter.beds!);
     }
 
+    final normalizedType = filter.propertyType.trim().toLowerCase();
+    if (normalizedType.isNotEmpty && normalizedType != 'any') {
+      query = query.eq('type', filter.propertyType.trim());
+    }
+
     if (filter.searchQuery != null && filter.searchQuery!.trim().isNotEmpty) {
       final q = filter.searchQuery!.trim();
       query = query.or('address.ilike.%$q%,description.ilike.%$q%');
@@ -103,11 +108,12 @@ class PropertyRepository {
     double? maxPrice,
     int? minBeds,
     int? minBaths,
+    String? type,
     int limit = 200,
   }) async {
     var request = _supabase
         .from('properties')
-        .select()
+        .select('id, price, bedroom, bathroom, square_area, address, thumbnail_url')
         .eq('verify_status', VerifyStatus.verified.value);
 
     if (query != null && query.trim().isNotEmpty) {
@@ -125,6 +131,11 @@ class PropertyRepository {
     }
     if (minBaths != null) {
       request = request.gte('bathroom', minBaths);
+    }
+    if (type != null &&
+        type.trim().isNotEmpty &&
+        type.trim().toLowerCase() != 'any') {
+      request = request.eq('type', type.trim());
     }
 
     final response = await request.limit(limit);

@@ -22,13 +22,6 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
   void initState() {
     super.initState();
     _userId = Supabase.instance.client.auth.currentUser!.id;
-
-    // Load only this user's properties
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
-    });
   }
 
   Future<void> _deleteProperty(String id) async {
@@ -60,30 +53,19 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
     if (confirmed != true) return;
 
     try {
-      // Optimistically remove from UI first for instant feedback
-      ref
-          .read(propertiesViewModelProvider.notifier)
-          .removePropertyFromState(id);
+      // Delete from database first
+      await ref.read(propertyRepositoryProvider).deleteProperty(id);
 
-      // Show success message immediately
+      // Reload only this screen's lightweight landlord list.
+      ref.invalidate(landlordPropertiesProvider(_userId));
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Property deleted.')));
       }
-
-      // Delete from database in the background
-      await ref.read(propertyRepositoryProvider).deleteProperty(id);
-
-      // Reload to ensure consistency with database
-      await ref
-          .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
     } catch (e) {
-      // Reload the list to restore UI if delete failed
-      await ref
-          .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(_userId);
+      ref.invalidate(landlordPropertiesProvider(_userId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Delete failed: ${e.toString()}')),
@@ -99,15 +81,13 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
         builder: (_) => UploadPropertyScreen(existingProperty: existing),
       ),
     );
-    // Refresh after returning
-    ref
-        .read(propertiesViewModelProvider.notifier)
-        .loadLandlordProperties(_userId);
+    // Refresh only my list after returning from upload/edit.
+    ref.invalidate(landlordPropertiesProvider(_userId));
   }
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(propertiesViewModelProvider);
+    final propertiesAsync = ref.watch(landlordPropertiesProvider(_userId));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
@@ -130,11 +110,7 @@ class _MyPropertiesScreenState extends ConsumerState<MyPropertiesScreen> {
       body: propertiesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
-        data: (properties) {
-          final myProperties = properties
-              .where((p) => p.landlordId == _userId)
-              .toList();
-
+        data: (myProperties) {
           if (myProperties.isEmpty) {
             return Center(
               child: Column(
@@ -238,7 +214,7 @@ class _PropertyManageCard extends StatelessWidget {
                 // Status chip
                 Row(
                   children: [
-                    _StatusChip(status: property.propertyStatus.value),
+                    _StatusChip(status: property.propertyStatus!.value),
                     const Spacer(),
                     Text(
                       '\$${property.price.toStringAsFixed(0)}/mo',

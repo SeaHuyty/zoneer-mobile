@@ -83,6 +83,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   late final TextEditingController _bathroomController;
   late final TextEditingController _areaController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _typeController;
 
   LatLng? _selectedLocation;
 
@@ -116,6 +117,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       text: p != null ? p.squareArea.toString() : '',
     );
     _descriptionController = TextEditingController(text: p?.description ?? '');
+    _typeController = TextEditingController(text: p?.type ?? '');
 
     if (p?.latitude != null && p?.longitude != null) {
       _selectedLocation = LatLng(p!.latitude!, p.longitude!);
@@ -290,6 +292,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
             badgeOptions: badgeOptions,
+            type: _typeController.text.trim()
           );
 
       if (_selectedLocation != null) {
@@ -520,10 +523,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty)
+                            if (v == null || v.trim().isEmpty) {
                               return 'Required';
-                            if (int.tryParse(v.trim()) == null) {
-                              return 'Integer only';
                             }
                             return null;
                           },
@@ -541,10 +542,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty)
+                            if (v == null || v.trim().isEmpty) {
                               return 'Required';
-                            if (int.tryParse(v.trim()) == null) {
-                              return 'Integer only';
                             }
                             return null;
                           },

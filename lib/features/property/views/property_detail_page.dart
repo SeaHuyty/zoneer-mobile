@@ -13,8 +13,6 @@ import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
 import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
 import 'package:zoneer_mobile/features/property/widgets/image_widget.dart';
-import 'package:zoneer_mobile/features/property/widgets/landlord_card.dart';
-import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
 import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
@@ -154,18 +152,13 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
           ),
         ),
         actions: [
-          CircleIcon(
-            icon: Icons.share_outlined,
-            onTap: () {},
-          ),
+          CircleIcon(icon: Icons.share_outlined, onTap: () {}),
           const SizedBox(width: 4),
           CircleIcon(
             icon: isInWishlist
                 ? Icons.favorite
                 : Icons.favorite_border_outlined,
-            onTap: _isTogglingWishlist
-                ? null
-                : () => _toggleWishlist(context),
+            onTap: _isTogglingWishlist ? null : () => _toggleWishlist(context),
             iconColor: isInWishlist ? Colors.red : null,
           ),
           const SizedBox(width: 8),
@@ -187,10 +180,6 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text(err.toString())),
         data: (property) {
-          final landlordAsync = property.landlordId != null
-              ? ref.watch(userByIdProvider(property.landlordId!))
-              : null;
-
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,91 +276,85 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                       const SizedBox(height: 16),
 
                       // Map section
-                      if (property.latitude != null && property.longitude != null) ...
-                        [
-                          const Text(
-                            'Location',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: SizedBox(
-                              height: 200,
-                              child: FlutterMap(
-                                options: MapOptions(
-                                  initialCenter: LatLng(
-                                    property.latitude!,
-                                    property.longitude!,
-                                  ),
-                                  initialZoom: 15,
-                                  interactionOptions: const InteractionOptions(
-                                    flags: InteractiveFlag.none,
-                                  ),
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate: AppConfig.mapboxTileUrl,
-                                    userAgentPackageName: 'com.zoneer.mobile',
-                                  ),
-                                  MarkerLayer(
-                                    markers: [
-                                      Marker(
-                                        point: LatLng(
-                                          property.latitude!,
-                                          property.longitude!,
-                                        ),
-                                        width: 36,
-                                        height: 36,
-                                        child: const Icon(
-                                          Icons.location_pin,
-                                          color: AppColors.primary,
-                                          size: 36,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final url = property.locationUrl?.trim();
-                                if (url == null || url.isEmpty) {
-                                  return;
-                                }
-                                final uri = Uri.parse(url);
-                                if (await canLaunchUrl(uri)) {
-                                  await launchUrl(
-                                    uri,
-                                    mode: LaunchMode.externalApplication,
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.map_outlined, size: 18),
-                              label: const Text('Open in Google Maps'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                side: const BorderSide(color: AppColors.primary),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                      if (landlordAsync != null)
-                        landlordAsync.maybeWhen(
-                          data: (landlord) => LandlordCard(landlord: landlord),
-                          orElse: () => const SizedBox(),
+                      if (property.latitude != null &&
+                          property.longitude != null) ...[
+                        const Text(
+                          'Location',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: SizedBox(
+                            height: 200,
+                            child: FlutterMap(
+                              options: MapOptions(
+                                initialCenter: LatLng(
+                                  property.latitude!,
+                                  property.longitude!,
+                                ),
+                                initialZoom: 15,
+                                interactionOptions: const InteractionOptions(
+                                  flags: InteractiveFlag.none,
+                                ),
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate: AppConfig.mapboxTileUrl,
+                                  userAgentPackageName: 'com.zoneer.mobile',
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(
+                                        property.latitude!,
+                                        property.longitude!,
+                                      ),
+                                      width: 36,
+                                      height: 36,
+                                      child: const Icon(
+                                        Icons.location_pin,
+                                        color: AppColors.primary,
+                                        size: 36,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final url = property.locationUrl?.trim();
+                              if (url == null || url.isEmpty) {
+                                return;
+                              }
+                              final uri = Uri.parse(url);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.map_outlined, size: 18),
+                            label: const Text('Open in Google Maps'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ],
                   ),
                 ),
@@ -504,11 +487,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
             _kSecurityFeatures,
           ),
         if (p.badgeOptions != null)
-          _buildAmenityGroup(
-            'Highlights',
-            p.badgeOptions!,
-            _kBadgeOptions,
-          ),
+          _buildAmenityGroup('Highlights', p.badgeOptions!, _kBadgeOptions),
       ],
     );
   }

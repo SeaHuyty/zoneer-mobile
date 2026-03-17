@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/features/inquiry/views/my_inquiries.dart';
+import 'package:zoneer_mobile/features/messaging/views/screens/conversation_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/my_properties_screen.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
@@ -87,7 +88,14 @@ class TenantProfileSetting extends ConsumerWidget {
                   ActionRow(
                     icon: Icons.chat_bubble_outline,
                     label: "Messages",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ConversationListScreen(),
+                        ),
+                      );
+                    },
                   ),
                   ActionRow(
                     icon: Icons.event_outlined,

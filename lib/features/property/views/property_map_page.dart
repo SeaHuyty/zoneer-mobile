@@ -8,7 +8,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/core/services/map_migration_service.dart';
-import 'package:zoneer_mobile/features/property/models/property_filter_model.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';

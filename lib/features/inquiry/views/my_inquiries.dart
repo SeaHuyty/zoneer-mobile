@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zoneer_mobile/features/inquiry/models/enums/inquiry_status.dart';
 import 'package:zoneer_mobile/features/inquiry/viewmodels/inquiry_viewmodel.dart';
 import 'package:zoneer_mobile/features/inquiry/views/inquiry_detail.dart';
 import 'package:zoneer_mobile/features/inquiry/views/widgets/inquiry_card.dart';
@@ -45,7 +46,11 @@ class _MyInquiriesState extends ConsumerState<MyInquiries> {
             Center(child: Text("Error: ${e.toString()}")),
 
         data: (inquiries) {
-          if (inquiries.isEmpty) {
+          final pending = inquiries
+              .where((i) => i.status != InquiryStatus.replied)
+              .toList();
+
+          if (pending.isEmpty) {
             return const Center(
               child: Text("You haven't sent any inquiries yet."),
             );
@@ -53,9 +58,9 @@ class _MyInquiriesState extends ConsumerState<MyInquiries> {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: inquiries.length,
+            itemCount: pending.length,
             itemBuilder: (context, index) {
-              final inquiry = inquiries[index];
+              final inquiry = pending[index];
 
               return GestureDetector(
                 onTap: () {

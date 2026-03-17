@@ -20,6 +20,63 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  RealtimeChannel? _messagesChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+
+      _messagesChannel = Supabase.instance.client
+          .channel('messages_${widget.conversationId}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'messages',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'conversation_id',
+              value: widget.conversationId,
+            ),
+            callback: (_) async {
+              ref.invalidate(
+                messagesByConversationProvider(widget.conversationId),
+              );
+
+              if (currentUserId.isNotEmpty) {
+                await ref
+                    .read(messagingViewModelProvider.notifier)
+                    .loadMyConversations(currentUserId);
+              }
+
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent + 80,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                );
+              }
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'messages',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'conversation_id',
+              value: widget.conversationId,
+            ),
+            callback: (_) {
+              ref.invalidate(
+                messagesByConversationProvider(widget.conversationId),
+              );
+            },
+          )
+          .subscribe();
+    });
+  }
 
   ChatUserModel? _findOtherUser(
     List<MessageWithSenderModel> messages,
@@ -37,6 +94,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    if (_messagesChannel != null) {
+      Supabase.instance.client.removeChannel(_messagesChannel!);
+    }
     super.dispose();
   }
 
@@ -96,8 +156,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ? const Icon(Icons.person_outline)
                             : null,
                       ),
-                      SizedBox(width: 10,),
-                      Text(firstOther.fullname),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          firstOther.fullname,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
                     ],
                   ),
                 ),

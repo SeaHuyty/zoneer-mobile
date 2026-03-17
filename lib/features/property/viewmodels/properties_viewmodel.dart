@@ -48,9 +48,7 @@ final propertyViewModelProvider = FutureProvider.family<PropertyModel, String>((
   ref,
   id,
 ) async {
-  final property = await ref
+  return ref
       .read(propertyRepositoryProvider)
       .getPropertyById(id);
-
-  return property;
 });

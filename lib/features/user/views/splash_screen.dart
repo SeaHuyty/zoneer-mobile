@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import '../widgets/circleTransition.dart';
+import 'package:zoneer_mobile/features/user/views/onboarding_screen.dart';
+import '../widgets/circle_transition.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../core/utils/app_prefs.dart';
 import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
-import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

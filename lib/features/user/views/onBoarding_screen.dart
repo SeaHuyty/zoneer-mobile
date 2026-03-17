@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/features/user/util/enumOnboarding.dart';
-import 'package:zoneer_mobile/features/user/widgets/onBoarding.dart';
+import 'package:zoneer_mobile/features/user/util/enum_onboarding.dart';
+import 'package:zoneer_mobile/features/user/widgets/on_boarding.dart';
 import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
 import '../../../core/utils/app_colors.dart';
 import '../viewmodels/onboarding_viewmodel.dart';

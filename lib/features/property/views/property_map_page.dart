@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -12,11 +13,11 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provider.dart';
-import 'package:zoneer_mobile/features/property/widgets/property_filter_sheet.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_controls.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_detail_sheet.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_marker.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_price_pin.dart';
+import 'package:zoneer_mobile/features/property/widgets/search_filter_sheet.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
 class PropertyMapPage extends ConsumerStatefulWidget {
@@ -70,51 +71,28 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
       if (prefs.getBool(migrationKey) ?? false) return;
 
       final migrationService = ref.read(mapMigrationServiceProvider);
-      final updatedCount =
-          await migrationService.addCoordinatesToExistingProperties();
+      final updatedCount = await migrationService
+          .addCoordinatesToExistingProperties();
       await prefs.setBool(migrationKey, true);
 
       if (updatedCount > 0) {
-        ref.invalidate(propertiesViewModelProvider);
+        ref.invalidate(mapPropertiesProvider);
       }
     } catch (e) {
       debugPrint('Map coordinate migration error: $e');
     }
   }
 
-  List<PropertyModel> _filterProperties(
-    List<PropertyModel> properties,
-    PropertyFilterModel filter,
-  ) {
-    var filtered = properties
-        .where((p) => p.latitude != null && p.longitude != null)
-        .toList();
-
-    if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
-      final q = filter.searchQuery!.toLowerCase();
-      filtered = filtered.where((p) {
-        return p.address.toLowerCase().contains(q) ||
-            (p.description?.toLowerCase().contains(q) ?? false);
-      }).toList();
-    }
-
-    filtered = filtered
-        .where((p) => p.price >= filter.minPrice && p.price <= filter.maxPrice)
-        .toList();
-
-    if (filter.beds != null) {
-      if (filter.beds == 5) {
-        filtered = filtered.where((p) => p.bedroom >= 5).toList();
-      } else {
-        filtered = filtered.where((p) => p.bedroom == filter.beds).toList();
-      }
-    }
-
-    return filtered;
-  }
-
   void _onMarkerTapped(PropertyModel property, List<PropertyModel> all) {
     setState(() => _selectedProperty = property);
+
+    // Pan map to the selected marker (Google Maps behavior)
+    if (property.latitude != null && property.longitude != null) {
+      _mapController.move(
+        LatLng(property.latitude!, property.longitude!),
+        _currentZoom < 14 ? 14.0 : _currentZoom,
+      );
+    }
 
     showModalBottomSheet(
       context: context,
@@ -130,39 +108,78 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
           }
         },
       ),
-    ).whenComplete(() => setState(() {
-          _selectedProperty = null;
-          _calloutProperty = null;
-        }));
+    ).whenComplete(
+      () => setState(() {
+        _selectedProperty = null;
+        _calloutProperty = null;
+      }),
+    );
   }
 
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const PropertyFilterSheet(),
-    );
+  Future<void> _showFilterSheet() async {
+    final current = ref.read(propertyFilterProvider);
+    final Map<String, dynamic>? result =
+        await showModalBottomSheet<Map<String, dynamic>?>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => SearchFilterSheet(
+            initialFilters: {
+              'priceRange': RangeValues(current.minPrice, current.maxPrice),
+              'beds': current.beds ?? 1,
+              'selectedType': current.propertyType,
+            },
+          ),
+        );
+
+    if (!mounted || result == null) return;
+
+    final range = result['priceRange'] as RangeValues?;
+    final beds = result['beds'] as int?;
+    final selectedType = result['selectedType'] as String?;
+
+    ref
+        .read(propertyFilterProvider.notifier)
+        .setFilter(
+          current.copyWith(
+            minPrice: range?.start,
+            maxPrice: range?.end,
+            beds: beds,
+            clearBeds: beds == null,
+            propertyType: selectedType,
+            clearPropertyType:
+                selectedType == null || selectedType.trim().isEmpty,
+          ),
+        );
   }
 
   // ── Marker builders ────────────────────────────────────────────────
 
   /// Thumbnail card markers shown when zoomed in (zoom ≥ 12).
   List<Marker> _buildThumbnailMarkers(List<PropertyModel> properties) {
+    // Sort selected marker to end so it renders on top of others
+    final sorted = properties
+        .where((p) => p.latitude != null && p.longitude != null)
+        .toList();
+    if (_selectedProperty != null) {
+      final idx = sorted.indexWhere((p) => p.id == _selectedProperty!.id);
+      if (idx != -1) sorted.add(sorted.removeAt(idx));
+    }
     return [
-      for (final property in properties)
-        if (property.latitude != null && property.longitude != null)
-          Marker(
-            width: _selectedProperty?.id == property.id ? 125.0 : 110.0,
-            height: _selectedProperty?.id == property.id ? 128.0 : 113.0,
-            point: LatLng(property.latitude!, property.longitude!),
-            alignment: Alignment.bottomCenter,
-            child: PropertyMapMarker(
-              property: property,
-              isSelected: _selectedProperty?.id == property.id,
-              onTap: () => _onMarkerTapped(property, properties),
-            ),
+      for (final property in sorted)
+        Marker(
+          // Fixed size always — anchor never repositions on selection.
+          // Visual size change is handled by AnimatedScale inside the widget.
+          width: 125.0,
+          height: 128.0,
+          point: LatLng(property.latitude!, property.longitude!),
+          alignment: Alignment.topCenter,
+          child: PropertyMapMarker(
+            property: property,
+            isSelected: _selectedProperty?.id == property.id,
+            onTap: () => _onMarkerTapped(property, properties),
           ),
+        ),
     ];
   }
 
@@ -175,15 +192,20 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
             property.longitude != null &&
             _calloutProperty?.id != property.id)
           Marker(
-            width: 80,
-            height: 38,
+            width: 80.0,
+            height: 44.0,
             point: LatLng(property.latitude!, property.longitude!),
-            alignment: Alignment.bottomCenter,
+            alignment: Alignment.topCenter,
             child: PropertyPricePin(
               property: property,
               isSelected: false,
-              onTap: () =>
-                  setState(() => _calloutProperty = property),
+              onTap: () {
+                setState(() => _calloutProperty = property);
+                _mapController.move(
+                  LatLng(property.latitude!, property.longitude!),
+                  _currentZoom,
+                );
+              },
             ),
           ),
     ];
@@ -191,13 +213,12 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
   /// Single callout card shown above the tapped price pin.
   /// Uses the same thumbnail-card widget so the arrow points down to the pin.
-  Marker _buildCalloutMarker(
-      PropertyModel property, List<PropertyModel> all) {
+  Marker _buildCalloutMarker(PropertyModel property, List<PropertyModel> all) {
     return Marker(
-      width: 140,
-      height: 143,
+      width: 125.0,
+      height: 128.0,
       point: LatLng(property.latitude!, property.longitude!),
-      alignment: Alignment.bottomCenter,
+      alignment: Alignment.topCenter,
       child: PropertyMapMarker(
         property: property,
         isSelected: true,
@@ -234,7 +255,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(propertiesViewModelProvider);
+    final propertiesAsync = ref.watch(mapPropertiesProvider);
     final filter = ref.watch(propertyFilterProvider);
     final permissionState = ref.watch(locationPermissionProvider);
 
@@ -245,13 +266,13 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
       }
     });
 
-    final allProperties = propertiesAsync.asData?.value ?? [];
-    final filteredProperties = _filterProperties(allProperties, filter);
+    final filteredProperties = propertiesAsync.asData?.value ?? [];
     final userLocation = permissionState.userLocation;
     final usePricePins = _currentZoom < 12;
 
-    final tileUrl =
-        _isSatellite ? AppConfig.mapboxSatelliteUrl : AppConfig.mapboxTileUrl;
+    final tileUrl = _isSatellite
+        ? AppConfig.mapboxSatelliteUrl
+        : AppConfig.mapboxTileUrl;
 
     return Scaffold(
       body: Stack(
@@ -264,6 +285,14 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
               initialZoom: 12,
               minZoom: 5,
               maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onTap: (tapPosition, point) {
+                if (_calloutProperty != null) {
+                  setState(() => _calloutProperty = null);
+                }
+              },
               onPositionChanged: (camera, hasGesture) {
                 final wasZoomedOut = _currentZoom < 12;
                 final isZoomedOut = camera.zoom < 12;
@@ -287,22 +316,23 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
 
               // ── Property markers: price pins or thumbnail cards ──
               if (usePricePins)
-                MarkerLayer(
-                    markers: _buildPricePinMarkers(filteredProperties))
+                MarkerLayer(markers: _buildPricePinMarkers(filteredProperties))
               else
                 MarkerLayer(
-                    markers: _buildThumbnailMarkers(filteredProperties)),
+                  markers: _buildThumbnailMarkers(filteredProperties),
+                ),
 
               // ── Callout popup (price-pin mode only) ──────────────
               if (usePricePins && _calloutProperty != null)
-                MarkerLayer(markers: [
-                  _buildCalloutMarker(_calloutProperty!, filteredProperties),
-                ]),
+                MarkerLayer(
+                  markers: [
+                    _buildCalloutMarker(_calloutProperty!, filteredProperties),
+                  ],
+                ),
 
               // ── User location dot (always visible) ───────────────
               if (userLocation != null)
-                MarkerLayer(
-                    markers: [_buildUserLocationMarker(userLocation)]),
+                MarkerLayer(markers: [_buildUserLocationMarker(userLocation)]),
             ],
           ),
 
@@ -326,7 +356,9 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 color: Colors.red.shade50,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.error_outline, color: Colors.red),
@@ -338,9 +370,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => ref
-                            .read(propertiesViewModelProvider.notifier)
-                            .loadProperties(),
+                        onPressed: () => ref.invalidate(mapPropertiesProvider),
                         child: const Text('Retry'),
                       ),
                     ],
@@ -374,8 +404,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                         decoration: InputDecoration(
                           hintText: 'Search properties...',
                           hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon:
-                              Icon(Icons.search, color: Colors.grey[600]),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[600],
+                          ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -425,8 +457,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
               duration: const Duration(milliseconds: 300),
               child: Container(
                 key: ValueKey(filteredProperties.length),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(20),
@@ -465,8 +499,7 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                     barrierDismissible: false,
                     builder: (context) => const LocationPermissionDialog(),
                   );
-                  final loc =
-                      ref.read(locationPermissionProvider).userLocation;
+                  final loc = ref.read(locationPermissionProvider).userLocation;
                   if (granted == true && loc != null) {
                     _mapController.move(loc, 15);
                   }
@@ -487,6 +520,16 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 _isSatellite ? Icons.satellite_alt : Icons.map,
                 color: AppColors.primary,
               ),
+            ),
+          ),
+          Positioned(
+            bottom: 30,
+            left: 10,
+            child: IconButton(
+              onPressed: () {
+                ref.read(mapTabViewProvider.notifier).showSearch();
+              },
+              icon: const Icon(Icons.list_alt, color: AppColors.primary),
             ),
           ),
         ],

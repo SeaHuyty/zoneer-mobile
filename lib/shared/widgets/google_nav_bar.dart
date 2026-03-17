@@ -4,12 +4,11 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
-import 'package:zoneer_mobile/core/providers/profile_type_provider.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
+import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/property_map_page.dart';
 import 'package:zoneer_mobile/features/user/views/tenant/tenant_profile_setting.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
-import 'package:zoneer_mobile/features/user/views/landlord/landlord_profile.dart';
 
 class GoogleNavBar extends ConsumerStatefulWidget {
   const GoogleNavBar({super.key});
@@ -58,16 +57,15 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationProvider);
-    final profileType = ref.watch(profileTypeProvider);
+    final mode = ref.watch(mapTabViewProvider);
 
-    // Dynamically build widget list based on profile type
     final List<Widget> widgetOptions = [
       const HomeView(),
       const WishlistView(),
-      const PropertyMapPage(),
-      profileType == ProfileType.tenant
-          ? const TenantProfileSetting()
-          : const LandlordProfile(),
+      mode == MapTabView.search
+          ? const SearchScreen()
+          : const PropertyMapPage(),
+      const TenantProfileSetting(),
     ];
 
     return Scaffold(
@@ -77,21 +75,24 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
+            BoxShadow(
+              blurRadius: 20,
+              color: Colors.black.withValues(alpha: .1),
+            ),
           ],
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
             child: GNav(
-              rippleColor: AppColors.primaryLight.withOpacity(0.2),
+              rippleColor: AppColors.primaryLight.withValues(alpha: 0.2),
               hoverColor: AppColors.greyLight,
               gap: 8,
               activeColor: AppColors.primary,
               iconSize: 24,
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               duration: Duration(milliseconds: 400),
-              tabBackgroundColor: AppColors.primary.withOpacity(0.1),
+              tabBackgroundColor: AppColors.primary.withValues(alpha: 0.1),
               color: AppColors.secondary,
               tabs: [
                 GButton(
@@ -321,6 +322,10 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
               onTabChange: (index) {
                 ref.read(navigationProvider.notifier).changeTab(index);
                 // Play animation for selected tab
+                if (index == NavigationTab.map) {
+                  ref.read(mapTabViewProvider.notifier).showMap();
+                }
+
                 switch (index) {
                   case 0:
                     _homeController.forward(from: 0);

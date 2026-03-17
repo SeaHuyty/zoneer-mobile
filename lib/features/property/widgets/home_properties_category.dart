@@ -12,10 +12,10 @@ class _HomePropertiesCategoryState extends State<HomePropertiesCategory> {
   int _selectedIndex = 0;
 
   final List<Map<String, dynamic>> categories = [
-    {'icon': Icons.home_outlined, 'label': 'Rent House'},
+    {'icon': Icons.home_outlined, 'label': 'Room'},
     {'icon': Icons.apartment_outlined, 'label': 'Apartment'},
-    {'icon': Icons.villa_outlined, 'label': 'Resident'},
-    {'icon': Icons.cabin_outlined, 'label': 'Traditional'},
+    {'icon': Icons.villa_outlined, 'label': 'Condo'},
+    {'icon': Icons.cabin_outlined, 'label': 'House'},
   ];
 
   @override
@@ -37,24 +37,26 @@ class _HomePropertiesCategoryState extends State<HomePropertiesCategory> {
                 color: isSelected ? AppColors.primary : AppColors.white,
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : const Color(0xFFE0E0E0),
+                  color: isSelected
+                      ? AppColors.primary
+                      : const Color(0xFFE0E0E0),
                   width: 1.2,
                 ),
                 boxShadow: isSelected
-                  ? [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ]
-                  : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -69,8 +71,12 @@ class _HomePropertiesCategoryState extends State<HomePropertiesCategory> {
                     categories[index]['label'] as String,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected ? AppColors.white : AppColors.textPrimary,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isSelected
+                          ? AppColors.white
+                          : AppColors.textPrimary,
                     ),
                   ),
                 ],

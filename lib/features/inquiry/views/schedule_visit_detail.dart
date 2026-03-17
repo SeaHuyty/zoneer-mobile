@@ -31,12 +31,14 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
 
   Future<void> _updateStatus(InquiryStatus status) async {
     setState(() => _isLoading = true);
-
     final success = await ref
         .read(inquiriesViewModelProvider.notifier)
         .updateStatus(widget.inquiry.id!, status);
 
     if (success) {
+      // Invalidate related providers so lists reflect the new status immediately
+      ref.invalidate(inquiriesViewModelProvider);
+      ref.invalidate(scheduledVisitsProvider);
       // Send notification to the inquiry sender
       final title = status == InquiryStatus.replied
           ? 'Visit Confirmed!'
@@ -53,7 +55,7 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
               type: NotificationType.inquiryResponse,
             ),
           );
-
+      if (!mounted) return;
       setState(() => _currentStatus = status);
 
       if (mounted) {
@@ -80,7 +82,8 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
         );
       }
     }
-
+    
+    if (!mounted) return;
     setState(() => _isLoading = false);
   }
 

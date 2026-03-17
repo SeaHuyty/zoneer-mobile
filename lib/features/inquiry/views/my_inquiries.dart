@@ -47,12 +47,12 @@ class _MyInquiriesState extends ConsumerState<MyInquiries> {
 
         data: (inquiries) {
           final pending = inquiries
-              .where((i) => i.status != InquiryStatus.replied)
+              .where((i) => i.status != InquiryStatus.replied && i.status == InquiryStatus.closed)
               .toList();
 
           if (pending.isEmpty) {
             return const Center(
-              child: Text("You haven't sent any inquiries yet."),
+              child: Text("You have no pending inquiries."),
             );
           }
 

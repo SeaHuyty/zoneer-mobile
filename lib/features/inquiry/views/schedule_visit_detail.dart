@@ -47,7 +47,9 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
           ? 'Your visit request has been confirmed by the landlord.'
           : 'Your visit request has been rejected by the landlord.';
 
-      await ref.read(notificationRepositoryProvider).createNotification(
+      await ref
+          .read(notificationRepositoryProvider)
+          .createNotification(
             NotificationModel(
               userId: widget.inquiry.userId,
               title: title,
@@ -82,7 +84,7 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
         );
       }
     }
-    
+
     if (!mounted) return;
     setState(() => _isLoading = false);
   }
@@ -93,7 +95,8 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
       propertyViewModelProvider(widget.inquiry.propertyId),
     );
 
-    final isPending = _currentStatus == InquiryStatus.newStatus ||
+    final isPending =
+        _currentStatus == InquiryStatus.newStatus ||
         _currentStatus == InquiryStatus.read;
 
     return Scaffold(
@@ -101,7 +104,11 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         iconTheme: IconThemeData(color: Colors.black),
-        title: const Text('Visit Request', style: TextStyle(color: Colors.black),), centerTitle: true
+        title: const Text(
+          'Visit Request',
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -185,16 +192,28 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
 
                   // Visitor details
                   _buildSection('Visitor Details', [
-                    _buildRow(Icons.person_outline, 'Name',
-                        widget.inquiry.fullname),
-                    _buildRow(Icons.phone_outlined, 'Phone',
-                        widget.inquiry.phoneNumber),
+                    _buildRow(
+                      Icons.person_outline,
+                      'Name',
+                      widget.inquiry.fullname,
+                    ),
+                    _buildRow(
+                      Icons.phone_outlined,
+                      'Phone',
+                      widget.inquiry.phoneNumber,
+                    ),
                     if (widget.inquiry.email != null)
-                      _buildRow(Icons.email_outlined, 'Email',
-                          widget.inquiry.email!),
+                      _buildRow(
+                        Icons.email_outlined,
+                        'Email',
+                        widget.inquiry.email!,
+                      ),
                     if (widget.inquiry.occupation != null)
-                      _buildRow(Icons.work_outline, 'Occupation',
-                          widget.inquiry.occupation!),
+                      _buildRow(
+                        Icons.work_outline,
+                        'Occupation',
+                        widget.inquiry.occupation!,
+                      ),
                   ]),
                   const SizedBox(height: 20),
 
@@ -233,17 +252,21 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
                                 child: OutlinedButton.icon(
                                   onPressed: () =>
                                       _updateStatus(InquiryStatus.closed),
-                                  icon: const Icon(Icons.close,
-                                      color: AppColors.error),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: AppColors.error,
+                                  ),
                                   label: const Text(
                                     'Reject',
                                     style: TextStyle(color: AppColors.error),
                                   ),
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(
-                                        color: AppColors.error),
+                                      color: AppColors.error,
+                                    ),
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -255,8 +278,10 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
                                 child: ElevatedButton.icon(
                                   onPressed: () =>
                                       _updateStatus(InquiryStatus.replied),
-                                  icon: const Icon(Icons.check,
-                                      color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                  ),
                                   label: const Text(
                                     'Confirm',
                                     style: TextStyle(color: Colors.white),
@@ -265,7 +290,8 @@ class _ScheduleVisitDetailState extends ConsumerState<ScheduleVisitDetail> {
                                     backgroundColor: AppColors.success,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -373,17 +399,21 @@ class _StatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color, bg) = switch (status) {
-      InquiryStatus.replied => ('Confirmed', AppColors.success,
-          AppColors.success.withValues(alpha: 0.1)),
+      InquiryStatus.replied => (
+        'Confirmed',
+        AppColors.success,
+        AppColors.success.withValues(alpha: 0.1),
+      ),
       InquiryStatus.closed => (
-          'Rejected',
-          AppColors.error,
-          AppColors.error.withValues(alpha: 0.1)
-        ),
-      InquiryStatus.newStatus ||
-      InquiryStatus.read =>
-        ('Awaiting Response', AppColors.warning, AppColors.warning.withValues(alpha: 0.12)),
-      _ => ('Unknown', AppColors.grey, AppColors.greyLight),
+        'Rejected',
+        AppColors.error,
+        AppColors.error.withValues(alpha: 0.1),
+      ),
+      InquiryStatus.newStatus || InquiryStatus.read => (
+        'Awaiting Response',
+        AppColors.warning,
+        AppColors.warning.withValues(alpha: 0.12),
+      ),
     };
 
     return Container(
@@ -415,7 +445,6 @@ class _StatusBanner extends StatelessWidget {
       InquiryStatus.replied => Icons.check_circle_outline,
       InquiryStatus.closed => Icons.cancel_outlined,
       InquiryStatus.newStatus || InquiryStatus.read => Icons.hourglass_empty,
-      _ => Icons.info_outline,
     };
   }
 }

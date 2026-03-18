@@ -113,7 +113,9 @@ class PropertyRepository {
   }) async {
     var request = _supabase
         .from('properties')
-        .select('id, price, bedroom, bathroom, square_area, address, thumbnail_url')
+        .select(
+          'id, price, bedroom, bathroom, square_area, address, thumbnail_url',
+        )
         .eq('verify_status', VerifyStatus.verified.value);
 
     if (query != null && query.trim().isNotEmpty) {
@@ -142,8 +144,14 @@ class PropertyRepository {
     return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
   }
 
-  Future<void> createProperty(PropertyModel property) async {
-    await _supabase.from('properties').insert(property.toJson());
+  Future<PropertyModel> createProperty(PropertyModel property) async {
+    final response = await _supabase
+        .from('properties')
+        .insert(property.toJson())
+        .select()
+        .single();
+
+    return PropertyModel.fromJson(response);
   }
 
   Future<void> updateProperty(PropertyModel property) async {

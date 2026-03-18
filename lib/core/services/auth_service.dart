@@ -3,11 +3,11 @@
 // Handles login, logout, token management, and authentication state
 // Provides authentication status across the entire app
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
 class AuthService {
   final SupabaseClient _client;
@@ -22,13 +22,33 @@ class AuthService {
 
   Stream<AuthState> get authStateChange => _client.auth.onAuthStateChange;
 
+  String _getWebGoogleRedirectTo() {
+    const configuredRedirect = String.fromEnvironment(
+      'WEB_GOOGLE_REDIRECT_TO',
+      defaultValue: '',
+    );
+    const debugRedirect = String.fromEnvironment(
+      'WEB_GOOGLE_REDIRECT_TO_DEBUG',
+      defaultValue: '',
+    );
+    const releaseRedirect = String.fromEnvironment(
+      'WEB_GOOGLE_REDIRECT_TO_RELEASE',
+      defaultValue: '',
+    );
 
+    if (kDebugMode && debugRedirect.isNotEmpty) return debugRedirect;
+    if (!kDebugMode && releaseRedirect.isNotEmpty) return releaseRedirect;
+    if (configuredRedirect.isNotEmpty) return configuredRedirect;
+
+    // Default to the active web origin so OAuth callbacks work outside localhost.
+    return Uri.base.origin;
+  }
 
 Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'http://localhost:3000',
+        redirectTo: _getWebGoogleRedirectTo(),
       );
     } else {
       final GoogleSignIn googleSignIn = GoogleSignIn(
@@ -51,7 +71,7 @@ Future<void> signInWithGoogle() async {
       );
     }
   }
-  
+
   Future<AuthResponse> register({
     required String email,
     required String password,

@@ -104,8 +104,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
         );
         propertyId = existingProperty.id;
       } else {
-        // createProperty doesn't return the ID, so fetch after insert
-        await repo.createProperty(
+        final createdProperty = await repo.createProperty(
           PropertyModel(
             id: '',
             price: price,
@@ -125,9 +124,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             badgeOptions: badgeOptions,
           ),
         );
-        // Fetch the newly created property to get its ID
-        final created = await repo.getPropertiesByLandlordId(userId);
-        propertyId = created.where((p) => p.thumbnail == thumbnailUrl).first.id;
+        propertyId = createdProperty.id;
 
         // Notify user the newly created property is under review.
         var helper = NotificationHelper.upload;
@@ -135,7 +132,6 @@ class UploadPropertyViewModel extends Notifier<bool> {
             .read(notificationsViewModelProvider.notifier)
             .createNotification(
               NotificationModel(
-                id: userId,
                 userId: userId,
                 title: helper.title,
                 message: helper.message,

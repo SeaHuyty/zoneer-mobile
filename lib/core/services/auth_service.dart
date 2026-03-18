@@ -23,19 +23,26 @@ class AuthService {
 
 
 
-  Future<void> signInWithGoogle() async {
+Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: 'http://localhost:3000',
       );
     } else {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final googleUser = await googleSignIn.signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId:
+            '102797929514-9hc3rsmdvrr7akt18qudem29l7uegjpl.apps.googleusercontent.com.apps.googleusercontent.com', 
+      );
 
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
       final googleAuth = await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
+        throw Exception('Failed to get idToken');
+      }
 
       await _client.auth.signInWithIdToken(
         provider: OAuthProvider.google,

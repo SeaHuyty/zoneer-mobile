@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,10 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/core/services/map_migration_service.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
+import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provider.dart';
-import 'package:zoneer_mobile/features/property/widgets/property_filter_sheet.dart';
+import 'package:zoneer_mobile/features/property/widgets/property_map_controls.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_detail_sheet.dart';
+import 'package:zoneer_mobile/features/property/widgets/property_map_marker.dart';
+import 'package:zoneer_mobile/features/property/widgets/property_price_pin.dart';
+import 'package:zoneer_mobile/features/property/widgets/search_filter_sheet.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
 class PropertyMapPage extends ConsumerStatefulWidget {
@@ -22,278 +29,254 @@ class PropertyMapPage extends ConsumerStatefulWidget {
 class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
+
   PropertyModel? _selectedProperty;
 
-  // Initial center position (Phnom Penh, Cambodia)
-  static const LatLng _initialCenter = LatLng(11.5564, 104.9282);
+  /// Property whose thumbnail callout is visible (price-pin mode only).
+  PropertyModel? _calloutProperty;
 
-  // Mock demo properties
-  List<PropertyModel> get _demoProperties => [
-    PropertyModel(
-      id: 'demo-aeon-mall',
-      price: 800,
-      bedroom: 2,
-      bathroom: 2,
-      squareArea: 65,
-      address: 'Near AEON MALL Mean Chey, Phnom Penh',
-      locationUrl: 'https://maps.google.com/?q=11.4840931,104.9181828',
-      latitude: 11.4840931,
-      longitude: 104.9181828,
-      thumbnail:
-          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-      description:
-          'Modern apartment near AEON MALL with easy access to shopping and entertainment',
-    ),
-    PropertyModel(
-      id: 'demo-central-market',
-      price: 650,
-      bedroom: 1,
-      bathroom: 1,
-      squareArea: 45,
-      address: 'Central Market Area, Phnom Penh',
-      locationUrl: 'https://maps.google.com/?q=11.5696,104.9211',
-      latitude: 11.5696,
-      longitude: 104.9211,
-      thumbnail:
-          'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-      description: 'Cozy studio near Central Market, perfect for students',
-    ),
-    PropertyModel(
-      id: 'demo-riverside',
-      price: 1200,
-      bedroom: 3,
-      bathroom: 2,
-      squareArea: 95,
-      address: 'Riverside, Phnom Penh',
-      locationUrl: 'https://maps.google.com/?q=11.5624,104.9280',
-      latitude: 11.5624,
-      longitude: 104.9280,
-      thumbnail:
-          'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
-      description: 'Luxury apartment with river view and modern amenities',
-    ),
-  ];
+  // Map style
+  bool _isSatellite = false;
+
+  double _currentZoom = 12;
+
+  static const LatLng _initialCenter = LatLng(11.5564, 104.9282);
+  static const String _mapStyleKey = 'map_style_satellite';
 
   @override
   void initState() {
     super.initState();
+    _loadMapStyle();
     _runCoordinateMigration();
   }
 
-  /// Run one-time migration to add coordinates to existing properties
+  Future<void> _loadMapStyle() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() => _isSatellite = prefs.getBool(_mapStyleKey) ?? false);
+    }
+  }
+
+  Future<void> _toggleMapStyle() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _isSatellite = !_isSatellite);
+    await prefs.setBool(_mapStyleKey, _isSatellite);
+  }
+
   Future<void> _runCoordinateMigration() async {
     const migrationKey = 'map_coordinates_migration_done';
-
     try {
       final prefs = await SharedPreferences.getInstance();
-      final migrationDone = prefs.getBool(migrationKey) ?? false;
+      if (prefs.getBool(migrationKey) ?? false) return;
 
-      if (!migrationDone) {
-        // Run migration
-        final migrationService = ref.read(mapMigrationServiceProvider);
-        final updatedCount = await migrationService
-            .addCoordinatesToExistingProperties();
+      final migrationService = ref.read(mapMigrationServiceProvider);
+      final updatedCount = await migrationService
+          .addCoordinatesToExistingProperties();
+      await prefs.setBool(migrationKey, true);
 
-        // Mark migration as done
-        await prefs.setBool(migrationKey, true);
-
-        if (updatedCount > 0) {
-          // Refresh properties to show updated coordinates
-          ref.invalidate(propertiesViewModelProvider);
-        }
+      if (updatedCount > 0) {
+        ref.invalidate(mapPropertiesProvider);
       }
     } catch (e) {
-      // Silently fail - migration is not critical
-      print('Map coordinate migration error: $e');
+      debugPrint('Map coordinate migration error: $e');
     }
   }
 
-  List<PropertyModel> _getAllProperties(
-    AsyncValue<List<PropertyModel>> propertiesAsync,
-  ) {
-    return propertiesAsync.maybeWhen(
-      data: (properties) => [..._demoProperties, ...properties],
-      orElse: () => _demoProperties,
-    );
-  }
+  void _onMarkerTapped(PropertyModel property, List<PropertyModel> all) {
+    setState(() => _selectedProperty = property);
 
-  List<PropertyModel> _filterProperties(List<PropertyModel> properties) {
-    final filter = ref.watch(propertyFilterProvider);
-    var filtered = properties;
-
-    // Apply search filter
-    if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
-      filtered = filtered.where((p) {
-        return p.address.toLowerCase().contains(
-              filter.searchQuery!.toLowerCase(),
-            ) ||
-            p.description?.toLowerCase().contains(
-                  filter.searchQuery!.toLowerCase(),
-                ) ==
-                true;
-      }).toList();
+    // Pan map to the selected marker (Google Maps behavior)
+    if (property.latitude != null && property.longitude != null) {
+      _mapController.move(
+        LatLng(property.latitude!, property.longitude!),
+        _currentZoom < 14 ? 14.0 : _currentZoom,
+      );
     }
 
-    // Apply property type filter
-    if (filter.propertyType != null) {
-      // This is a simple filter - you can improve based on your data model
-      filtered = filtered.where((p) {
-        // You might need to add propertyType field to your model
-        // For now, filter by description
-        return true;
-      }).toList();
-    }
-
-    // Apply price filter
-    filtered = filtered.where((p) {
-      return p.price >= filter.minPrice && p.price <= filter.maxPrice;
-    }).toList();
-
-    // Apply beds filter
-    if (filter.beds != null) {
-      if (filter.beds == 5) {
-        // 5+ beds
-        filtered = filtered.where((p) => p.bedroom >= 5).toList();
-      } else {
-        filtered = filtered.where((p) => p.bedroom == filter.beds).toList();
-      }
-    }
-
-    return filtered;
-  }
-
-  void _onMarkerTapped(PropertyModel property) {
-    setState(() {
-      _selectedProperty = property;
-    });
-
-    // Show modern property details bottom sheet
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => PropertyMapDetailSheet(property: property),
+      builder: (context) => PropertyMapDetailSheet(
+        selectedProperty: property,
+        allProperties: all,
+        onPropertySelected: (p) {
+          setState(() => _selectedProperty = p);
+          if (p.latitude != null && p.longitude != null) {
+            _mapController.move(LatLng(p.latitude!, p.longitude!), 14);
+          }
+        },
+      ),
+    ).whenComplete(
+      () => setState(() {
+        _selectedProperty = null;
+        _calloutProperty = null;
+      }),
     );
   }
 
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const PropertyFilterSheet(),
-    );
+  Future<void> _showFilterSheet() async {
+    final current = ref.read(propertyFilterProvider);
+    final Map<String, dynamic>? result =
+        await showModalBottomSheet<Map<String, dynamic>?>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => SearchFilterSheet(
+            initialFilters: {
+              'priceRange': RangeValues(current.minPrice, current.maxPrice),
+              'beds': current.beds ?? 1,
+              'selectedType': current.propertyType,
+            },
+          ),
+        );
+
+    if (!mounted || result == null) return;
+
+    final range = result['priceRange'] as RangeValues?;
+    final beds = result['beds'] as int?;
+    final selectedType = result['selectedType'] as String?;
+
+    ref
+        .read(propertyFilterProvider.notifier)
+        .setFilter(
+          current.copyWith(
+            minPrice: range?.start,
+            maxPrice: range?.end,
+            beds: beds,
+            clearBeds: beds == null,
+            propertyType: selectedType,
+            clearPropertyType:
+                selectedType == null || selectedType.trim().isEmpty,
+          ),
+        );
   }
 
-  List<Marker> _buildMarkers(List<PropertyModel> properties) {
-    final permissionState = ref.watch(locationPermissionProvider);
-    final markers = <Marker>[];
+  // ── Marker builders ────────────────────────────────────────────────
 
-    for (var property in properties) {
-      // Skip properties without coordinates
-      if (property.latitude == null || property.longitude == null) {
-        continue;
-      }
-
-      final isSelected = _selectedProperty?.id == property.id;
-
-      markers.add(
+  /// Thumbnail card markers shown when zoomed in (zoom ≥ 12).
+  List<Marker> _buildThumbnailMarkers(List<PropertyModel> properties) {
+    // Sort selected marker to end so it renders on top of others
+    final sorted = properties
+        .where((p) => p.latitude != null && p.longitude != null)
+        .toList();
+    if (_selectedProperty != null) {
+      final idx = sorted.indexWhere((p) => p.id == _selectedProperty!.id);
+      if (idx != -1) sorted.add(sorted.removeAt(idx));
+    }
+    return [
+      for (final property in sorted)
         Marker(
-          width: 100,
-          height: 65,
+          // Fixed size always — anchor never repositions on selection.
+          // Visual size change is handled by AnimatedScale inside the widget.
+          width: 125.0,
+          height: 128.0,
           point: LatLng(property.latitude!, property.longitude!),
-          child: GestureDetector(
-            onTap: () => _onMarkerTapped(property),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFE91E63) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFFE91E63)
-                          : Colors.grey[300]!,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    _formatPrice(property.price),
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Icon(
-                  Icons.location_pin,
-                  color: isSelected
-                      ? const Color(0xFFE91E63)
-                      : Colors.grey[400],
-                  size: 26,
-                  shadows: [
-                    Shadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
-                  ],
-                ),
-              ],
-            ),
+          alignment: Alignment.topCenter,
+          child: PropertyMapMarker(
+            property: property,
+            isSelected: _selectedProperty?.id == property.id,
+            onTap: () => _onMarkerTapped(property, properties),
           ),
         ),
-      );
-    }
-
-    // Add user location marker if available
-    if (permissionState.userLocation != null) {
-      markers.add(
-        Marker(
-          width: 40,
-          height: 40,
-          point: permissionState.userLocation!,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.3),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.blue, width: 3),
-            ),
-            child: const Icon(Icons.person, color: Colors.blue, size: 20),
-          ),
-        ),
-      );
-    }
-
-    return markers;
+    ];
   }
 
-  String _formatPrice(double price) {
-    return '\$${price.toStringAsFixed(0)}';
+  /// Price-pill markers shown when zoomed out (zoom < 12).
+  /// The selected property is skipped here — its callout marker replaces it.
+  List<Marker> _buildPricePinMarkers(List<PropertyModel> properties) {
+    return [
+      for (final property in properties)
+        if (property.latitude != null &&
+            property.longitude != null &&
+            _calloutProperty?.id != property.id)
+          Marker(
+            width: 80.0,
+            height: 44.0,
+            point: LatLng(property.latitude!, property.longitude!),
+            alignment: Alignment.topCenter,
+            child: PropertyPricePin(
+              property: property,
+              isSelected: false,
+              onTap: () {
+                setState(() => _calloutProperty = property);
+                _mapController.move(
+                  LatLng(property.latitude!, property.longitude!),
+                  _currentZoom,
+                );
+              },
+            ),
+          ),
+    ];
+  }
+
+  /// Single callout card shown above the tapped price pin.
+  /// Uses the same thumbnail-card widget so the arrow points down to the pin.
+  Marker _buildCalloutMarker(PropertyModel property, List<PropertyModel> all) {
+    return Marker(
+      width: 125.0,
+      height: 128.0,
+      point: LatLng(property.latitude!, property.longitude!),
+      alignment: Alignment.topCenter,
+      child: PropertyMapMarker(
+        property: property,
+        isSelected: true,
+        onTap: () {
+          setState(() => _calloutProperty = null);
+          _onMarkerTapped(property, all);
+        },
+      ),
+    );
+  }
+
+  /// Blue dot for the user's current location — always visible.
+  Marker _buildUserLocationMarker(LatLng location) {
+    return Marker(
+      width: 24,
+      height: 24,
+      point: location,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withValues(alpha: 0.4),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(propertiesViewModelProvider);
-    final allProperties = _getAllProperties(propertiesAsync);
-    final filteredProperties = _filterProperties(allProperties);
+    final propertiesAsync = ref.watch(mapPropertiesProvider);
     final filter = ref.watch(propertyFilterProvider);
     final permissionState = ref.watch(locationPermissionProvider);
+
+    ref.listen<LatLng?>(mapFocusProvider, (_, next) {
+      if (next != null) {
+        _mapController.move(next, 16);
+        ref.read(mapFocusProvider.notifier).clear();
+      }
+    });
+
+    final filteredProperties = propertiesAsync.asData?.value ?? [];
+    final userLocation = permissionState.userLocation;
+    final usePricePins = _currentZoom < 12;
+
+    final tileUrl = _isSatellite
+        ? AppConfig.mapboxSatelliteUrl
+        : AppConfig.mapboxTileUrl;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Map
+          // ── Map ──────────────────────────────────────────────
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -301,86 +284,148 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
               initialZoom: 12,
               minZoom: 5,
               maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onTap: (tapPosition, point) {
+                if (_calloutProperty != null) {
+                  setState(() => _calloutProperty = null);
+                }
+              },
+              onPositionChanged: (camera, hasGesture) {
+                final wasZoomedOut = _currentZoom < 12;
+                final isZoomedOut = camera.zoom < 12;
+
+                if (wasZoomedOut != isZoomedOut) {
+                  setState(() {
+                    _currentZoom = camera.zoom;
+                    // Dismiss callout when zooming into thumbnail-card mode
+                    if (!isZoomedOut) _calloutProperty = null;
+                  });
+                } else {
+                  _currentZoom = camera.zoom;
+                }
+              },
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: tileUrl,
                 userAgentPackageName: 'com.zoneer.mobile',
               ),
-              MarkerLayer(markers: _buildMarkers(filteredProperties)),
+
+              // ── Property markers: price pins or thumbnail cards ──
+              if (usePricePins)
+                MarkerLayer(markers: _buildPricePinMarkers(filteredProperties))
+              else
+                MarkerLayer(
+                  markers: _buildThumbnailMarkers(filteredProperties),
+                ),
+
+              // ── Callout popup (price-pin mode only) ──────────────
+              if (usePricePins && _calloutProperty != null)
+                MarkerLayer(
+                  markers: [
+                    _buildCalloutMarker(_calloutProperty!, filteredProperties),
+                  ],
+                ),
+
+              // ── User location dot (always visible) ───────────────
+              if (userLocation != null)
+                MarkerLayer(markers: [_buildUserLocationMarker(userLocation)]),
             ],
           ),
 
-          // Search Bar and Filter overlay
+          // ── Loading indicator (non-blocking) ─────────────────
+          if (propertiesAsync.isLoading)
+            const Positioned(
+              bottom: 110,
+              left: 0,
+              right: 0,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+
+          // ── Error banner ─────────────────────────────────────
+          if (propertiesAsync.hasError)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 70,
+              left: 16,
+              right: 16,
+              child: Material(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.red.shade50,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Failed to load properties',
+                          style: TextStyle(color: Colors.red.shade800),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => ref.invalidate(mapPropertiesProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // ── Top search & filter bar ───────────────────────────
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             left: 16,
             right: 16,
-            child: Row(
-              children: [
-                // Search Bar
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) {
-                        ref
+            child: Material(
+              borderRadius: BorderRadius.circular(16),
+              elevation: 4,
+              shadowColor: Colors.black26,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) => ref
                             .read(propertyFilterProvider.notifier)
-                            .updateSearchQuery(value);
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Search Place...',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+                            .updateSearchQuery(value),
+                        decoration: InputDecoration(
+                          hintText: 'Search properties...',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[600],
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Filter Button
-                GestureDetector(
-                  onTap: _showFilterSheet,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: filter.hasActiveFilters
-                          ? const Color(0xFFE91E63)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Stack(
+                    Stack(
                       alignment: Alignment.center,
                       children: [
-                        Icon(
-                          Icons.tune,
-                          color: filter.hasActiveFilters
-                              ? Colors.white
-                              : Colors.grey[700],
+                        IconButton(
+                          onPressed: _showFilterSheet,
+                          icon: Icon(
+                            Icons.tune,
+                            color: filter.hasActiveFilters
+                                ? AppColors.primary
+                                : Colors.grey[700],
+                          ),
                         ),
                         if (filter.hasActiveFilters)
                           Positioned(
@@ -390,75 +435,100 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                               width: 8,
                               height: 8,
                               decoration: const BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
                           ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
-          // Property Count Badge
+          // ── "X properties found" pill ─────────────────────────
           Positioned(
             top: MediaQuery.of(context).padding.top + 76,
             left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE91E63),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Container(
+                key: ValueKey(filteredProperties.length),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '${filteredProperties.length} properties found',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
-                ],
-              ),
-              child: Text(
-                '${filteredProperties.length} properties',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
                 ),
               ),
             ),
           ),
 
-          // My Location Button
+          // ── Right-side FAB controls ───────────────────────────
           Positioned(
-            bottom: 24,
             right: 16,
-            child: FloatingActionButton(
-              onPressed: () async {
-                if (permissionState.userLocation != null) {
-                  _mapController.move(permissionState.userLocation!, 14);
+            bottom: 24,
+            child: PropertyMapControls(
+              mapController: _mapController,
+              onMyLocation: () async {
+                if (userLocation != null) {
+                  _mapController.move(userLocation, 15);
                 } else {
-                  // Request permission via dialog
                   final granted = await showDialog<bool>(
                     context: context,
                     barrierDismissible: false,
                     builder: (context) => const LocationPermissionDialog(),
                   );
-
-                  if (granted == true && permissionState.userLocation != null) {
-                    _mapController.move(permissionState.userLocation!, 14);
+                  final loc = ref.read(locationPermissionProvider).userLocation;
+                  if (granted == true && loc != null) {
+                    _mapController.move(loc, 15);
                   }
                 }
               },
+            ),
+          ),
+
+          // ── Map style toggle ──────────────────────────────────
+          Positioned(
+            right: 16,
+            bottom: 190,
+            child: FloatingActionButton.small(
+              heroTag: 'mapStyle',
+              onPressed: _toggleMapStyle,
               backgroundColor: Colors.white,
               child: Icon(
-                Icons.my_location,
-                color: permissionState.hasPermission
-                    ? const Color(0xFFE91E63)
-                    : Colors.grey[600],
+                _isSatellite ? Icons.satellite_alt : Icons.map,
+                color: AppColors.primary,
               ),
+            ),
+          ),
+          Positioned(
+            bottom: 30,
+            left: 10,
+            child: IconButton(
+              onPressed: () {
+                ref.read(mapTabViewProvider.notifier).showSearch();
+              },
+              icon: const Icon(Icons.list_alt, color: AppColors.primary),
             ),
           ),
         ],

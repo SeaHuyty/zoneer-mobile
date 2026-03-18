@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -45,7 +46,7 @@ class LocationService {
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        print(
+        debugPrint(
           'Location permission not granted. Please request permission first.',
         );
         return null;
@@ -54,7 +55,7 @@ class LocationService {
       // Platform-specific handling
       if (kIsWeb) {
         // Web platform - browser geolocation API
-        print('Getting location on web platform');
+        debugPrint('Getting location on web platform');
 
         // For web, try to get location with more lenient settings
         return await Geolocator.getCurrentPosition(
@@ -65,7 +66,7 @@ class LocationService {
         ).timeout(
           const Duration(seconds: 20),
           onTimeout: () {
-            print('Location request timed out on web');
+            debugPrint('Location request timed out on web');
             throw Exception(
               'Location request timed out. Please ensure location is enabled in your browser.',
             );
@@ -76,7 +77,7 @@ class LocationService {
         // Check if service is enabled
         bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (!serviceEnabled) {
-          print(
+          debugPrint(
             'Location services are disabled. Please enable in system settings.',
           );
           // On macOS/Desktop, we might still try if permission is granted
@@ -93,13 +94,13 @@ class LocationService {
         ).timeout(
           const Duration(seconds: 15),
           onTimeout: () {
-            print('Location request timed out');
+            debugPrint('Location request timed out');
             throw Exception('Location request timed out');
           },
         );
       }
     } catch (e) {
-      print('Error getting location: $e');
+      debugPrint('Error getting location: $e');
       return null;
     }
   }
@@ -159,7 +160,7 @@ class LocationService {
     double latitude,
     double longitude,
   ) async {
-    print('🌍 getCityFromCoordinates called with: $latitude, $longitude');
+    debugPrint('🌍 getCityFromCoordinates called with: $latitude, $longitude');
 
     if (kIsWeb) {
       return _getCityFromCoordinatesWeb(latitude, longitude);
@@ -171,10 +172,10 @@ class LocationService {
         longitude,
       );
 
-      print('✅ Placemarks received: ${placemarks.length}');
+      debugPrint('✅ Placemarks received: ${placemarks.length}');
 
       if (placemarks.isEmpty) {
-        print('❌ No placemarks found for coordinates: $latitude, $longitude');
+        debugPrint('❌ No placemarks found for coordinates: $latitude, $longitude');
         return null;
       }
 
@@ -190,7 +191,7 @@ class LocationService {
       try {
         locality = place.locality?.isNotEmpty == true ? place.locality : null;
       } catch (e) {
-        print('⚠️ Error reading locality: $e');
+        debugPrint('⚠️ Error reading locality: $e');
         locality = null;
       }
 
@@ -199,7 +200,7 @@ class LocationService {
             ? place.administrativeArea
             : null;
       } catch (e) {
-        print('⚠️ Error reading administrativeArea: $e');
+        debugPrint('⚠️ Error reading administrativeArea: $e');
         adminArea = null;
       }
 
@@ -208,7 +209,7 @@ class LocationService {
             ? place.subLocality
             : null;
       } catch (e) {
-        print('⚠️ Error reading subLocality: $e');
+        debugPrint('⚠️ Error reading subLocality: $e');
         subLocality = null;
       }
 
@@ -217,18 +218,18 @@ class LocationService {
             ? place.subAdministrativeArea
             : null;
       } catch (e) {
-        print('⚠️ Error reading subAdministrativeArea: $e');
+        debugPrint('⚠️ Error reading subAdministrativeArea: $e');
         subAdminArea = null;
       }
 
       try {
         country = place.country?.isNotEmpty == true ? place.country : null;
       } catch (e) {
-        print('⚠️ Error reading country: $e');
+        debugPrint('⚠️ Error reading country: $e');
         country = null;
       }
 
-      print(
+      debugPrint(
         '📍 Extracted - locality: $locality, adminArea: $adminArea, subLocality: $subLocality, subAdminArea: $subAdminArea, country: $country',
       );
 
@@ -271,15 +272,15 @@ class LocationService {
       }
 
       if (result != null) {
-        print('✅ City found: $result');
+        debugPrint('✅ City found: $result');
         return result;
       }
 
-      print('❌ No valid location data found in placemark');
+      debugPrint('❌ No valid location data found in placemark');
       return null;
     } catch (e, stackTrace) {
-      print('❌ Error getting city name: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('❌ Error getting city name: $e');
+      debugPrint('Stack trace: $stackTrace');
       return null;
     }
   }
@@ -297,7 +298,7 @@ class LocationService {
       }
       return 'Location unavailable';
     } catch (e) {
-      print('Error getting current city: $e');
+      debugPrint('Error getting current city: $e');
       return 'Location unavailable';
     }
   }

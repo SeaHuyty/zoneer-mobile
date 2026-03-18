@@ -8,18 +8,19 @@ class PropertyModel {
   final int bathroom;
   final double squareArea;
   final String address;
-  final String locationUrl;
+  final String? locationUrl;
   final double? latitude;
   final double? longitude;
   final String? description;
   final String thumbnail;
+  final String? type;
 
   final Map<String, dynamic>? securityFeatures;
   final Map<String, dynamic>? propertyFeatures;
   final Map<String, dynamic>? badgeOptions;
 
-  final VerifyStatus verifyStatus;
-  final PropertyStatus propertyStatus;
+  final VerifyStatus? verifyStatus;
+  final PropertyStatus? propertyStatus;
 
   final String? landlordId;
   final String? verifiedByAdmin;
@@ -31,16 +32,17 @@ class PropertyModel {
     required this.bathroom,
     required this.squareArea,
     required this.address,
-    required this.locationUrl,
+    this.locationUrl,
     required this.thumbnail,
+    this.type,
     this.description,
     this.latitude,
     this.longitude,
     this.securityFeatures,
     this.propertyFeatures,
     this.badgeOptions,
-    this.verifyStatus = VerifyStatus.defaultStatus,
-    this.propertyStatus = PropertyStatus.available,
+    this.verifyStatus,
+    this.propertyStatus,
     this.landlordId,
     this.verifiedByAdmin,
   });
@@ -54,7 +56,7 @@ class PropertyModel {
       bathroom: json['bathroom'] as int,
       squareArea: (json['square_area'] as num).toDouble(),
       address: json['address'] as String,
-      locationUrl: json['location_url'] as String,
+      locationUrl: json['location_url'] as String?,
       latitude: json['latitude'] != null
           ? (json['latitude'] as num).toDouble()
           : null,
@@ -63,6 +65,7 @@ class PropertyModel {
           : null,
       description: json['description'] as String?,
       thumbnail: json['thumbnail_url'] as String,
+      type: json['type'] as String?,
       securityFeatures: json['security_features'] is Map
           ? json['security_features'] as Map<String, dynamic>?
           : null,
@@ -72,8 +75,12 @@ class PropertyModel {
       badgeOptions: json['badge_options'] is Map
           ? json['badge_options'] as Map<String, dynamic>?
           : null,
-      verifyStatus: VerifyStatus.fromValue(json['verify_status']),
-      propertyStatus: PropertyStatus.fromValue(json['property_status']),
+      verifyStatus: json['verify_status'] != null
+          ? VerifyStatus.fromValue(json['verify_status'] as String?)
+          : null,
+      propertyStatus: json['property_status'] != null
+          ? PropertyStatus.fromValue(json['property_status'] as String?)
+          : null,
       landlordId: json['landlord_id'] as String?,
       verifiedByAdmin: json['verified_by_admin'] as String?,
     );
@@ -90,12 +97,13 @@ class PropertyModel {
       'latitude': latitude,
       'longitude': longitude,
       'thumbnail_url': thumbnail,
+      'type': type,
       'description': description,
       'security_features': securityFeatures,
       'property_features': propertyFeatures,
       'badge_options': badgeOptions,
-      'verify_status': verifyStatus.value,
-      'property_status': propertyStatus.value,
+      'verify_status': verifyStatus?.value,
+      'property_status': propertyStatus?.value,
       'landlord_id': landlordId,
       'verified_by_admin': verifiedByAdmin,
     };
@@ -116,6 +124,7 @@ class PropertyModel {
     double? longitude,
     String? description,
     String? thumbnail,
+    String? type,
     Map<String, dynamic>? securityFeatures,
     Map<String, dynamic>? propertyFeatures,
     Map<String, dynamic>? badgeOptions,
@@ -136,6 +145,7 @@ class PropertyModel {
       longitude: longitude ?? this.longitude,
       description: description ?? this.description,
       thumbnail: thumbnail ?? this.thumbnail,
+      type: type ?? this.type,
       securityFeatures: securityFeatures ?? this.securityFeatures,
       propertyFeatures: propertyFeatures ?? this.propertyFeatures,
       badgeOptions: badgeOptions ?? this.badgeOptions,

@@ -194,7 +194,7 @@ class _PropertyFilterSheetState extends ConsumerState<PropertyFilterSheet> {
             height: 60,
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFFE91E63).withOpacity(0.1)
+                  ? const Color(0xFFE91E63).withValues(alpha: 0.1)
                   : Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
               border: Border.all(

@@ -1,22 +1,33 @@
 import 'dart:typed_data';
-
+import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
+import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/viewmodels/property_sections_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
-import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
+
+/// Holds data for one photo slot (either new bytes or an existing URL).
+typedef PhotoData = ({Uint8List? bytes, String? ext, String? existingUrl});
 
 class UploadPropertyViewModel extends Notifier<bool> {
   @override
   bool build() => false;
 
-  /// Returns the URL of the saved thumbnail.
-  /// Uploads a new image if [thumbnailBytes] is provided, otherwise reuses [existingThumbnailUrl].
   Future<void> submit({
+    // Thumbnail – index 0 of the photo list
     required Uint8List? thumbnailBytes,
     required String? thumbnailExt,
     required String? existingThumbnailUrl,
+    // Additional photos (indices 1–9)
+    required List<PhotoData> additionalPhotos,
+    // Existing URLs the user removed — will be deleted from storage
+    required List<String> removedImageUrls,
+    // The property being edited, or null when creating
     required PropertyModel? existingProperty,
+    // Basic fields
     required double price,
     required int bedroom,
     required int bathroom,
@@ -25,22 +36,49 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required double latitude,
     required double longitude,
     required String description,
+    required String type,
+    // Amenities
+    required Map<String, dynamic>? propertyFeatures,
+    required Map<String, dynamic>? securityFeatures,
+    required Map<String, dynamic>? badgeOptions,
   }) async {
     final locationUrl = 'https://www.google.com/maps?q=$latitude,$longitude';
+
     state = true;
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
       final repo = ref.read(propertyRepositoryProvider);
 
+      // --- Upload thumbnail ---
       String thumbnailUrl = existingThumbnailUrl ?? '';
       if (thumbnailBytes != null) {
-        thumbnailUrl = await repo.uploadThumbnail(
+        thumbnailUrl = await repo.uploadImage(
           thumbnailBytes,
           thumbnailExt ?? 'jpg',
           userId,
+          index: 0,
         );
       }
 
+      // --- Upload any new additional images ---
+      final additionalUrls = <String>[];
+      for (var i = 0; i < additionalPhotos.length; i++) {
+        final photo = additionalPhotos[i];
+        if (photo.bytes != null) {
+          final url = await repo.uploadImage(
+            photo.bytes!,
+            photo.ext ?? 'jpg',
+            userId,
+            index: i + 1,
+          );
+          additionalUrls.add(url);
+        } else if (photo.existingUrl != null) {
+          additionalUrls.add(photo.existingUrl!);
+        }
+      }
+
+      // --- Persist property ---
+      final String propertyId;
       if (existingProperty != null) {
         await repo.updateProperty(
           PropertyModel(
@@ -55,13 +93,18 @@ class UploadPropertyViewModel extends Notifier<bool> {
             longitude: longitude,
             description: description,
             thumbnail: thumbnailUrl,
+            type: type,
             landlordId: userId,
             verifyStatus: existingProperty.verifyStatus,
             propertyStatus: existingProperty.propertyStatus,
+            propertyFeatures: propertyFeatures,
+            securityFeatures: securityFeatures,
+            badgeOptions: badgeOptions,
           ),
         );
+        propertyId = existingProperty.id;
       } else {
-        await repo.createProperty(
+        final createdProperty = await repo.createProperty(
           PropertyModel(
             id: '',
             price: price,
@@ -74,14 +117,50 @@ class UploadPropertyViewModel extends Notifier<bool> {
             longitude: longitude,
             description: description,
             thumbnail: thumbnailUrl,
+            type: type,
             landlordId: userId,
+            propertyFeatures: propertyFeatures,
+            securityFeatures: securityFeatures,
+            badgeOptions: badgeOptions,
           ),
         );
+        propertyId = createdProperty.id;
+
+        // Notify user the newly created property is under review.
+        var helper = NotificationHelper.upload;
+        await ref
+            .read(notificationsViewModelProvider.notifier)
+            .createNotification(
+              NotificationModel(
+                userId: userId,
+                title: helper.title,
+                message: helper.message,
+                type: NotificationType.system,
+              ),
+            );
       }
 
-      ref
-          .read(propertiesViewModelProvider.notifier)
-          .loadLandlordProperties(userId);
+      // --- Manage property_media records ---
+      if (existingProperty != null) {
+        // Replace all existing media
+        await repo.deletePropertyMediasByPropertyId(propertyId);
+      }
+      if (additionalUrls.isNotEmpty) {
+        await repo.insertPropertyMedias(propertyId, additionalUrls);
+      }
+
+      // --- Delete removed files from storage ---
+      if (removedImageUrls.isNotEmpty) {
+        await repo.deleteStorageImages(removedImageUrls);
+      }
+
+      // Refresh only targeted property queries used by screens.
+      ref.invalidate(landlordPropertiesProvider(userId));
+      ref.invalidate(mapPropertiesProvider);
+      ref.invalidate(propertySectionProvider(PropertySection.room));
+      ref.invalidate(propertySectionProvider(PropertySection.condo));
+      ref.invalidate(propertySectionProvider(PropertySection.apartment));
+      ref.invalidate(propertySectionProvider(PropertySection.house));
     } finally {
       state = false;
     }
@@ -90,5 +169,5 @@ class UploadPropertyViewModel extends Notifier<bool> {
 
 final uploadPropertyViewModelProvider =
     NotifierProvider<UploadPropertyViewModel, bool>(
-  UploadPropertyViewModel.new,
-);
+      UploadPropertyViewModel.new,
+    );

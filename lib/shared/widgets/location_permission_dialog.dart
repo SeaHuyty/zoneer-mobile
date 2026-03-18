@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -42,8 +43,7 @@ class LocationPermissionDialog extends ConsumerWidget {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          urlTemplate: AppConfig.mapboxTileUrl,
                           userAgentPackageName: 'com.zoneer.mobile',
                         ),
                         MarkerLayer(
@@ -69,7 +69,7 @@ class LocationPermissionDialog extends ConsumerWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.3),
+                            Colors.black.withValues(alpha: 0.3),
                             Colors.transparent,
                           ],
                         ),

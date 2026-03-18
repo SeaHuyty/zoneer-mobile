@@ -1,53 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
+import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provider.dart';
 
-class PropertiesViewmodel extends AsyncNotifier<List<PropertyModel>> {
-  @override
-  Future<List<PropertyModel>> build() async {
-    return ref.read(propertyRepositoryProvider).getProperties();
-  }
+typedef SearchPropertiesParams = ({
+  String query,
+  String? type,
+  double minPrice,
+  double maxPrice,
+  int minBeds,
+  int minBaths,
+});
 
-  Future<void> loadProperties() async {
-    state = const AsyncValue.loading();
-
-    state = await AsyncValue.guard(() async {
-      return ref.read(propertyRepositoryProvider).getProperties();
-    });
-  }
-
-  Future<void> loadLandlordProperties(String landlordId) async {
-    state = const AsyncValue.loading();
-
-    state = await AsyncValue.guard(() async {
+final landlordPropertiesProvider =
+    FutureProvider.family<List<PropertyModel>, String>((ref, landlordId) async {
       return ref
           .read(propertyRepositoryProvider)
           .getPropertiesByLandlordId(landlordId);
     });
-  }
 
-  /// Remove a property from the current state (optimistic update)
-  void removePropertyFromState(String propertyId) {
-    state.whenData((properties) {
-      state = AsyncValue.data(
-        properties.where((p) => p.id != propertyId).toList(),
-      );
+final mapPropertiesProvider = FutureProvider<List<PropertyModel>>((ref) async {
+  final filter = ref.watch(propertyFilterProvider);
+  return ref
+      .read(propertyRepositoryProvider)
+      .getMapProperties(filter: filter, limit: 200);
+});
+
+final searchPropertiesProvider =
+    FutureProvider.family<List<PropertyModel>, SearchPropertiesParams>((
+      ref,
+      params,
+    ) async {
+      return ref
+          .read(propertyRepositoryProvider)
+          .searchVerifiedProperties(
+            query: params.query,
+            minPrice: params.minPrice,
+            maxPrice: params.maxPrice,
+            minBeds: params.minBeds,
+            minBaths: params.minBaths,
+            type: params.type,
+            limit: 200,
+          );
     });
-  }
-}
-
-final propertiesViewModelProvider =
-    AsyncNotifierProvider<PropertiesViewmodel, List<PropertyModel>>(
-      PropertiesViewmodel.new,
-    );
 
 final propertyViewModelProvider = FutureProvider.family<PropertyModel, String>((
   ref,
   id,
 ) async {
-  final property = await ref
+  return ref
       .read(propertyRepositoryProvider)
       .getPropertyById(id);
-
-  return property;
 });

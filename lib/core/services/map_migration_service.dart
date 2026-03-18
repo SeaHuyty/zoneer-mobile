@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
@@ -13,13 +14,9 @@ class MapMigrationService {
   /// This is a one-time migration to enable map display for existing properties
   Future<int> addCoordinatesToExistingProperties() async {
     try {
-      // Get all properties
-      final properties = await _repository.getProperties();
-
-      // Filter properties without coordinates
-      final propertiesNeedingCoordinates = properties.where((property) {
-        return property.latitude == null || property.longitude == null;
-      }).toList();
+      // Query only records that still miss coordinates.
+      final propertiesNeedingCoordinates = await _repository
+          .getPropertiesMissingCoordinates();
 
       if (propertiesNeedingCoordinates.isEmpty) {
         return 0;
@@ -41,7 +38,7 @@ class MapMigrationService {
 
       return updatedProperties.length;
     } catch (e) {
-      print('Error adding coordinates to properties: $e');
+      debugPrint('Error adding coordinates to properties: $e');
       return 0;
     }
   }

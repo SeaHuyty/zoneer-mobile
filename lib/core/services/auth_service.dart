@@ -1,8 +1,3 @@
-// Core Services - Authentication Service
-// This file contains the authentication service for managing user sessions
-// Handles login, logout, token management, and authentication state
-// Provides authentication status across the entire app
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -15,11 +10,8 @@ class AuthService {
   AuthService(this._client);
 
   bool get isAuthenticated => _client.auth.currentUser != null;
-
   User? get currentUser => _client.auth.currentUser;
-
   Session? get currentSession => _client.auth.currentSession;
-
   Stream<AuthState> get authStateChange => _client.auth.onAuthStateChange;
 
   String _getWebGoogleRedirectTo() {
@@ -40,10 +32,10 @@ class AuthService {
     if (!kDebugMode && releaseRedirect.isNotEmpty) return releaseRedirect;
     if (configuredRedirect.isNotEmpty) return configuredRedirect;
 
-    // Default to the active web origin so OAuth callbacks work outside localhost.
     return Uri.base.origin;
   }
-Future<void> signInWithGoogle() async {
+
+  Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -59,12 +51,16 @@ Future<void> signInWithGoogle() async {
         clientId: iosClientId.isNotEmpty ? iosClientId : null,
       );
 
-      // Tries silent sign-in first; falls back to null (no UI shown)
+      try {
+        await GoogleSignIn.instance.disconnect();
+      } catch (_) {
+        // No cached account, safe to ignore
+      }
+
       final googleUser =
           await GoogleSignIn.instance.attemptLightweightAuthentication() ??
           await GoogleSignIn.instance.authenticate();
 
-      // Fetch access token with the required scopes
       final authorization =
           await googleUser.authorizationClient.authorizationForScopes(scopes) ??
           await googleUser.authorizationClient.authorizeScopes(scopes);
@@ -85,28 +81,26 @@ Future<void> signInWithGoogle() async {
     required String password,
     required String fullname,
   }) async {
-    final response = await _client.auth.signUp(
-      email: email,
-      password: password,
-    );
-
-    return response;
+    return await _client.auth.signUp(email: email, password: password);
   }
 
   Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
-    final response = await _client.auth.signInWithPassword(
+    return await _client.auth.signInWithPassword(
       email: email,
       password: password,
     );
-
-    return response;
   }
 
+  // ✅ Only ONE signout — clears both Supabase & Google
   Future<void> signout() async {
     await _client.auth.signOut();
+    if (!kIsWeb) {
+      await GoogleSignIn.instance.signOut();
+      await GoogleSignIn.instance.disconnect();
+    }
   }
 }
 

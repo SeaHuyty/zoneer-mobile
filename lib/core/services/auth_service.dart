@@ -32,7 +32,7 @@ Future<void> signInWithGoogle() async {
     } else {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId:
-            '102797929514-9hc3rsmdvrr7akt18qudem29l7uegjpl.apps.googleusercontent.com.apps.googleusercontent.com', 
+            '102797929514-9hc3rsmdvrr7akt18qudem29l7uegjpl.apps.googleusercontent.com', 
       );
 
       final googleUser = await googleSignIn.signIn();

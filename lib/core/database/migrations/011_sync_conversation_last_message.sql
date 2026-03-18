@@ -2,6 +2,8 @@
 CREATE OR REPLACE FUNCTION sync_conversation_last_message()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   UPDATE conversations

@@ -5,6 +5,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/messaging/models/chat_user_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_with_sender_model.dart';
+import 'package:zoneer_mobile/features/messaging/utils/message_date_formatter.dart';
 import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
 import 'package:zoneer_mobile/shared/widgets/navigation_back_button.dart';
 
@@ -21,12 +22,65 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   RealtimeChannel? _messagesChannel;
+  int _lastRenderedMessageCount = -1;
+  bool _didInitialAutoScroll = false;
+
+  void _scrollToBottom({required bool animated}) {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    final target = _scrollController.position.maxScrollExtent;
+    if (animated) {
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    } else {
+      _scrollController.jumpTo(target);
+    }
+  }
+
+  void _scrollToBottomWhenReady({required bool animated, int retries = 6}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+
+      if (_scrollController.hasClients) {
+        _scrollToBottom(animated: animated);
+        return;
+      }
+
+      if (retries > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        _scrollToBottomWhenReady(animated: animated, retries: retries - 1);
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(messagesByConversationProvider(widget.conversationId));
+
       final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+
+      if (currentUserId.isNotEmpty) {
+        ref
+            .read(messagingViewModelProvider.notifier)
+            .markConversationRead(widget.conversationId, currentUserId)
+            .then((_) {
+              ref.invalidate(
+                messagesByConversationProvider(widget.conversationId),
+              );
+              return ref
+                  .read(messagingViewModelProvider.notifier)
+                  .refreshMyConversations(currentUserId);
+            });
+      }
 
       _messagesChannel = Supabase.instance.client
           .channel('messages_${widget.conversationId}')
@@ -47,16 +101,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               if (currentUserId.isNotEmpty) {
                 await ref
                     .read(messagingViewModelProvider.notifier)
-                    .loadMyConversations(currentUserId);
+                    .markConversationRead(widget.conversationId, currentUserId);
+
+                ref.invalidate(
+                  messagesByConversationProvider(widget.conversationId),
+                );
+
+                await ref
+                    .read(messagingViewModelProvider.notifier)
+                    .refreshMyConversations(currentUserId);
               }
 
-              if (_scrollController.hasClients) {
-                _scrollController.animateTo(
-                  _scrollController.position.maxScrollExtent + 80,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
-                );
-              }
+              _scrollToBottomWhenReady(animated: true);
             },
           )
           .onPostgresChanges(
@@ -72,6 +128,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ref.invalidate(
                 messagesByConversationProvider(widget.conversationId),
               );
+
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent + 80,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                );
+              }
             },
           )
           .subscribe();
@@ -118,9 +182,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     _messageController.clear();
     ref.invalidate(messagesByConversationProvider(widget.conversationId));
+    _scrollToBottomWhenReady(animated: true);
     await ref
         .read(messagingViewModelProvider.notifier)
-        .loadMyConversations(currentUserId);
+        .refreshMyConversations(currentUserId);
   }
 
   @override
@@ -135,6 +200,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (messages) {
+          if (messages.isNotEmpty &&
+              messages.length != _lastRenderedMessageCount) {
+            final isInitialLoad = !_didInitialAutoScroll;
+            _lastRenderedMessageCount = messages.length;
+            _didInitialAutoScroll = true;
+            _scrollToBottomWhenReady(animated: !isInitialLoad);
+          }
+
           final firstOther = _findOtherUser(messages, currentUserId);
 
           return Column(
@@ -177,73 +250,114 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   itemBuilder: (context, index) {
                     final item = messages[index];
                     final msg = item.message;
+                    final previousMessage = index > 0
+                        ? messages[index - 1].message
+                        : null;
+                    final showDayHeader =
+                        index == 0 ||
+                        MessageDateFormatter.isDifferentDay(
+                          msg.createdAt,
+                          previousMessage?.createdAt,
+                        );
                     final isMe = msg.senderId == currentUserId;
 
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: isMe
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 5),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? AppColors.primary
-                                  : Colors.grey.shade200,
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(16),
-                                topRight: const Radius.circular(16),
-                                bottomLeft: Radius.circular(isMe ? 16 : 0),
-                                bottomRight: Radius.circular(isMe ? 0 : 16),
-                              ),
-                            ),
-                            child: Text(
-                              msg.body,
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black,
+                    return Column(
+                      children: [
+                        if (showDayHeader)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  MessageDateFormatter.formatDayHeader(
+                                    msg.createdAt,
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-
-                          /// Time + Read status
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                        Align(
+                          alignment: isMe
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: isMe
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
                             children: [
-                              // Onhold
-                              // Text(
-                              //   msg.createdAt ?? '',
-                              //   style: const TextStyle(
-                              //     fontSize: 11,
-                              //     color: Colors.grey,
-                              //   ),
-                              // ),
-                              if (isMe) ...[
-                                const SizedBox(width: 5),
-                                Icon(
-                                  msg.readAt != null
-                                      ? Icons.done_all
-                                      : Icons.check,
-                                  size: 14,
-                                  color: msg.readAt != null
-                                      ? AppColors.primary
-                                      : Colors.grey,
+                              Container(
+                                margin: const EdgeInsets.symmetric(vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
                                 ),
-                              ],
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isMe
+                                      ? AppColors.primary
+                                      : Colors.grey.shade200,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(16),
+                                    topRight: const Radius.circular(16),
+                                    bottomLeft: Radius.circular(isMe ? 16 : 0),
+                                    bottomRight: Radius.circular(isMe ? 0 : 16),
+                                  ),
+                                ),
+                                child: Text(
+                                  msg.body,
+                                  style: TextStyle(
+                                    color: isMe ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                              ),
+
+                              /// Time + Read status
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    MessageDateFormatter.formatMessageTime(
+                                      msg.createdAt,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  if (isMe) ...[
+                                    const SizedBox(width: 5),
+                                    Icon(
+                                      msg.readAt != null
+                                          ? Icons.done_all
+                                          : Icons.check,
+                                      size: 14,
+                                      color: msg.readAt != null
+                                          ? AppColors.primary
+                                          : Colors.grey,
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     );
                   },
                 ),

@@ -38,8 +38,38 @@ class MessagingRepository {
         .or('tenant_id.eq.$userId,landlord_id.eq.$userId')
         .order('last_message_at', ascending: false);
 
-    return (response as List)
-        .map((e) => ConversationWithUserModel.fromJoinedJson(e, userId))
+    final rows = (response as List).cast<Map<String, dynamic>>();
+    if (rows.isEmpty) {
+      return const <ConversationWithUserModel>[];
+    }
+
+    final conversationIds = rows
+        .map((row) => row['id'] as String?)
+        .whereType<String>()
+        .toList();
+
+    final unreadResponse = await _supabase
+        .from('messages')
+        .select('conversation_id')
+        .inFilter('conversation_id', conversationIds)
+        .neq('sender_id', userId)
+        .filter('read_at', 'is', null);
+
+    final unreadConversationIds = (unreadResponse as List)
+        .map(
+          (row) => (row as Map<String, dynamic>)['conversation_id'] as String?,
+        )
+        .whereType<String>()
+        .toSet();
+
+    return rows
+        .map(
+          (row) => ConversationWithUserModel.fromJoinedJson(
+            row,
+            userId,
+            hasUnread: unreadConversationIds.contains(row['id']),
+          ),
+        )
         .toList();
   }
 
@@ -73,11 +103,16 @@ class MessagingRepository {
     await _supabase.from('messages').insert(message.toJson());
   }
 
-  Future<void> markMessageRead(String messageId) async {
+  Future<void> markConversationMessagesRead(
+    String conversationId,
+    String currentUserId,
+  ) async {
     await _supabase
         .from('messages')
         .update({'read_at': DateTime.now().toIso8601String()})
-        .eq('id', messageId);
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', currentUserId)
+        .filter('read_at', 'is', null);
   }
 
   Future<ConversationModel> getConversationByInquiryId(String inquiryId) async {

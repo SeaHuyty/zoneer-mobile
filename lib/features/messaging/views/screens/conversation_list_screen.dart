@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/features/messaging/models/conversation_with_user_model.dart';
+import 'package:zoneer_mobile/features/messaging/utils/message_date_formatter.dart';
 import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
 import 'package:zoneer_mobile/features/messaging/views/screens/chat_screen.dart';
 import 'package:zoneer_mobile/shared/widgets/navigation_back_button.dart';
@@ -17,53 +17,68 @@ class ConversationListScreen extends ConsumerStatefulWidget {
 
 class _ConversationListScreenState
     extends ConsumerState<ConversationListScreen> {
+  RealtimeChannel? _conversationsChannel;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        ref
-            .read(messagingViewModelProvider.notifier)
-            .loadMyConversations(userId);
-      }
+      if (userId == null) return;
+
+      ref.read(messagingViewModelProvider.notifier).loadMyConversations(userId);
+      _subscribeConversationUpdates(userId);
     });
+  }
+
+  void _subscribeConversationUpdates(String userId) {
+    _conversationsChannel = Supabase.instance.client
+        .channel('conversation_list_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'conversations',
+          callback: (payload) async {
+            final row = payload.newRecord;
+            final tenantId = row['tenant_id'] as String?;
+            final landlordId = row['landlord_id'] as String?;
+
+            if (tenantId == userId || landlordId == userId) {
+              await ref
+                  .read(messagingViewModelProvider.notifier)
+                  .refreshMyConversations(userId);
+            }
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'conversations',
+          callback: (payload) async {
+            final row = payload.newRecord;
+            final tenantId = row['tenant_id'] as String?;
+            final landlordId = row['landlord_id'] as String?;
+            if (tenantId == userId || landlordId == userId) {
+              await ref
+                  .read(messagingViewModelProvider.notifier)
+                  .refreshMyConversations(userId);
+            }
+          },
+        )
+        .subscribe();
   }
 
   String _conversationTitle(ConversationWithUserModel conversation) {
     return conversation.otherUser.fullname;
   }
 
-  static String formatConversationDate(String? value) {
-    if (value == null || value.isEmpty) {
-      return '';
+  @override
+  void dispose() {
+    if (_conversationsChannel != null) {
+      Supabase.instance.client.removeChannel(_conversationsChannel!);
     }
-
-    final parsed = DateTime.tryParse(value);
-    if (parsed == null) {
-      return value;
-    }
-
-    final localDate = parsed.toLocal();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final messageDay = DateTime(localDate.year, localDate.month, localDate.day);
-    final differenceInDays = today.difference(messageDay).inDays;
-
-    if (differenceInDays == 0) {
-      return DateFormat('h:mm a').format(localDate);
-    }
-
-    if (differenceInDays == 1) {
-      return 'Yesterday';
-    }
-
-    if (localDate.year == now.year) {
-      return DateFormat('MMM d').format(localDate);
-    }
-
-    return DateFormat('MMM d, y').format(localDate);
+    super.dispose();
   }
 
   @override
@@ -115,19 +130,26 @@ class _ConversationListScreenState
                 title: Text(
                   _conversationTitle(conversation),
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                 ),
                 subtitle: Text(
-                  conversation.conversation.lastMessagePreview ??
-                      'No messages yet',
+                  conversation.hasUnread
+                      ? 'A new message'
+                      : (conversation.conversation.lastMessagePreview ??
+                            'No messages yet'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                    color: conversation.hasUnread ? Colors.black : Colors.grey,
+                    fontWeight: conversation.hasUnread
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
                 ),
                 trailing: Text(
-                  formatConversationDate(
+                  MessageDateFormatter.formatConversationDate(
                     conversation.conversation.lastMessageAt,
                   ),
                   style: const TextStyle(color: Colors.grey, fontSize: 12),

@@ -12,16 +12,40 @@ class MessagingViewmodel
   @override
   FutureOr<List<ConversationWithUserModel>> build() async => [];
 
+  Future<List<ConversationWithUserModel>> _fetchConversations(String userId) {
+    return ref.read(messagingRepositoryProvider).getMyConversations(userId);
+  }
+
   Future<void> loadMyConversations(String userId) async {
     state = const AsyncValue.loading();
 
     state = await AsyncValue.guard(() async {
-      return ref.read(messagingRepositoryProvider).getMyConversations(userId);
+      return _fetchConversations(userId);
     });
+  }
+
+  Future<void> refreshMyConversations(String userId) async {
+    try {
+      final conversations = await _fetchConversations(userId);
+      state = AsyncValue.data(conversations);
+    } catch (error, stackTrace) {
+      if (!state.hasValue) {
+        state = AsyncValue.error(error, stackTrace);
+      }
+    }
   }
 
   Future<void> sendMessage(MessageModel message) async {
     await ref.read(messagingRepositoryProvider).sendMessage(message);
+  }
+
+  Future<void> markConversationRead(
+    String conversationId,
+    String currentUserId,
+  ) async {
+    await ref
+        .read(messagingRepositoryProvider)
+        .markConversationMessagesRead(conversationId, currentUserId);
   }
 }
 
@@ -30,11 +54,8 @@ final messagingViewModelProvider =
       MessagingViewmodel.new,
     );
 
-final messagesByConversationProvider =
-    FutureProvider.family<List<MessageWithSenderModel>, String>((
-      ref,
-      conversationId,
-    ) async {
+final messagesByConversationProvider = FutureProvider.autoDispose
+    .family<List<MessageWithSenderModel>, String>((ref, conversationId) async {
       return ref.read(messagingRepositoryProvider).getMessages(conversationId);
     });
 

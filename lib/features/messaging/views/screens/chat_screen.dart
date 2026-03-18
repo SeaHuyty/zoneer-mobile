@@ -64,22 +64,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(messagesByConversationProvider(widget.conversationId));
-
       final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
       if (currentUserId.isNotEmpty) {
         ref
             .read(messagingViewModelProvider.notifier)
-            .markConversationRead(widget.conversationId, currentUserId)
-            .then((_) {
-              ref.invalidate(
-                messagesByConversationProvider(widget.conversationId),
-              );
-              return ref
-                  .read(messagingViewModelProvider.notifier)
-                  .refreshMyConversations(currentUserId);
-            });
+            .markConversationRead(widget.conversationId, currentUserId);
       }
 
       _messagesChannel = Supabase.instance.client
@@ -94,23 +84,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               value: widget.conversationId,
             ),
             callback: (_) async {
-              ref.invalidate(
-                messagesByConversationProvider(widget.conversationId),
-              );
+              if (!mounted) {
+                return;
+              }
 
               if (currentUserId.isNotEmpty) {
                 await ref
                     .read(messagingViewModelProvider.notifier)
                     .markConversationRead(widget.conversationId, currentUserId);
-
-                ref.invalidate(
-                  messagesByConversationProvider(widget.conversationId),
-                );
-
-                await ref
-                    .read(messagingViewModelProvider.notifier)
-                    .refreshMyConversations(currentUserId);
               }
+
+              if (!mounted) {
+                return;
+              }
+
+              ref.invalidate(
+                messagesByConversationProvider(widget.conversationId),
+              );
 
               _scrollToBottomWhenReady(animated: true);
             },
@@ -125,17 +115,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               value: widget.conversationId,
             ),
             callback: (_) {
+              if (!mounted) {
+                return;
+              }
+
               ref.invalidate(
                 messagesByConversationProvider(widget.conversationId),
               );
-
-              if (_scrollController.hasClients) {
-                _scrollController.animateTo(
-                  _scrollController.position.maxScrollExtent + 80,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
-                );
-              }
             },
           )
           .subscribe();
@@ -183,9 +169,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _messageController.clear();
     ref.invalidate(messagesByConversationProvider(widget.conversationId));
     _scrollToBottomWhenReady(animated: true);
-    await ref
-        .read(messagingViewModelProvider.notifier)
-        .refreshMyConversations(currentUserId);
   }
 
   @override

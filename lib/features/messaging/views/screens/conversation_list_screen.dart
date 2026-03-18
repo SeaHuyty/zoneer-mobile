@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +20,8 @@ class ConversationListScreen extends ConsumerStatefulWidget {
 class _ConversationListScreenState
     extends ConsumerState<ConversationListScreen> {
   RealtimeChannel? _conversationsChannel;
+  Timer? _refreshDebounce;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -26,9 +30,24 @@ class _ConversationListScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
+      _currentUserId = userId;
 
       ref.read(messagingViewModelProvider.notifier).loadMyConversations(userId);
       _subscribeConversationUpdates(userId);
+    });
+  }
+
+  void _queueRefresh() {
+    final userId = _currentUserId;
+    if (userId == null) {
+      return;
+    }
+
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 200), () {
+      ref
+          .read(messagingViewModelProvider.notifier)
+          .refreshMyConversations(userId);
     });
   }
 
@@ -39,31 +58,52 @@ class _ConversationListScreenState
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'conversations',
-          callback: (payload) async {
-            final row = payload.newRecord;
-            final tenantId = row['tenant_id'] as String?;
-            final landlordId = row['landlord_id'] as String?;
-
-            if (tenantId == userId || landlordId == userId) {
-              await ref
-                  .read(messagingViewModelProvider.notifier)
-                  .refreshMyConversations(userId);
-            }
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'tenant_id',
+            value: userId,
+          ),
+          callback: (_) {
+            _queueRefresh();
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'conversations',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'landlord_id',
+            value: userId,
+          ),
+          callback: (_) {
+            _queueRefresh();
           },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.update,
           schema: 'public',
           table: 'conversations',
-          callback: (payload) async {
-            final row = payload.newRecord;
-            final tenantId = row['tenant_id'] as String?;
-            final landlordId = row['landlord_id'] as String?;
-            if (tenantId == userId || landlordId == userId) {
-              await ref
-                  .read(messagingViewModelProvider.notifier)
-                  .refreshMyConversations(userId);
-            }
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'tenant_id',
+            value: userId,
+          ),
+          callback: (_) {
+            _queueRefresh();
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'conversations',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'landlord_id',
+            value: userId,
+          ),
+          callback: (_) {
+            _queueRefresh();
           },
         )
         .subscribe();
@@ -75,6 +115,7 @@ class _ConversationListScreenState
 
   @override
   void dispose() {
+    _refreshDebounce?.cancel();
     if (_conversationsChannel != null) {
       Supabase.instance.client.removeChannel(_conversationsChannel!);
     }

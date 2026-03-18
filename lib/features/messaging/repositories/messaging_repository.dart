@@ -43,17 +43,10 @@ class MessagingRepository {
       return const <ConversationWithUserModel>[];
     }
 
-    final conversationIds = rows
-        .map((row) => row['id'] as String?)
-        .whereType<String>()
-        .toList();
-
-    final unreadResponse = await _supabase
-        .from('messages')
-        .select('conversation_id')
-        .inFilter('conversation_id', conversationIds)
-        .neq('sender_id', userId)
-        .filter('read_at', 'is', null);
+    final unreadResponse = await _supabase.client.rpc(
+      'get_unread_conversation_ids',
+      params: {'p_user_id': userId},
+    );
 
     final unreadConversationIds = (unreadResponse as List)
         .map(

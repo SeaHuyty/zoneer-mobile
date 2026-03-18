@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthService {
   final SupabaseClient _client;
@@ -31,8 +32,7 @@ Future<void> signInWithGoogle() async {
       );
     } else {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId:
-            '102797929514-9hc3rsmdvrr7akt18qudem29l7uegjpl.apps.googleusercontent.com', 
+         serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID']
       );
 
       final googleUser = await googleSignIn.signIn();

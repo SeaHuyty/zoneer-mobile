@@ -4,16 +4,19 @@ import 'package:zoneer_mobile/features/messaging/models/conversation_model.dart'
 class ConversationWithUserModel {
   final ConversationModel conversation;
   final ChatUserModel otherUser;
+  final bool hasUnread;
 
   const ConversationWithUserModel({
     required this.conversation,
     required this.otherUser,
+    this.hasUnread = false,
   });
 
   factory ConversationWithUserModel.fromJoinedJson(
     Map<String, dynamic> json,
-    String currentUserId,
-  ) {
+    String currentUserId, {
+    bool hasUnread = false,
+  }) {
     final conversation = ConversationModel.fromJson(json);
 
     final tenantJson = json['tenant'] as Map<String, dynamic>?;
@@ -31,6 +34,7 @@ class ConversationWithUserModel {
     return ConversationWithUserModel(
       conversation: conversation,
       otherUser: otherUser,
+      hasUnread: hasUnread,
     );
   }
 }

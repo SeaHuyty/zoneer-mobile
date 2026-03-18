@@ -39,6 +39,11 @@ CREATE POLICY "Conversations are viewable by participants"
   ON conversations FOR SELECT
   USING (auth.uid() = tenant_id OR auth.uid() = landlord_id);
 
+CREATE POLICY "Participants can update conversation summary"
+  ON conversations FOR UPDATE
+  USING (auth.uid() = tenant_id OR auth.uid() = landlord_id)
+  WITH CHECK (auth.uid() = tenant_id OR auth.uid() = landlord_id);
+
 -- Message policies (only participants can read/send messages)
 CREATE POLICY "Messages are viewable by conversation participants"
   ON messages FOR SELECT

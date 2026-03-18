@@ -250,7 +250,6 @@ class _VisitRequestCard extends ConsumerWidget {
       InquiryStatus.closed => ('Rejected', AppColors.error),
       InquiryStatus.newStatus => ('New', AppColors.info),
       InquiryStatus.read => ('Pending', AppColors.warning),
-      _ => ('Unknown', AppColors.grey),
     };
   }
 }

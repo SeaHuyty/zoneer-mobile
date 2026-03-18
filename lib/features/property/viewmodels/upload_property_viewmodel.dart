@@ -132,7 +132,6 @@ class UploadPropertyViewModel extends Notifier<bool> {
             .read(notificationsViewModelProvider.notifier)
             .createNotification(
               NotificationModel(
-                id: userId,
                 userId: userId,
                 title: helper.title,
                 message: helper.message,

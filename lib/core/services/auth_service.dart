@@ -3,6 +3,7 @@
 // Handles login, logout, token management, and authentication state
 // Provides authentication status across the entire app
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -43,19 +44,25 @@ class AuthService {
     return Uri.base.origin;
   }
 
-  Future<void> signInWithGoogle() async {
+Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: _getWebGoogleRedirectTo(),
       );
     } else {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final googleUser = await googleSignIn.signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+         serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID']
+      );
 
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
       final googleAuth = await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
+        throw Exception('Failed to get idToken');
+      }
 
       await _client.auth.signInWithIdToken(
         provider: OAuthProvider.google,

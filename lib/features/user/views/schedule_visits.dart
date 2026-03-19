@@ -116,7 +116,7 @@ class _VisitRequestCard extends ConsumerWidget {
         MaterialPageRoute(
           builder: (_) => ScheduleVisitDetail(inquiry: inquiry),
         ),
-      ),
+      ).then((_) => ref.invalidate(scheduledVisitsProvider)),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,

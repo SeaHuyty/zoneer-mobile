@@ -47,8 +47,10 @@ class _MyInquiriesState extends ConsumerState<MyInquiries> {
 
         data: (inquiries) {
           final pending = inquiries
-              .where((i) => i.status != InquiryStatus.replied && i.status == InquiryStatus.closed)
-              .toList();
+            .where((i) =>
+              i.status == InquiryStatus.newStatus ||
+              i.status == InquiryStatus.read)
+            .toList();
 
           if (pending.isEmpty) {
             return const Center(

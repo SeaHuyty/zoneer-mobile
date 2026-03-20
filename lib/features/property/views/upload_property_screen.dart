@@ -43,6 +43,8 @@ const _kBadgeOptions = {
   'near_market': ('Near Market', Icons.storefront),
 };
 
+const _kAllowedPropertyTypes = ['room', 'apartment', 'condo', 'house'];
+
 // ---------------------------------------------------------------------------
 // Photo entry helper
 // ---------------------------------------------------------------------------
@@ -117,7 +119,25 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       text: p != null ? p.squareArea.toString() : '',
     );
     _descriptionController = TextEditingController(text: p?.description ?? '');
-    _typeController = TextEditingController(text: p?.type ?? '');
+    final initialTypeRaw = (p?.type ?? '').trim();
+    final normalizedType = initialTypeRaw.toLowerCase();
+    final String typeControllerText;
+    if (p == null) {
+      // New property: keep existing default behavior of "room".
+      typeControllerText = 'room';
+    } else if (_kAllowedPropertyTypes.contains(normalizedType)) {
+      // Existing property with a recognized type: use normalized value.
+      typeControllerText = normalizedType;
+    } else if (initialTypeRaw.isEmpty) {
+      // Existing property with no type: leave unselected so user must choose.
+      typeControllerText = '';
+    } else {
+      // Existing property with an unrecognized/legacy type: preserve and display it.
+      typeControllerText = initialTypeRaw;
+    }
+    _typeController = TextEditingController(
+      text: typeControllerText,
+    );
 
     if (p?.latitude != null && p?.longitude != null) {
       _selectedLocation = LatLng(p!.latitude!, p.longitude!);
@@ -172,6 +192,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     _bathroomController.dispose();
     _areaController.dispose();
     _descriptionController.dispose();
+    _typeController.dispose();
     super.dispose();
   }
 
@@ -270,6 +291,18 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     final badgeOptions = _selectedBadgeOptions.isEmpty
         ? null
         : {for (final k in _selectedBadgeOptions) k: true};
+    final type = _typeController.text.trim().toLowerCase();
+
+    if (!_kAllowedPropertyTypes.contains(type)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Property type must be room, apartment, condo, or house.',
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
       await ref
@@ -292,7 +325,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
             badgeOptions: badgeOptions,
-            type: _typeController.text.trim()
+            type: type,
           );
 
       if (_selectedLocation != null) {
@@ -488,6 +521,60 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
               _buildCard(
                 title: 'Details',
                 children: [
+                  DropdownButtonFormField<String>(
+                    value: _typeController.text,
+                    decoration: InputDecoration(
+                      labelText: 'Property Type',
+                      hintText: 'Select a property type',
+                      hintStyle: const TextStyle(
+                        color: Colors.black38,
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.home_work_outlined,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Colors.black12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Colors.black12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppColors.primary),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                    ),
+                    items: _kAllowedPropertyTypes.map((type) {
+                      return DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(
+                          type[0].toUpperCase() + type.substring(1),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      _typeController.text = value;
+                    },
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Required';
+                      }
+                      return _kAllowedPropertyTypes.contains(value)
+                          ? null
+                          : 'Invalid type';
+                    },
+                  ),
+                  const SizedBox(height: 14),
                   _buildField(
                     controller: _priceController,
                     label: 'Price per month (\$)',

@@ -179,10 +179,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     return Scaffold(
-      body: messagesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (messages) {
+      body: SafeArea(
+        child: messagesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(child: Text(error.toString())),
+          data: (messages) {
           if (messages.isNotEmpty &&
               messages.length != _lastRenderedMessageCount) {
             final isInitialLoad = !_didInitialAutoScroll;
@@ -193,8 +194,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
           final firstOther = _findOtherUser(messages, currentUserId);
 
-          return Column(
-            children: [
+            return Column(
+              children: [
               if (firstOther != null)
                 ListTile(
                   leading: NavigationBackButton(),
@@ -386,10 +387,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

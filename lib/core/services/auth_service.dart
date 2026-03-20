@@ -43,7 +43,6 @@ class AuthService {
     // Default to the active web origin so OAuth callbacks work outside localhost.
     return Uri.base.origin;
   }
-
 Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _client.auth.signInWithOAuth(
@@ -51,23 +50,32 @@ Future<void> signInWithGoogle() async {
         redirectTo: _getWebGoogleRedirectTo(),
       );
     } else {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-         serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID']
+      final webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID']!;
+      final iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
+      const scopes = ['email', 'profile'];
+
+      await GoogleSignIn.instance.initialize(
+        serverClientId: webClientId,
+        clientId: iosClientId.isNotEmpty ? iosClientId : null,
       );
 
-      final googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return;
+      // Tries silent sign-in first; falls back to null (no UI shown)
+      final googleUser =
+          await GoogleSignIn.instance.attemptLightweightAuthentication() ??
+          await GoogleSignIn.instance.authenticate();
 
-      final googleAuth = await googleUser.authentication;
+      // Fetch access token with the required scopes
+      final authorization =
+          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+          await googleUser.authorizationClient.authorizeScopes(scopes);
 
-      if (googleAuth.idToken == null) {
-        throw Exception('Failed to get idToken');
-      }
+      final idToken = googleUser.authentication.idToken;
+      if (idToken == null) throw AuthException('No ID Token found.');
 
       await _client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
+        idToken: idToken,
+        accessToken: authorization.accessToken,
       );
     }
   }

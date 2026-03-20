@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'dart:io' show Platform;
 
 class AuthService {
   final SupabaseClient _client;
@@ -48,7 +49,8 @@ class AuthService {
 
       await GoogleSignIn.instance.initialize(
         serverClientId: webClientId,
-        clientId: iosClientId.isNotEmpty ? iosClientId : null,
+        clientId: Platform.isIOS && iosClientId.isNotEmpty ? iosClientId : null,
+
       );
 
       try {

@@ -119,9 +119,24 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       text: p != null ? p.squareArea.toString() : '',
     );
     _descriptionController = TextEditingController(text: p?.description ?? '');
-    final initialType = (p?.type ?? '').trim().toLowerCase();
+    final initialTypeRaw = (p?.type ?? '').trim();
+    final normalizedType = initialTypeRaw.toLowerCase();
+    final String typeControllerText;
+    if (p == null) {
+      // New property: keep existing default behavior of "room".
+      typeControllerText = 'room';
+    } else if (_kAllowedPropertyTypes.contains(normalizedType)) {
+      // Existing property with a recognized type: use normalized value.
+      typeControllerText = normalizedType;
+    } else if (initialTypeRaw.isEmpty) {
+      // Existing property with no type: leave unselected so user must choose.
+      typeControllerText = '';
+    } else {
+      // Existing property with an unrecognized/legacy type: preserve and display it.
+      typeControllerText = initialTypeRaw;
+    }
     _typeController = TextEditingController(
-      text: _kAllowedPropertyTypes.contains(initialType) ? initialType : 'room',
+      text: typeControllerText,
     );
 
     if (p?.latitude != null && p?.longitude != null) {

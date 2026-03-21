@@ -157,10 +157,10 @@ class UploadPropertyViewModel extends Notifier<bool> {
       // Refresh only targeted property queries used by screens.
       ref.invalidate(landlordPropertiesProvider(userId));
       ref.invalidate(mapPropertiesProvider);
-      ref.invalidate(propertySectionProvider(PropertySection.room));
-      ref.invalidate(propertySectionProvider(PropertySection.condo));
-      ref.invalidate(propertySectionProvider(PropertySection.apartment));
-      ref.invalidate(propertySectionProvider(PropertySection.house));
+      ref.invalidate(allPropertiesSectionProvider);
+      ref.invalidate(phnomPenhSectionProvider);
+      ref.invalidate(siemReapSectionProvider);
+      ref.invalidate(nearbyPropertiesSectionProvider);
     } finally {
       state = false;
     }

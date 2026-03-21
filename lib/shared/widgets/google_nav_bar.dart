@@ -4,6 +4,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/features/notification/widgets/in_app_notification_banner.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/property_map_page.dart';
@@ -70,7 +71,12 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: IndexedStack(index: selectedIndex, children: widgetOptions),
+      body: Stack(
+        children: [
+          IndexedStack(index: selectedIndex, children: widgetOptions),
+          const InAppNotificationBanner(),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,

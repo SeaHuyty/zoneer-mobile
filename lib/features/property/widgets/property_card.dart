@@ -154,33 +154,44 @@ class PropertyCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Row 1: Property name
+                  Text(
+                    property.name?.isNotEmpty == true
+                        ? property.name!
+                        : property.address,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Row 2: Location (left) + Bed/Bath (right)
                   Row(
                     children: [
                       const Icon(
                         Icons.location_on,
                         color: Colors.white,
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3),
                       Expanded(
                         child: Text(
                           property.address,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 12,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.bed, color: Colors.white, size: 16),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.bed, color: Colors.white, size: 14),
+                      const SizedBox(width: 3),
                       Text(
                         property.bedroom.toString(),
                         style: const TextStyle(
@@ -189,13 +200,13 @@ class PropertyCard extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       const Icon(
                         Icons.bathtub_rounded,
                         color: Colors.white,
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3),
                       Text(
                         property.bathroom.toString(),
                         style: const TextStyle(

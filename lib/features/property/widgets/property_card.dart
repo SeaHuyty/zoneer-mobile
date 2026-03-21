@@ -4,8 +4,14 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;
+  final double? distanceMeters;
 
-  const PropertyCard({super.key, required this.property});
+  const PropertyCard({super.key, required this.property, this.distanceMeters});
+
+  String _formatDistance(double meters) {
+    if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +75,41 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
+            // Distance badge (top left) — only shown for nearby cards
+            if (distanceMeters != null)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.near_me,
+                        size: 12,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        _formatDistance(distanceMeters!),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Price tag (top right)
             Positioned(
               top: 12,

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/services/supabase_service.dart';
 import 'package:zoneer_mobile/features/property/models/property_filter_model.dart';
@@ -49,6 +50,7 @@ class PropertyRepository {
     int? minBedroom,
     int? minBathroom,
     String? addressContains,
+    String? type,
   }) async {
     var query = _supabase
         .from('properties')
@@ -64,9 +66,52 @@ class PropertyRepository {
     if (addressContains != null && addressContains.trim().isNotEmpty) {
       query = query.ilike('address', '%${addressContains.trim()}%');
     }
+    if (type != null && type.trim().isNotEmpty) {
+      query = query.eq('type', type.trim());
+    }
 
     final response = await query.limit(limit);
     return (response as List).map((e) => PropertyModel.fromJson(e)).toList();
+  }
+
+  /// Returns properties within [radiusKm] of the given coordinates,
+  /// sorted by ascending distance. Each entry is (PropertyModel, distanceMeters).
+  Future<List<(PropertyModel, double)>> getNearbyProperties({
+    required double userLat,
+    required double userLng,
+    double radiusKm = 20.0,
+    String? type,
+    int fetchLimit = 300,
+  }) async {
+    var query = _supabase
+        .from('properties')
+        .select()
+        .eq('verify_status', VerifyStatus.verified.value)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+    if (type != null && type.trim().isNotEmpty) {
+      query = query.eq('type', type.trim());
+    }
+
+    final response = await query.limit(fetchLimit);
+    final all = (response as List).map((e) => PropertyModel.fromJson(e)).toList();
+
+    final nearby = <(PropertyModel, double)>[];
+    for (final p in all) {
+      if (p.latitude == null || p.longitude == null) continue;
+      final distanceMeters = Geolocator.distanceBetween(
+        userLat,
+        userLng,
+        p.latitude!,
+        p.longitude!,
+      );
+      if (distanceMeters <= radiusKm * 1000) {
+        nearby.add((p, distanceMeters));
+      }
+    }
+    nearby.sort((a, b) => a.$2.compareTo(b.$2));
+    return nearby;
   }
 
   Future<List<PropertyModel>> getMapProperties({

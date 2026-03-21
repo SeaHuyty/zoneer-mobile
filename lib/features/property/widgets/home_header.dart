@@ -8,6 +8,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/service_provider.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
+import 'package:zoneer_mobile/features/property/views/section_all_properties_screen.dart';
 import 'package:zoneer_mobile/features/property/widgets/banner.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 import 'package:zoneer_mobile/shared/widgets/search_bar.dart';
@@ -147,6 +148,7 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final currentCity = ref.watch(currentCityProvider);
 
@@ -186,58 +188,65 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _isLoadingLocation
-                            ? null
-                            : _handleLocationRequest,
-                        child: SvgPicture.asset(
-                          'assets/icons/map-pin-house.svg',
-                          width: 32,
-                          height: 32,
-                          colorFilter: isAuthenticated
-                              ? const ColorFilter.mode(
-                                  Colors.white,
-                                  BlendMode.srcIn,
-                                )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _isLoadingLocation
-                            ? null
-                            : _handleLocationRequest,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                  Flexible(
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _isLoadingLocation
+                              ? null
+                              : _handleLocationRequest,
+                          child: SvgPicture.asset(
+                            'assets/icons/map-pin-house.svg',
+                            width: 32,
+                            height: 32,
+                            colorFilter: isAuthenticated
+                                ? const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  )
+                                : null,
                           ),
-                          decoration: BoxDecoration(
-                            color: isAuthenticated
-                                ? Colors.white24
-                                : AppColors.primary,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: _isLoadingLocation
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  currentCity,
-                                  style: const TextStyle(
-                                    color: AppColors.white,
-                                  ),
-                                ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: _isLoadingLocation
+                                ? null
+                                : _handleLocationRequest,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 180),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isAuthenticated
+                                    ? Colors.white24
+                                    : AppColors.primary,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: _isLoadingLocation
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      currentCity,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: const TextStyle(
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   Row(
                     children: [
@@ -294,7 +303,17 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
               const SearchBarApp(),
 
               (isAuthenticated && !widget.isCollapsed)
-                  ? const BannerZoneer()
+                  ? BannerZoneer(
+                      onBrowseNow: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SectionAllPropertiesScreen(
+                            title: 'All Properties',
+                            sectionKey: 'all',
+                          ),
+                        ),
+                      ),
+                    )
                   : const SizedBox.shrink(),
             ],
           ),

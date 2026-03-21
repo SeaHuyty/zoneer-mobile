@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/core/services/auth_service.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_sections_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/views/section_all_properties_screen.dart';
 import 'package:zoneer_mobile/features/property/widgets/banner.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_header.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_properties_category.dart';
@@ -36,24 +38,42 @@ class _HomeViewState extends ConsumerState<HomeView> {
     super.dispose();
   }
 
+  void _navigateToSection(String title, String sectionKey) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SectionAllPropertiesScreen(
+          title: title,
+          sectionKey: sectionKey,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-      final isAuthenticated = ref.watch(isAuthenticatedProvider);
+    final isAuthenticated = ref.watch(isAuthenticatedProvider);
+    final locationState = ref.watch(locationPermissionProvider);
+    final hasLocation = locationState.hasPermission && locationState.userLocation != null;
+    final userLocation = locationState.userLocation;
+    final selectedType = ref.watch(selectedHomeCategoryProvider);
+
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
-              flexibleSpace: LayoutBuilder(
+            flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
-                    final isCollapsed = constraints.maxHeight <= 200;
-
+                final isCollapsed = constraints.maxHeight <= 200;
                 return ClipRRect(
-                  child: HomeHeader(isCollapsed: isCollapsed));
+                  child: HomeHeader(isCollapsed: isCollapsed),
+                );
               },
             ),
             pinned: true,
-            expandedHeight: isAuthenticated ? 270 : 140, 
-            collapsedHeight: 140, 
+            expandedHeight: isAuthenticated ? 270 : 140,
+            collapsedHeight: 140,
             elevation: _isScrolled ? 4 : 0,
             shadowColor: Colors.black26,
             backgroundColor: Colors.transparent,
@@ -63,7 +83,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                isAuthenticated? SizedBox.shrink() : const BannerZoneer() ,
+                // Banner for non-authenticated users
+                if (!isAuthenticated)
+                  BannerZoneer(
+                    onBrowseNow: () => _navigateToSection('All Properties', 'all'),
+                  ),
                 const SizedBox(height: 10),
                 const Text(
                   'Category',
@@ -72,32 +96,49 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 const SizedBox(height: 10),
                 const HomePropertiesCategory(),
                 const SizedBox(height: 10),
+
+                // Nearby section — only when location permission is granted
+                if (hasLocation && userLocation != null)
+                  HomePropertySection(
+                    title: 'Nearby',
+                    emptyMessage: 'No properties found within 20 km\nof your location.',
+                    onSeeAll: () => _navigateToSection('Nearby', 'nearby'),
+                    nearbyAsync: ref.watch(
+                      nearbyPropertiesSectionProvider((
+                        lat: userLocation.latitude,
+                        lng: userLocation.longitude,
+                        type: selectedType,
+                      )),
+                    ),
+                  ),
+
+                // All Properties
                 HomePropertySection(
-                  title: 'House',
-                  sectionType: 'house',
+                  title: 'All Properties',
+                  emptyMessage: 'No properties available right now.',
+                  onSeeAll: () => _navigateToSection('All Properties', 'all'),
                   propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.house),
+                    allPropertiesSectionProvider(selectedType),
                   ),
                 ),
+
+                // Phnom Penh
                 HomePropertySection(
-                  title: 'Condo',
-                  sectionType: 'condo',
+                  title: 'Phnom Penh',
+                  emptyMessage: 'No properties found in\nPhnom Penh yet.',
+                  onSeeAll: () => _navigateToSection('Phnom Penh', 'phnom_penh'),
                   propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.condo),
+                    phnomPenhSectionProvider(selectedType),
                   ),
                 ),
+
+                // Siem Reap
                 HomePropertySection(
-                  title: 'Apartment',
-                  sectionType: 'apartment',
+                  title: 'Siem Reap',
+                  emptyMessage: 'No properties found in\nSiem Reap yet.',
+                  onSeeAll: () => _navigateToSection('Siem Reap', 'siem_reap'),
                   propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.apartment),
-                  ),
-                ),
-                HomePropertySection(
-                  title: 'Room',
-                  sectionType: 'room',
-                  propertiesAsync: ref.watch(
-                    propertySectionProvider(PropertySection.room),
+                    siemReapSectionProvider(selectedType),
                   ),
                 ),
               ]),

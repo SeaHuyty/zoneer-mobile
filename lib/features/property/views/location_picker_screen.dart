@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/core/utils/app_config.dart';
 
 class LocationPickerScreen extends StatefulWidget {
   final LatLng? initialLocation;
@@ -16,8 +20,14 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final MapController _mapController = MapController();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+
   LatLng? _selectedLocation;
   bool _loadingLocation = false;
+  bool _searching = false;
+  List<_PlaceResult> _searchResults = [];
+  Timer? _debounce;
 
   // Default center: Phnom Penh
   static const _defaultCenter = LatLng(11.5564, 104.9282);
@@ -27,6 +37,66 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     super.initState();
     _selectedLocation = widget.initialLocation;
   }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() => _searchResults = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 500), () => _search(query));
+  }
+
+  Future<void> _search(String query) async {
+    setState(() => _searching = true);
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'q': query.trim(),
+        'format': 'json',
+        'limit': '5',
+        'accept-language': 'en',
+      });
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'ZoneerMobileApp/1.0'},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List;
+        setState(() {
+          _searchResults = data
+              .map((e) => _PlaceResult.fromJson(e as Map<String, dynamic>))
+              .toList();
+        });
+      }
+    } catch (_) {
+      setState(() => _searchResults = []);
+    } finally {
+      setState(() => _searching = false);
+    }
+  }
+
+  void _selectPlace(_PlaceResult place) {
+    final loc = LatLng(place.lat, place.lng);
+    setState(() {
+      _selectedLocation = loc;
+      _searchResults = [];
+      _searchController.clear();
+    });
+    _searchFocus.unfocus();
+    _mapController.move(loc, 15);
+  }
+
+  // ── Current location ───────────────────────────────────────────────────────
 
   Future<void> _goToCurrentLocation() async {
     setState(() => _loadingLocation = true);
@@ -61,6 +131,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     }
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,13 +154,18 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       ),
       body: Stack(
         children: [
+          // ── Map ──────────────────────────────────────────────────────────
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               initialCenter: widget.initialLocation ?? _defaultCenter,
               initialZoom: 14,
               onTap: (_, point) {
-                setState(() => _selectedLocation = point);
+                setState(() {
+                  _selectedLocation = point;
+                  _searchResults = [];
+                });
+                _searchFocus.unfocus();
               },
             ),
             children: [
@@ -114,7 +191,134 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ],
           ),
 
-          // Bottom panel
+          // ── Search bar (floating top) ─────────────────────────────────────
+          Positioned(
+            top: 12,
+            left: 12,
+            right: 12,
+            child: Column(
+              children: [
+                // Search input
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search location (e.g. Siem Reap, Psa Ler)',
+                      hintStyle: const TextStyle(
+                        color: Colors.black38,
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      suffixIcon: _searching
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            )
+                          : _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                size: 18,
+                                color: Colors.black38,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchResults = []);
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Search results dropdown
+                if (_searchResults.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: _searchResults.map((place) {
+                          return InkWell(
+                            onTap: () => _selectPlace(place),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 11,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_outlined,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      place.displayName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black87,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Bottom panel ──────────────────────────────────────────────────
           Positioned(
             left: 0,
             right: 0,
@@ -201,7 +405,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Tap anywhere on the map to pin a location',
+                              'Search or tap on the map to pin a location',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.black45,
@@ -270,6 +474,26 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PlaceResult {
+  final String displayName;
+  final double lat;
+  final double lng;
+
+  _PlaceResult({
+    required this.displayName,
+    required this.lat,
+    required this.lng,
+  });
+
+  factory _PlaceResult.fromJson(Map<String, dynamic> json) {
+    return _PlaceResult(
+      displayName: json['display_name'] as String,
+      lat: double.parse(json['lat'] as String),
+      lng: double.parse(json['lon'] as String),
     );
   }
 }

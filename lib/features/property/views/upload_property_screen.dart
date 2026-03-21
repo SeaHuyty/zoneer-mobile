@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:zoneer_mobile/core/providers/service_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,6 +46,13 @@ const _kBadgeOptions = {
 
 const _kAllowedPropertyTypes = ['room', 'apartment', 'condo', 'house'];
 
+const _kPropertyTypeIcons = {
+  'room': Icons.door_front_door_outlined,
+  'apartment': Icons.apartment_outlined,
+  'condo': Icons.business_outlined,
+  'house': Icons.home_outlined,
+};
+
 // ---------------------------------------------------------------------------
 // Photo entry helper
 // ---------------------------------------------------------------------------
@@ -79,6 +87,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
+  late final TextEditingController _nameController;
   late final TextEditingController _addressController;
   late final TextEditingController _priceController;
   late final TextEditingController _bedroomController;
@@ -105,6 +114,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   void initState() {
     super.initState();
     final p = widget.existingProperty;
+    _nameController = TextEditingController(text: p?.name ?? '');
     _addressController = TextEditingController(text: p?.address ?? '');
     _priceController = TextEditingController(
       text: p != null ? p.price.toString() : '',
@@ -186,6 +196,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _addressController.dispose();
     _priceController.dispose();
     _bedroomController.dispose();
@@ -200,25 +211,57 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   // Photo helpers
   // -------------------------------------------------------------------------
 
-  Future<void> _pickPhoto(int index) async {
+  Future<void> _pickPhoto(int startIndex) async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
+
+    // Replacing an existing slot — single pick only
+    if (startIndex < _photos.length) {
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxHeight: 1200,
+        maxWidth: 1200,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      final bytes = await image.readAsBytes();
+      final ext = image.path.split('.').last;
+      setState(() {
+        _photos[startIndex] = _PhotoEntry(bytes: bytes, ext: ext);
+      });
+      return;
+    }
+
+    // Adding new slots — multi-pick
+    final images = await picker.pickMultiImage(
       maxHeight: 1200,
       maxWidth: 1200,
       imageQuality: 85,
     );
-    if (image == null) return;
-    final bytes = await image.readAsBytes();
-    final ext = image.path.split('.').last;
-    setState(() {
-      if (index < _photos.length) {
-        _photos[index] = _PhotoEntry(bytes: bytes, ext: ext);
-      } else {
-        // Adding a new slot
-        _photos.add(_PhotoEntry(bytes: bytes, ext: ext));
-      }
-    });
+    if (images.isEmpty) return;
+
+    final remaining = _maxPhotos - _photos.length;
+    final toAdd = images.take(remaining).toList();
+
+    if (images.length > remaining && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Only $remaining photo${remaining == 1 ? '' : 's'} remaining. '
+            'Added the first $remaining.',
+          ),
+        ),
+      );
+    }
+
+    final entries = await Future.wait(
+      toAdd.map((img) async {
+        final bytes = await img.readAsBytes();
+        final ext = img.path.split('.').last;
+        return _PhotoEntry(bytes: bytes, ext: ext);
+      }),
+    );
+
+    setState(() => _photos.addAll(entries));
   }
 
   void _removePhoto(int index) {
@@ -235,6 +278,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   // Location
   // -------------------------------------------------------------------------
 
+  bool _geocoding = false;
+
   Future<void> _openLocationPicker() async {
     final result = await Navigator.push<LatLng>(
       context,
@@ -244,7 +289,23 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       ),
     );
     if (result != null) {
-      setState(() => _selectedLocation = result);
+      setState(() {
+        _selectedLocation = result;
+        _geocoding = true;
+      });
+      // Auto-fill address via reverse geocoding
+      try {
+        final locationService = ref.read(locationServiceProvider);
+        final address = await locationService.getCityFromCoordinates(
+          result.latitude,
+          result.longitude,
+        );
+        if (address != null && mounted) {
+          _addressController.text = address;
+        }
+      } finally {
+        if (mounted) setState(() => _geocoding = false);
+      }
     }
   }
 
@@ -326,6 +387,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             securityFeatures: securityFeatures,
             badgeOptions: badgeOptions,
             type: type,
+            name: _nameController.text.trim(),
           );
 
       if (_selectedLocation != null) {
@@ -401,17 +463,48 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
               const SizedBox(height: 14),
 
+              // ── Name ─────────────────────────────────────────────────────
+              _buildCard(
+                title: 'Property Name',
+                children: [
+                  _buildField(
+                    controller: _nameController,
+                    label: 'Name',
+                    hint: 'e.g. Cozy Studio near BKK1',
+                    icon: Icons.label_outline,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
               // ── Location ────────────────────────────────────────────────
               _buildCard(
                 title: 'Location',
                 children: [
-                  _buildField(
-                    controller: _addressController,
-                    label: 'Address',
-                    hint: 'e.g. 12 Street, Phnom Penh',
-                    icon: Icons.location_on_outlined,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  Stack(
+                    children: [
+                      _buildField(
+                        controller: _addressController,
+                        label: 'Address',
+                        hint: 'e.g. Chbar Ampov, Phnom Penh',
+                        icon: Icons.location_on_outlined,
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      ),
+                      if (_geocoding)
+                        const Positioned(
+                          right: 12,
+                          top: 14,
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   if (_selectedLocation != null) ...[
@@ -521,59 +614,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
               _buildCard(
                 title: 'Details',
                 children: [
-                  DropdownButtonFormField<String>(
-                    value: _typeController.text,
-                    decoration: InputDecoration(
-                      labelText: 'Property Type',
-                      hintText: 'Select a property type',
-                      hintStyle: const TextStyle(
-                        color: Colors.black38,
-                        fontSize: 13,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.home_work_outlined,
-                        size: 20,
-                        color: AppColors.primary,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.black12),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.black12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppColors.primary),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                    ),
-                    items: _kAllowedPropertyTypes.map((type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(
-                          type[0].toUpperCase() + type.substring(1),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      _typeController.text = value;
-                    },
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Required';
-                      }
-                      return _kAllowedPropertyTypes.contains(value)
-                          ? null
-                          : 'Invalid type';
-                    },
-                  ),
+                  _buildPropertyTypeSelector(),
                   const SizedBox(height: 14),
                   _buildField(
                     controller: _priceController,
@@ -880,6 +921,196 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Property type selector
+  // -------------------------------------------------------------------------
+
+  Widget _buildPropertyTypeSelector() {
+    final selected = _typeController.text;
+    final icon = _kPropertyTypeIcons[selected] ?? Icons.home_work_outlined;
+    final label = selected.isEmpty
+        ? 'Select a property type'
+        : selected[0].toUpperCase() + selected.substring(1);
+
+    return FormField<String>(
+      initialValue: selected,
+      validator: (_) {
+        final v = _typeController.text.trim();
+        if (v.isEmpty) return 'Required';
+        return _kAllowedPropertyTypes.contains(v) ? null : 'Invalid type';
+      },
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () => _showPropertyTypeSheet(field),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: field.hasError
+                        ? Colors.red
+                        : selected.isNotEmpty
+                        ? AppColors.primary
+                        : Colors.black12,
+                    width: selected.isNotEmpty ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: selected.isNotEmpty
+                          ? AppColors.primary
+                          : Colors.black38,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: selected.isNotEmpty
+                              ? Colors.black87
+                              : Colors.black38,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: selected.isNotEmpty
+                          ? AppColors.primary
+                          : Colors.black38,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (field.hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 12),
+                child: Text(
+                  field.errorText!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showPropertyTypeSheet(FormFieldState<String> field) async {
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final current = _typeController.text;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const Text(
+                    'Select Property Type',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.2,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: _kAllowedPropertyTypes.map((type) {
+                      final isSelected = current == type;
+                      final typeIcon =
+                          _kPropertyTypeIcons[type] ?? Icons.home_outlined;
+                      final typeLabel =
+                          type[0].toUpperCase() + type.substring(1);
+                      return GestureDetector(
+                        onTap: () {
+                          setSheetState(() {});
+                          setState(() => _typeController.text = type);
+                          field.didChange(type);
+                          Navigator.pop(ctx);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.black12,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                typeIcon,
+                                size: 22,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                typeLabel,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

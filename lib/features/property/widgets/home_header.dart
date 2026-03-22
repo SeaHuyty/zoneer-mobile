@@ -8,6 +8,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/service_provider.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/section_all_properties_screen.dart';
 import 'package:zoneer_mobile/features/property/widgets/banner.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
@@ -250,36 +251,69 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                   ),
                   Row(
                     children: [
-                      IconButton(
-                        style: IconButton.styleFrom(
-                          backgroundColor: isAuthenticated
-                              ? AppColors.white
-                              : Colors.transparent,
-                          side: BorderSide(
-                            color: isAuthenticated
-                                ? Colors.white24
-                                : AppColors.greyLight,
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        icon: Lottie.asset(
-                          'assets/icons/system-solid-46-notification-bell-hover-bell.json',
-                          controller: _notificationController,
-                          width: 28,
-                          height: 28,
-                          onLoaded: (composition) {
-                            _notificationController.duration =
-                                composition.duration;
-                          },
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NotificationScreen(),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: isAuthenticated
+                                  ? AppColors.white
+                                  : Colors.transparent,
+                              side: BorderSide(
+                                color: isAuthenticated
+                                    ? Colors.white24
+                                    : AppColors.greyLight,
+                              ),
+                              padding: EdgeInsets.zero,
                             ),
-                          );
-                        },
+                            icon: Lottie.asset(
+                              'assets/icons/system-solid-46-notification-bell-hover-bell.json',
+                              controller: _notificationController,
+                              width: 28,
+                              height: 28,
+                              onLoaded: (composition) {
+                                _notificationController.duration =
+                                    composition.duration;
+                              },
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          // Unread dot badge
+                          Builder(
+                            builder: (ctx) {
+                              final notifications = ref
+                                  .watch(notificationsViewModelProvider)
+                                  .value;
+                              final hasUnread = notifications != null &&
+                                  notifications.any((n) => !n.isRead);
+                              if (!hasUnread) return const SizedBox.shrink();
+                              return Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       if (isAuthenticated) ...[
                         const SizedBox(width: 8),

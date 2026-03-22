@@ -12,6 +12,7 @@ import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dar
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
+import 'package:zoneer_mobile/features/notification/widgets/floating_banner.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 
 // ---------------------------------------------------------------------------
@@ -396,13 +397,33 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       }
 
       if (mounted) {
-        await _showSuccessDialog(
+        final viewDetail = await _showSuccessDialog(
           context,
           propertyId: propertyId,
           propertyName: _nameController.text.trim(),
           isEditing: _isEditing,
         );
-        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          // Show banner AFTER dialog closes, BEFORE navigation.
+          // Inserted directly into the root overlay — persists on destination screen.
+          if (!_isEditing) {
+            showFloatingBanner(
+              context,
+              title: 'Property Uploaded!',
+              message: 'Your property is now under review.',
+            );
+          }
+
+          if (viewDetail) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => PropertyDetailPage(id: propertyId),
+              ),
+            );
+          } else {
+            Navigator.pop(context);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -417,13 +438,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   // Success dialog
   // -------------------------------------------------------------------------
 
-  Future<void> _showSuccessDialog(
+  Future<bool> _showSuccessDialog(
     BuildContext context, {
     required String propertyId,
     required String propertyName,
     required bool isEditing,
-  }) {
-    return showDialog<void>(
+  }) async {
+    final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _UploadSuccessDialog(
@@ -432,6 +453,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         isEditing: isEditing,
       ),
     );
+    return result ?? false;
   }
 
   // -------------------------------------------------------------------------
@@ -1276,7 +1298,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 // =============================================================================
 
 class _UploadSuccessDialog extends StatelessWidget {
-  final String propertyId;
+  final String propertyId; // kept for potential future use
   final String propertyName;
   final bool isEditing;
 
@@ -1356,7 +1378,7 @@ class _UploadSuccessDialog extends StatelessWidget {
                 // OK button
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -1380,14 +1402,7 @@ class _UploadSuccessDialog extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PropertyDetailPage(id: propertyId),
-                        ),
-                      );
-                    },
+                    onPressed: () => Navigator.of(context).pop(true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,

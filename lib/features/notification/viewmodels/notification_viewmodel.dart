@@ -102,6 +102,14 @@ class NotificationViewmodel extends AsyncNotifier<List<NotificationModel>> {
     });
   }
 
+  /// Prepend a notification received from Realtime (no DB write needed).
+  void prependNotification(NotificationModel notification) {
+    final currentState = state;
+    if (currentState is AsyncData<List<NotificationModel>>) {
+      state = AsyncValue.data([notification, ...currentState.value]);
+    }
+  }
+
   Future<void> createNotification(NotificationModel notification) async {
     final created = await ref
         .read(notificationRepositoryProvider)

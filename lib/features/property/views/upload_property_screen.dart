@@ -12,6 +12,7 @@ import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dar
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
+import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 
 // ---------------------------------------------------------------------------
 // Amenity definitions
@@ -366,7 +367,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     }
 
     try {
-      await ref
+      final propertyId = await ref
           .read(uploadPropertyViewModelProvider.notifier)
           .submit(
             thumbnailBytes: thumbnail.bytes,
@@ -395,16 +396,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditing
-                  ? 'Property updated successfully.'
-                  : 'Property uploaded successfully.',
-            ),
-          ),
+        await _showSuccessDialog(
+          context,
+          propertyId: propertyId,
+          propertyName: _nameController.text.trim(),
+          isEditing: _isEditing,
         );
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -413,6 +411,27 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Success dialog
+  // -------------------------------------------------------------------------
+
+  Future<void> _showSuccessDialog(
+    BuildContext context, {
+    required String propertyId,
+    required String propertyName,
+    required bool isEditing,
+  }) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _UploadSuccessDialog(
+        propertyId: propertyId,
+        propertyName: propertyName,
+        isEditing: isEditing,
+      ),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -1246,6 +1265,147 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 14,
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Success dialog shown after upload / edit
+// =============================================================================
+
+class _UploadSuccessDialog extends StatelessWidget {
+  final String propertyId;
+  final String propertyName;
+  final bool isEditing;
+
+  const _UploadSuccessDialog({
+    required this.propertyId,
+    required this.propertyName,
+    required this.isEditing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Success icon
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline_rounded,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Title
+            Text(
+              isEditing ? 'Property Updated!' : 'Property Uploaded!',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Property name
+            if (propertyName.isNotEmpty)
+              Text(
+                '"$propertyName"',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 8),
+
+            // Message
+            Text(
+              isEditing
+                  ? 'Your property has been updated successfully.'
+                  : 'Your property is now under review. We\'ll notify you once it\'s verified.',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+
+            // Buttons
+            Row(
+              children: [
+                // OK button
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(
+                        color: Colors.black.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // View Detail button
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PropertyDetailPage(id: propertyId),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'View Detail',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -6,7 +6,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
 import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
 import 'package:zoneer_mobile/features/notification/providers/in_app_notification_provider.dart';
-import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
+import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 
 /// Watches [inAppNotificationProvider] and slides a banner in from the top
 /// whenever a new notification is pushed. Auto-dismisses after 4 seconds.
@@ -69,15 +69,10 @@ class _InAppNotificationBannerState
   }
 
   void _onTap() {
-    final notification = _current;
     _dismiss();
-    if (notification == null) return;
-    final propertyId = notification.metadata?['property_id'] as String?;
-    if (propertyId != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PropertyDetailPage(id: propertyId)),
-      );
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificationScreen()),
+    );
   }
 
   @override

@@ -12,10 +12,7 @@ import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dar
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
-import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
-import 'package:zoneer_mobile/features/notification/providers/in_app_notification_provider.dart';
+import 'package:zoneer_mobile/features/notification/widgets/floating_banner.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 
 // ---------------------------------------------------------------------------
@@ -408,19 +405,13 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         );
         if (mounted) {
           // Show banner AFTER dialog closes, BEFORE navigation.
-          // This ensures nothing covers it and it persists on the destination screen.
+          // Inserted directly into the root overlay — persists on destination screen.
           if (!_isEditing) {
-            final userId =
-                Supabase.instance.client.auth.currentUser?.id ?? '';
-            ref.read(inAppNotificationProvider.notifier).show(
-                  NotificationModel(
-                    userId: userId,
-                    title: 'Property Uploaded!',
-                    message: 'Your property is now under review.',
-                    type: NotificationType.propertyVerification,
-                    metadata: {'property_id': propertyId},
-                  ),
-                );
+            showFloatingBanner(
+              context,
+              title: 'Property Uploaded!',
+              message: 'Your property is now under review.',
+            );
           }
 
           if (viewDetail) {

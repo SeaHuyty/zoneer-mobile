@@ -17,7 +17,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
   @override
   bool build() => false;
 
-  Future<void> submit({
+  Future<String> submit({
     // Thumbnail – index 0 of the photo list
     required Uint8List? thumbnailBytes,
     required String? thumbnailExt,
@@ -177,6 +177,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
       ref.invalidate(phnomPenhSectionProvider);
       ref.invalidate(siemReapSectionProvider);
       ref.invalidate(nearbyPropertiesSectionProvider);
+      return propertyId;
     } finally {
       state = false;
     }

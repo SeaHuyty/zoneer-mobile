@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
 import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
-import 'package:zoneer_mobile/features/notification/providers/in_app_notification_provider.dart';
 import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_sections_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
@@ -147,9 +146,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
         await ref
             .read(notificationsViewModelProvider.notifier)
             .createNotification(newNotification);
-
-        // Show in-app banner immediately after upload.
-        ref.read(inAppNotificationProvider.notifier).show(newNotification);
+        // Banner is triggered by the upload screen after dialog is dismissed.
       }
 
       // --- Manage property_media records ---

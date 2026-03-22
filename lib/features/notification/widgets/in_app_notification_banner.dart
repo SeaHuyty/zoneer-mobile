@@ -8,8 +8,8 @@ import 'package:zoneer_mobile/features/notification/models/notification_model.da
 import 'package:zoneer_mobile/features/notification/providers/in_app_notification_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 
-/// Watches [inAppNotificationProvider] and slides a banner in from the top
-/// whenever a new notification is pushed. Auto-dismisses after 4 seconds.
+/// Listens to [inAppNotificationProvider] and inserts a root OverlayEntry
+/// so the banner appears on top of any active route (including upload screen).
 class InAppNotificationBanner extends ConsumerStatefulWidget {
   const InAppNotificationBanner({super.key});
 
@@ -25,6 +25,7 @@ class _InAppNotificationBannerState
   late final Animation<Offset> _slideAnim;
   late final Animation<double> _fadeAnim;
 
+  OverlayEntry? _overlayEntry;
   NotificationModel? _current;
   Timer? _autoDismiss;
 
@@ -42,18 +43,29 @@ class _InAppNotificationBannerState
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
+    // Rebuild overlay entry on each animation tick so transitions play.
+    _ctrl.addListener(() => _overlayEntry?.markNeedsBuild());
   }
 
   @override
   void dispose() {
     _autoDismiss?.cancel();
+    _overlayEntry?.remove();
+    _overlayEntry = null;
     _ctrl.dispose();
     super.dispose();
   }
 
   void _show(NotificationModel notification) {
     _autoDismiss?.cancel();
-    setState(() => _current = notification);
+    _current = notification;
+
+    // Remove any existing overlay before inserting a new one.
+    _overlayEntry?.remove();
+    _overlayEntry = OverlayEntry(builder: _buildOverlay);
+
+    // Insert into the root overlay so it appears above all routes.
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
     _ctrl.forward(from: 0);
     _autoDismiss = Timer(const Duration(seconds: 4), _dismiss);
   }
@@ -61,8 +73,10 @@ class _InAppNotificationBannerState
   void _dismiss() {
     _autoDismiss?.cancel();
     _ctrl.reverse().then((_) {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+      _current = null;
       if (mounted) {
-        setState(() => _current = null);
         ref.read(inAppNotificationProvider.notifier).clear();
       }
     });
@@ -70,25 +84,19 @@ class _InAppNotificationBannerState
 
   void _onTap() {
     _dismiss();
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificationScreen()),
-    );
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(builder: (_) => const NotificationScreen()),
+      );
+    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // React to provider changes
-    ref.listen<NotificationModel?>(inAppNotificationProvider, (_, next) {
-      if (next != null) _show(next);
-    });
-
-    if (_current == null) return const SizedBox.shrink();
-
-    final notification = _current!;
-    final mediaQuery = MediaQuery.of(context);
+  Widget _buildOverlay(BuildContext ctx) {
+    final notification = _current;
+    if (notification == null) return const SizedBox.shrink();
 
     return Positioned(
-      top: mediaQuery.padding.top + 8,
+      top: MediaQuery.of(ctx).padding.top + 8,
       left: 16,
       right: 16,
       child: SlideTransition(
@@ -103,6 +111,14 @@ class _InAppNotificationBannerState
         ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<NotificationModel?>(inAppNotificationProvider, (_, next) {
+      if (next != null) _show(next);
+    });
+    return const SizedBox.shrink();
   }
 }
 

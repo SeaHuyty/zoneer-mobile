@@ -72,6 +72,55 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                   icon: const Icon(Icons.done_all),
                   tooltip: 'Mark all as read',
                 ),
+                PopupMenuButton<_NotifAction>(
+                  onSelected: (action) async {
+                    if (action == _NotifAction.clearAll) {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Clear all notifications?'),
+                          content: const Text(
+                            'This will permanently delete all your notifications.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(true),
+                              child: const Text(
+                                'Clear all',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        ref
+                            .read(notificationsViewModelProvider.notifier)
+                            .deleteAllNotifications(authUser.id);
+                      }
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: _NotifAction.clearAll,
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_sweep_outlined,
+                              color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Text('Clear all',
+                              style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
       ),
       body: notificationAsync.when(
@@ -142,43 +191,68 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                               notification.id,
                             );
 
-                            return NotificationRow(
-                              notification: notification,
-                              isSelected: isSelected,
-                              onTap: () {
-                                if (isSelectionMode) {
+                            return Dismissible(
+                              key: Key(notification.id ?? index.toString()),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 24),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              onDismissed: (_) {
+                                ref
+                                    .read(
+                                      notificationsViewModelProvider.notifier,
+                                    )
+                                    .deleteNotification(notification.id!);
+                              },
+                              child: NotificationRow(
+                                notification: notification,
+                                isSelected: isSelected,
+                                onTap: () {
+                                  if (isSelectionMode) {
+                                    _toggleSelection(notification.id!);
+                                    return;
+                                  }
+                                  // Mark as read
+                                  if (!notification.isRead) {
+                                    ref
+                                        .read(
+                                          notificationsViewModelProvider
+                                              .notifier,
+                                        )
+                                        .markNotificationAsRead(
+                                            notification.id!);
+                                  }
+                                  // Navigate to property detail if applicable
+                                  final propertyId = notification
+                                      .metadata?['property_id'] as String?;
+                                  if (propertyId != null &&
+                                      (notification.type ==
+                                              NotificationType
+                                                  .propertyVerification ||
+                                          notification.type ==
+                                              NotificationType.system)) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            PropertyDetailPage(id: propertyId),
+                                      ),
+                                    );
+                                  }
+                                },
+                                onLongPress: () {
                                   _toggleSelection(notification.id!);
-                                  return;
-                                }
-                                // Mark as read
-                                if (!notification.isRead) {
-                                  ref
-                                      .read(
-                                        notificationsViewModelProvider.notifier,
-                                      )
-                                      .markNotificationAsRead(notification.id!);
-                                }
-                                // Navigate to property detail if applicable
-                                final propertyId = notification
-                                    .metadata?['property_id'] as String?;
-                                if (propertyId != null &&
-                                    (notification.type ==
-                                            NotificationType
-                                                .propertyVerification ||
-                                        notification.type ==
-                                            NotificationType.system)) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          PropertyDetailPage(id: propertyId),
-                                    ),
-                                  );
-                                }
-                              },
-                              onLongPress: () {
-                                _toggleSelection(notification.id!);
-                              },
+                                },
+                              ),
                             );
                           },
                         ),
@@ -385,7 +459,7 @@ class _EmptyNotificationState extends StatelessWidget {
             ),
             SizedBox(height: 6),
             Text(
-              'You’re all caught up.',
+              "You're all caught up.",
               style: TextStyle(color: Colors.black38),
             ),
           ],
@@ -394,3 +468,5 @@ class _EmptyNotificationState extends StatelessWidget {
     );
   }
 }
+
+enum _NotifAction { clearAll }

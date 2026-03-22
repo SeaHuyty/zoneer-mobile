@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:lottie/lottie.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
+import 'package:zoneer_mobile/features/notification/widgets/floating_banner.dart';
 import 'package:zoneer_mobile/features/notification/widgets/in_app_notification_banner.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
@@ -25,6 +29,8 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   late AnimationController _mapController;
   late AnimationController _profileController;
 
+  RealtimeChannel? _notificationChannel;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +50,46 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // Subscribe to real-time notification inserts for the current user.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _subscribeNotifications());
+  }
+
+  void _subscribeNotifications() {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _notificationChannel = Supabase.instance.client
+        .channel('notifications_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            if (!mounted) return;
+            try {
+              final notification = NotificationModel.fromJson(payload.newRecord);
+              // Append to in-memory list so badge + notification screen update.
+              ref
+                  .read(notificationsViewModelProvider.notifier)
+                  .prependNotification(notification);
+              // Show floating banner on top of whatever screen is active.
+              showFloatingBanner(
+                context,
+                title: notification.title,
+                message: notification.message,
+              );
+            } catch (_) {
+              // Malformed payload — ignore silently.
+            }
+          },
+        )
+        .subscribe();
   }
 
   @override
@@ -52,6 +98,9 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     _wishlistController.dispose();
     _mapController.dispose();
     _profileController.dispose();
+    if (_notificationChannel != null) {
+      Supabase.instance.client.removeChannel(_notificationChannel!);
+    }
     super.dispose();
   }
 

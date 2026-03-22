@@ -12,12 +12,41 @@ typedef SearchPropertiesParams = ({
   int minBaths,
 });
 
-final landlordPropertiesProvider =
-    FutureProvider.family<List<PropertyModel>, String>((ref, landlordId) async {
-      return ref
-          .read(propertyRepositoryProvider)
-          .getPropertiesByLandlordId(landlordId);
-    });
+class LandlordPropertiesNotifier extends AsyncNotifier<List<PropertyModel>> {
+  final String landlordId;
+
+  LandlordPropertiesNotifier(this.landlordId);
+
+  @override
+  Future<List<PropertyModel>> build() async {
+    return ref
+        .read(propertyRepositoryProvider)
+        .getPropertiesByLandlordId(landlordId);
+  }
+
+  /// Prepends [property] to the list immediately (no network round-trip).
+  void prependProperty(PropertyModel property) {
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData([property, ...current]);
+    }
+  }
+
+  /// Removes the property with [id] from the list immediately.
+  void removeProperty(String id) {
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(current.where((p) => p.id != id).toList());
+    }
+  }
+}
+
+final landlordPropertiesProvider = AsyncNotifierProvider.family<
+    LandlordPropertiesNotifier,
+    List<PropertyModel>,
+    String>(
+  (landlordId) => LandlordPropertiesNotifier(landlordId),
+);
 
 final mapPropertiesProvider = FutureProvider<List<PropertyModel>>((ref) async {
   final filter = ref.watch(propertyFilterProvider);

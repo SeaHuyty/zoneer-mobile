@@ -24,6 +24,7 @@ class PropertyModel {
 
   final String? landlordId;
   final String? verifiedByAdmin;
+  final String? name;
 
   PropertyModel({
     required this.id,
@@ -45,6 +46,7 @@ class PropertyModel {
     this.propertyStatus,
     this.landlordId,
     this.verifiedByAdmin,
+    this.name,
   });
 
   // Create object from API/Database JSON
@@ -83,6 +85,7 @@ class PropertyModel {
           : null,
       landlordId: json['landlord_id'] as String?,
       verifiedByAdmin: json['verified_by_admin'] as String?,
+      name: json['name'] as String?,
     );
   }
 
@@ -106,6 +109,7 @@ class PropertyModel {
       'property_status': propertyStatus?.value,
       'landlord_id': landlordId,
       'verified_by_admin': verifiedByAdmin,
+      'name': name,
     };
 
     data.removeWhere((key, value) => value == null);
@@ -132,6 +136,7 @@ class PropertyModel {
     PropertyStatus? propertyStatus,
     String? landlordId,
     String? verifiedByAdmin,
+    String? name,
   }) {
     return PropertyModel(
       id: id ?? this.id,
@@ -153,6 +158,7 @@ class PropertyModel {
       propertyStatus: propertyStatus ?? this.propertyStatus,
       landlordId: landlordId ?? this.landlordId,
       verifiedByAdmin: verifiedByAdmin ?? this.verifiedByAdmin,
+      name: name ?? this.name,
     );
   }
 }

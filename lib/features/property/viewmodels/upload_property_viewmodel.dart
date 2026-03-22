@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:zoneer_mobile/features/notification/models/enums/notification_type.dart';
 import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
+import 'package:zoneer_mobile/features/notification/providers/in_app_notification_provider.dart';
 import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_sections_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
@@ -16,7 +17,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
   @override
   bool build() => false;
 
-  Future<void> submit({
+  Future<String> submit({
     // Thumbnail – index 0 of the photo list
     required Uint8List? thumbnailBytes,
     required String? thumbnailExt,
@@ -37,6 +38,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required double longitude,
     required String description,
     required String type,
+    required String name,
     // Amenities
     required Map<String, dynamic>? propertyFeatures,
     required Map<String, dynamic>? securityFeatures,
@@ -94,6 +96,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             description: description,
             thumbnail: thumbnailUrl,
             type: type,
+            name: name,
             landlordId: userId,
             verifyStatus: existingProperty.verifyStatus,
             propertyStatus: existingProperty.propertyStatus,
@@ -118,6 +121,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             description: description,
             thumbnail: thumbnailUrl,
             type: type,
+            name: name,
             landlordId: userId,
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
@@ -126,18 +130,26 @@ class UploadPropertyViewModel extends Notifier<bool> {
         );
         propertyId = createdProperty.id;
 
+        // Instantly add the new property to the landlord list — no reload needed.
+        ref
+            .read(landlordPropertiesProvider(userId).notifier)
+            .prependProperty(createdProperty);
+
         // Notify user the newly created property is under review.
         var helper = NotificationHelper.upload;
+        final newNotification = NotificationModel(
+          userId: userId,
+          title: helper.title,
+          message: helper.message,
+          type: NotificationType.propertyVerification,
+          metadata: {'property_id': propertyId},
+        );
         await ref
             .read(notificationsViewModelProvider.notifier)
-            .createNotification(
-              NotificationModel(
-                userId: userId,
-                title: helper.title,
-                message: helper.message,
-                type: NotificationType.system,
-              ),
-            );
+            .createNotification(newNotification);
+
+        // Show in-app banner immediately after upload.
+        ref.read(inAppNotificationProvider.notifier).show(newNotification);
       }
 
       // --- Manage property_media records ---
@@ -154,13 +166,18 @@ class UploadPropertyViewModel extends Notifier<bool> {
         await repo.deleteStorageImages(removedImageUrls);
       }
 
-      // Refresh only targeted property queries used by screens.
-      ref.invalidate(landlordPropertiesProvider(userId));
+      // For edit: reload landlord list to reflect changes (create case handled
+      // instantly above via prependProperty).
+      if (existingProperty != null) {
+        ref.invalidate(landlordPropertiesProvider(userId));
+      }
+      // Refresh public-facing property queries.
       ref.invalidate(mapPropertiesProvider);
       ref.invalidate(allPropertiesSectionProvider);
       ref.invalidate(phnomPenhSectionProvider);
       ref.invalidate(siemReapSectionProvider);
       ref.invalidate(nearbyPropertiesSectionProvider);
+      return propertyId;
     } finally {
       state = false;
     }

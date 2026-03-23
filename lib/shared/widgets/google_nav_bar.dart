@@ -1,3 +1,4 @@
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -5,6 +6,7 @@ import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
 import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
 import 'package:zoneer_mobile/features/notification/widgets/floating_banner.dart';
@@ -30,10 +32,13 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   late AnimationController _profileController;
 
   RealtimeChannel? _notificationChannel;
+  late final AppLinks _appLinks;
 
   @override
   void initState() {
     super.initState();
+    _appLinks = AppLinks();
+    _handleInitialDeepLink();
     _homeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -51,8 +56,31 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
       duration: const Duration(milliseconds: 300),
     );
 
+    // Listen for deep links arriving while app is running.
+    _appLinks.uriLinkStream.listen(_handleDeepLink);
+
     // Subscribe to real-time notification inserts for the current user.
     WidgetsBinding.instance.addPostFrameCallback((_) => _subscribeNotifications());
+  }
+
+  Future<void> _handleInitialDeepLink() async {
+    try {
+      final uri = await _appLinks.getInitialLink();
+      if (uri != null) _handleDeepLink(uri);
+    } catch (_) {}
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme != 'zoneer') return;
+    if (uri.host == 'property') {
+      final id = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+      if (id != null && id.isNotEmpty && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PropertyDetailPage(id: id)),
+        );
+      }
+    }
   }
 
   void _subscribeNotifications() {

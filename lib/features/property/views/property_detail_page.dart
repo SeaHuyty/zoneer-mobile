@@ -401,13 +401,14 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                         ],
                       ),
 
-                      const Text(
-                        'Description',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
                       if (property.description != null &&
-                          property.description!.isNotEmpty)
+                          property.description!.isNotEmpty) ...[
+                        const Text(
+                          'Description',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         Text(property.description!),
+                      ],
 
                       // Amenities
                       if (_hasAnyAmenities(property)) ...[

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/core/services/auth_service.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/property_sections_viewmodel.dart';
-import 'package:zoneer_mobile/features/property/views/section_all_properties_screen.dart';
+import 'package:zoneer_mobile/features/property/views/home_search_screen.dart';
 import 'package:zoneer_mobile/features/property/widgets/banner.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_header.dart';
 import 'package:zoneer_mobile/features/property/widgets/home_properties_category.dart';
@@ -39,12 +39,19 @@ class _HomeViewState extends ConsumerState<HomeView> {
   }
 
   void _navigateToSection(String title, String sectionKey) {
+    final filter = switch (sectionKey) {
+      'nearby' => SectionFilter.nearby,
+      'phnom_penh' => SectionFilter.phnomPenh,
+      'siem_reap' => SectionFilter.siemReap,
+      _ => SectionFilter.all,
+    };
+    final selectedType = ref.read(selectedHomeCategoryProvider);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SectionAllPropertiesScreen(
-          title: title,
-          sectionKey: sectionKey,
+        builder: (_) => HomeSearchScreen(
+          initialSection: filter,
+          initialType: selectedType.isEmpty ? null : selectedType,
         ),
       ),
     );

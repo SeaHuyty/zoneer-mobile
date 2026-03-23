@@ -38,6 +38,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
     super.dispose();
   }
 
+  Future<void> _onRefresh() async {
+    ref.invalidate(allPropertiesSectionProvider);
+    ref.invalidate(phnomPenhSectionProvider);
+    ref.invalidate(siemReapSectionProvider);
+    ref.invalidate(nearbyPropertiesSectionProvider);
+  }
+
   void _navigateToSection(String title, String sectionKey) {
     final filter = switch (sectionKey) {
       'nearby' => SectionFilter.nearby,
@@ -66,8 +73,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final selectedType = ref.watch(selectedHomeCategoryProvider);
 
     return Scaffold(
-      body: CustomScrollView(
-        controller: _scrollController,
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          controller: _scrollController,
         slivers: [
           SliverAppBar(
             flexibleSpace: LayoutBuilder(
@@ -152,6 +162,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

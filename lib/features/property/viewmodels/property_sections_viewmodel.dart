@@ -48,6 +48,27 @@ final siemReapSectionProvider =
   );
 });
 
+/// All verified properties for HomeSearchScreen (no type filter, large limit).
+final allPropertiesAllProvider = FutureProvider<List<PropertyModel>>((ref) async {
+  return ref
+      .read(propertyRepositoryProvider)
+      .getVerifiedPropertiesSection(limit: 200);
+});
+
+/// Phnom Penh properties for HomeSearchScreen (no type filter, large limit).
+final phnomPenhAllProvider = FutureProvider<List<PropertyModel>>((ref) async {
+  return ref
+      .read(propertyRepositoryProvider)
+      .getVerifiedPropertiesSection(limit: 200, addressContains: 'Phnom Penh');
+});
+
+/// Siem Reap properties for HomeSearchScreen (no type filter, large limit).
+final siemReapAllProvider = FutureProvider<List<PropertyModel>>((ref) async {
+  return ref
+      .read(propertyRepositoryProvider)
+      .getVerifiedPropertiesSection(limit: 200, addressContains: 'Siem Reap');
+});
+
 /// Nearby properties within 20 km, sorted by distance.
 /// Returns a list of (PropertyModel, distanceMeters) tuples.
 final nearbyPropertiesSectionProvider = FutureProvider.family<

@@ -15,18 +15,26 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
   static const int _defaultBeds = 1;
   static const int _defaultBaths = 1;
   static const String _defaultType = 'Any';
+  static const String _defaultSection = 'all';
   static const List<(String label, String value)> _propertyTypes = [
     ('Any', 'Any'),
+    ('Home', 'house'),
     ('Room', 'room'),
-    ('Apartment', 'apartment'),
     ('Condo', 'condo'),
-    ('House', 'house'),
+    ('Apartment', 'apartment'),
+  ];
+  static const List<(String label, String value)> _sections = [
+    ('All', 'all'),
+    ('Nearby', 'nearby'),
+    ('Phnom Penh', 'phnom_penh'),
+    ('Siem Reap', 'siem_reap'),
   ];
 
   late RangeValues priceRange;
   late int beds;
   late int baths;
   late String selectedType;
+  late String selectedSection;
 
   String _normalizeType(String? rawType) {
     final normalized = rawType?.trim().toLowerCase();
@@ -45,6 +53,7 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
     beds = (initial?['beds'] as int?) ?? _defaultBeds;
     baths = (initial?['baths'] as int?) ?? _defaultBaths;
     selectedType = _normalizeType(initial?['selectedType'] as String?);
+    selectedSection = (initial?['section'] as String?) ?? _defaultSection;
   }
 
   void _reset() {
@@ -53,6 +62,7 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
       beds = _defaultBeds;
       baths = _defaultBaths;
       selectedType = _defaultType;
+      selectedSection = _defaultSection;
     });
   }
 
@@ -112,6 +122,25 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
             ),
 
             const SizedBox(height: 20),
+
+            // ── Location ──────────────────────────────────────────
+            _SectionLabel('Location'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _sections
+                  .map(
+                    (s) => _FilterChip(
+                      label: s.$1,
+                      selected: selectedSection == s.$2,
+                      onTap: () => setState(() => selectedSection = s.$2),
+                    ),
+                  )
+                  .toList(),
+            ),
+
+            const SizedBox(height: 24),
 
             // ── Price Range ───────────────────────────────────────
             _SectionLabel('Price Range'),
@@ -221,6 +250,7 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
                   'beds': beds,
                   'baths': baths,
                   'selectedType': selectedType,
+                  'section': selectedSection,
                 }),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

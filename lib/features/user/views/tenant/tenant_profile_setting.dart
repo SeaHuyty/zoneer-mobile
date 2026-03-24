@@ -19,7 +19,11 @@ class TenantProfileSetting extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authUser = Supabase.instance.client.auth.currentUser;
+    final authState = ref.watch(authStateProvider);
+
+    final authUser =
+        authState.value?.session?.user ??
+        Supabase.instance.client.auth.currentUser;
 
     if (authUser == null) {
       return const AuthRequiredScreen();
@@ -118,7 +122,7 @@ class TenantProfileSetting extends ConsumerWidget {
               SectionCard(
                 title: "Account",
                 children: [
-                  ActionRow(
+ActionRow(
                     icon: Icons.logout,
                     label: "Logout",
                     textColor: Colors.red,
@@ -132,6 +136,7 @@ class TenantProfileSetting extends ConsumerWidget {
                       bool shouldNavigate = false;
                       try {
                         await Supabase.instance.client.auth.signOut();
+                        ref.invalidate(userByIdProvider); // ← add this
                         shouldNavigate = true;
                       } catch (e) {
                         if (context.mounted) {

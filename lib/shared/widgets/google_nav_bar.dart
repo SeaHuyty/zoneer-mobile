@@ -73,7 +73,10 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     try {
       final uri = await _appLinks.getInitialLink();
       if (uri != null) _handleDeepLink(uri);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      debugPrint('Failed to handle initial deep link: $error');
+      debugPrint(stackTrace.toString());
+    }
   }
 
   void _handleDeepLink(Uri uri) {

@@ -278,7 +278,16 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
               final p = ref
                   .read(propertyViewModelProvider(widget.id))
                   .value;
-              if (p != null) _shareProperty(p);
+              if (p != null) {
+                _shareProperty(p);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Property is still loading, please try again.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
             },
           ),
           const SizedBox(width: 4),

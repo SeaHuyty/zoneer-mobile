@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,12 +35,13 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
 
   RealtimeChannel? _notificationChannel;
   late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _deepLinkSubscription;
 
   @override
   void initState() {
     super.initState();
     _appLinks = AppLinks();
-    _handleInitialDeepLink();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleInitialDeepLink());
     _homeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -57,7 +60,10 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     );
 
     // Listen for deep links arriving while app is running.
-    _appLinks.uriLinkStream.listen(_handleDeepLink);
+    _deepLinkSubscription = _appLinks.uriLinkStream.listen(
+      _handleDeepLink,
+      onError: (err) => debugPrint('Deep link error: $err'),
+    );
 
     // Subscribe to real-time notification inserts for the current user.
     WidgetsBinding.instance.addPostFrameCallback((_) => _subscribeNotifications());
@@ -122,6 +128,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
 
   @override
   void dispose() {
+    _deepLinkSubscription?.cancel();
     _homeController.dispose();
     _wishlistController.dispose();
     _mapController.dispose();

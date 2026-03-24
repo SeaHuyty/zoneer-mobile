@@ -75,6 +75,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
       LatLng(property.latitude!, property.longitude!),
     );
     Navigator.popUntil(context, (route) => route.isFirst);
+    ref.read(mapTabViewProvider.notifier).showMap();
     ref.read(navigationProvider.notifier).changeTab(NavigationTab.map);
   }
 

@@ -237,10 +237,11 @@ class _HomeSearchScreenState extends ConsumerState<HomeSearchScreen> {
       if (!hasLocation || userLocation == null) {
         entriesAsync = const AsyncValue.data([]);
       } else {
+        final activeType = (_activeFilters?['selectedType'] as String?) ?? '';
         final nearbyAsync = ref.watch(nearbyPropertiesSectionProvider((
           lat: userLocation.latitude,
           lng: userLocation.longitude,
-          type: '',
+          type: activeType.toLowerCase() == 'any' ? '' : activeType,
         )));
         entriesAsync = nearbyAsync.whenData(
           (list) => list
@@ -284,7 +285,15 @@ class _HomeSearchScreenState extends ConsumerState<HomeSearchScreen> {
       ),
       body: entriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) {
+          debugPrint('HomeSearchScreen error: $e');
+          return const Center(
+            child: Text(
+              'Something went wrong. Please try again.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
+        },
         data: (allEntries) {
           final filtered = _applyFilters(allEntries);
 

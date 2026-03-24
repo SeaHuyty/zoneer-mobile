@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
@@ -11,7 +10,7 @@ import 'package:zoneer_mobile/features/property/widgets/property_card_skeleton.d
 /// [nearbyItems] — if provided, cards show distance badges (for Nearby section).
 /// [propertiesAsync] — used for non-nearby sections.
 /// Exactly one of these must be non-null.
-class HomePropertySection extends ConsumerStatefulWidget {
+class HomePropertySection extends StatefulWidget {
   final String title;
   final String emptyMessage;
   final VoidCallback onSeeAll;
@@ -30,16 +29,15 @@ class HomePropertySection extends ConsumerStatefulWidget {
     this.propertiesAsync,
     this.nearbyAsync,
   }) : assert(
-          propertiesAsync != null || nearbyAsync != null,
-          'Provide either propertiesAsync or nearbyAsync',
+          (propertiesAsync == null) != (nearbyAsync == null),
+          'Provide exactly one of propertiesAsync or nearbyAsync, not both or neither',
         );
 
   @override
-  ConsumerState<HomePropertySection> createState() =>
-      _HomePropertySectionState();
+  State<HomePropertySection> createState() => _HomePropertySectionState();
 }
 
-class _HomePropertySectionState extends ConsumerState<HomePropertySection> {
+class _HomePropertySectionState extends State<HomePropertySection> {
   late final PageController _pageController;
   int _currentPage = 0;
 
@@ -50,7 +48,7 @@ class _HomePropertySectionState extends ConsumerState<HomePropertySection> {
     _pageController.addListener(() {
       final page = _pageController.page?.round() ?? 0;
       if (page != _currentPage) {
-        setState(() => _currentPage = page);
+        _currentPage = page;
         HapticFeedback.lightImpact();
       }
     });

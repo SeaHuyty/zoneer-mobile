@@ -9,7 +9,7 @@ import 'package:zoneer_mobile/core/providers/service_provider.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
 import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
-import 'package:zoneer_mobile/features/property/views/section_all_properties_screen.dart';
+import 'package:zoneer_mobile/features/property/views/home_search_screen.dart';
 import 'package:zoneer_mobile/features/property/widgets/banner.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 import 'package:zoneer_mobile/shared/widgets/search_bar.dart';
@@ -341,9 +341,8 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                       onBrowseNow: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SectionAllPropertiesScreen(
-                            title: 'All Properties',
-                            sectionKey: 'all',
+                          builder: (_) => const HomeSearchScreen(
+                            initialSection: SectionFilter.all,
                           ),
                         ),
                       ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -519,16 +518,6 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 _isSatellite ? Icons.satellite_alt : Icons.map,
                 color: AppColors.primary,
               ),
-            ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 10,
-            child: IconButton(
-              onPressed: () {
-                ref.read(mapTabViewProvider.notifier).showSearch();
-              },
-              icon: const Icon(Icons.list_alt, color: AppColors.primary),
             ),
           ),
         ],

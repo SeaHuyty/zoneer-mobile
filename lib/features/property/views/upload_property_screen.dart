@@ -12,7 +12,6 @@ import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dar
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
-import 'package:zoneer_mobile/features/notification/widgets/floating_banner.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 
 // ---------------------------------------------------------------------------
@@ -404,16 +403,6 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           isEditing: _isEditing,
         );
         if (mounted) {
-          // Show banner AFTER dialog closes, BEFORE navigation.
-          // Inserted directly into the root overlay — persists on destination screen.
-          if (!_isEditing) {
-            showFloatingBanner(
-              context,
-              title: 'Property Uploaded!',
-              message: 'Your property is now under review.',
-            );
-          }
-
           if (viewDetail) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(

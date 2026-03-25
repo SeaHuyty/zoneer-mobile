@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'dart:io' show Platform;
 
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
+
 class AuthService {
   final SupabaseClient _client;
 
@@ -96,7 +98,7 @@ class AuthService {
     );
   }
 
-  // ✅ Only ONE signout — clears both Supabase & Google
+  // Only ONE signout — clears both Supabase & Google
   Future<void> signout() async {
     await _client.auth.signOut();
     if (!kIsWeb) {
@@ -111,6 +113,8 @@ final authServiceProvider = Provider<AuthService>((ref) {
 });
 
 final isAuthenticatedProvider = Provider<bool>((ref) {
-  final authService = ref.watch(authServiceProvider);
-  return authService.isAuthenticated;
+  final authState = ref.watch(authStateProvider);
+  return authState.value?.session?.user != null ||
+      Supabase.instance.client.auth.currentUser != null;
 });
+

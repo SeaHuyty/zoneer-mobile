@@ -5,6 +5,7 @@ import 'package:zoneer_mobile/core/services/auth_service.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_mutation_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/shared/models/enums/verify_status.dart';
 import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
 
@@ -43,17 +44,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
-  void _goHome() {
+void _goHome() {
+    ref.invalidate(userByIdProvider);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const GoogleNavBar()),
     );
   }
-  Future<void> _googleLogin() async {
+Future<void> _googleLogin() async {
     try {
       final authService = ref.read(authServiceProvider);
-
       await authService.signInWithGoogle();
+      ref.invalidate(userByIdProvider); 
+      if (mounted) _goHome();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

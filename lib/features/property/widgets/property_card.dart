@@ -5,8 +5,42 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;
   final double? distanceMeters;
+  final String? highlightQuery;
 
-  const PropertyCard({super.key, required this.property, this.distanceMeters});
+  const PropertyCard({
+    super.key,
+    required this.property,
+    this.distanceMeters,
+    this.highlightQuery,
+  });
+
+  List<TextSpan> _highlight(String text, TextStyle base) {
+    final query = highlightQuery;
+    if (query == null || query.isEmpty) return [TextSpan(text: text, style: base)];
+    final spans = <TextSpan>[];
+    final lower = text.toLowerCase();
+    final q = query.toLowerCase();
+    int start = 0;
+    while (true) {
+      final idx = lower.indexOf(q, start);
+      if (idx == -1) {
+        spans.add(TextSpan(text: text.substring(start), style: base));
+        break;
+      }
+      if (idx > start) {
+        spans.add(TextSpan(text: text.substring(start, idx), style: base));
+      }
+      spans.add(TextSpan(
+        text: text.substring(idx, idx + query.length),
+        style: base.copyWith(
+          backgroundColor: Colors.yellow.withValues(alpha: 0.6),
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+      start = idx + query.length;
+    }
+    return spans;
+  }
 
   String _formatDistance(double meters) {
     if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
@@ -155,17 +189,21 @@ class PropertyCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Row 1: Property name
-                  Text(
-                    property.name?.isNotEmpty == true
-                        ? property.name!
-                        : property.address,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
+                  RichText(
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      children: _highlight(
+                        property.name?.isNotEmpty == true
+                            ? property.name!
+                            : property.address,
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   // Row 2: Location (left) + Bed/Bath (right)
@@ -178,15 +216,19 @@ class PropertyCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 3),
                       Expanded(
-                        child: Text(
-                          property.address,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12,
-                          ),
+                        child: RichText(
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          text: TextSpan(
+                            children: _highlight(
+                              property.address,
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),

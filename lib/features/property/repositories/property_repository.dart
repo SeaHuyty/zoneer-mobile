@@ -159,13 +159,13 @@ class PropertyRepository {
     var request = _supabase
         .from('properties')
         .select(
-          'id, price, bedroom, bathroom, square_area, address, thumbnail_url',
+          'id, name, price, bedroom, bathroom, square_area, address, thumbnail_url',
         )
         .eq('verify_status', VerifyStatus.verified.value);
 
     if (query != null && query.trim().isNotEmpty) {
       final q = query.trim();
-      request = request.or('address.ilike.%$q%,description.ilike.%$q%');
+      request = request.or('name.ilike.%$q%,address.ilike.%$q%,description.ilike.%$q%');
     }
     if (minPrice != null) {
       request = request.gte('price', minPrice);

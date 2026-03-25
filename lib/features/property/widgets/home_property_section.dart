@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/core/utils/responsive.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card_skeleton.dart';
 
-/// A horizontal-scroll (phone) or wrapped-grid (web) property section.
+/// A snapping horizontal-scroll property section with peek & haptic feedback.
 ///
 /// [nearbyItems] — if provided, cards show distance badges (for Nearby section).
 /// [propertiesAsync] — used for non-nearby sections.
 /// Exactly one of these must be non-null.
-class HomePropertySection extends ConsumerWidget {
+class HomePropertySection extends StatefulWidget {
   final String title;
   final String emptyMessage;
   final VoidCallback onSeeAll;
@@ -30,14 +30,39 @@ class HomePropertySection extends ConsumerWidget {
     this.propertiesAsync,
     this.nearbyAsync,
   }) : assert(
-          propertiesAsync != null || nearbyAsync != null,
-          'Provide either propertiesAsync or nearbyAsync',
+          (propertiesAsync == null) != (nearbyAsync == null),
+          'Provide exactly one of propertiesAsync or nearbyAsync, not both or neither',
         );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isPhone = Responsive.isPhone(context);
+  State<HomePropertySection> createState() => _HomePropertySectionState();
+}
 
+class _HomePropertySectionState extends State<HomePropertySection> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.88);
+    _pageController.addListener(() {
+      final page = _pageController.page?.round() ?? 0;
+      if (page != _currentPage) {
+        _currentPage = page;
+        HapticFeedback.lightImpact();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -46,11 +71,11 @@ class HomePropertySection extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              title,
+              widget.title,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             TextButton(
-              onPressed: onSeeAll,
+              onPressed: widget.onSeeAll,
               child: const Text('See all'),
             ),
           ],
@@ -58,10 +83,10 @@ class HomePropertySection extends ConsumerWidget {
         const SizedBox(height: 6),
 
         // Content
-        if (nearbyAsync != null)
-          _buildNearbyContent(context, nearbyAsync!, isPhone)
+        if (widget.nearbyAsync != null)
+          _buildNearbyContent(context, widget.nearbyAsync!)
         else
-          _buildRegularContent(context, propertiesAsync!, isPhone),
+          _buildRegularContent(context, widget.propertiesAsync!),
 
         const SizedBox(height: 16),
       ],
@@ -71,10 +96,9 @@ class HomePropertySection extends ConsumerWidget {
   Widget _buildRegularContent(
     BuildContext context,
     AsyncValue<List<PropertyModel>> async,
-    bool isPhone,
   ) {
     return async.when(
-      loading: () => _buildSkeletonRow(isPhone),
+      loading: () => _buildSkeletonRow(),
       error: (_, __) => _buildError(),
       data: (properties) {
         if (properties.isEmpty) return _buildEmpty();
@@ -91,7 +115,7 @@ class HomePropertySection extends ConsumerWidget {
               ),
             )
             .toList();
-        return isPhone ? _horizontalScroll(cards) : _wrappedGrid(cards);
+        return _pageViewScroll(cards);
       },
     );
   }
@@ -99,10 +123,9 @@ class HomePropertySection extends ConsumerWidget {
   Widget _buildNearbyContent(
     BuildContext context,
     AsyncValue<List<(PropertyModel, double)>> async,
-    bool isPhone,
   ) {
     return async.when(
-      loading: () => _buildSkeletonRow(isPhone),
+      loading: () => _buildSkeletonRow(),
       error: (_, __) => _buildError(),
       data: (items) {
         if (items.isEmpty) return _buildEmpty();
@@ -122,53 +145,47 @@ class HomePropertySection extends ConsumerWidget {
               ),
             )
             .toList();
-        return isPhone ? _horizontalScroll(cards) : _wrappedGrid(cards);
+        return _pageViewScroll(cards);
       },
     );
   }
 
-  Widget _horizontalScroll(List<Widget> cards) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: cards
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: c,
-                ))
-            .toList(),
+  Widget _pageViewScroll(List<Widget> cards) {
+    return SizedBox(
+      height: 220,
+      child: ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: PageView.builder(
+          controller: _pageController,
+          clipBehavior: Clip.none,
+          padEnds: false,
+          itemCount: cards.length,
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: cards[index],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _wrappedGrid(List<Widget> cards) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: cards,
-    );
-  }
-
-  Widget _buildSkeletonRow(bool isPhone) {
+  Widget _buildSkeletonRow() {
     const skeletons = [
       PropertyCardSkeleton(),
       PropertyCardSkeleton(),
       PropertyCardSkeleton(),
     ];
-    if (isPhone) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: skeletons
-              .map((s) => Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: s,
-                  ))
-              .toList(),
-        ),
-      );
-    }
-    return Wrap(spacing: 12, runSpacing: 12, children: skeletons);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: skeletons
+            .map((s) => Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: s,
+                ))
+            .toList(),
+      ),
+    );
   }
 
   Widget _buildEmpty() {
@@ -181,7 +198,7 @@ class HomePropertySection extends ConsumerWidget {
             const Icon(Icons.search_off, size: 36, color: Colors.grey),
             const SizedBox(height: 8),
             Text(
-              emptyMessage,
+              widget.emptyMessage,
               style: const TextStyle(color: Colors.grey, fontSize: 13),
               textAlign: TextAlign.center,
             ),

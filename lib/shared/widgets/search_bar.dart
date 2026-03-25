@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/features/property/views/home_search_screen.dart';
 
 class SearchBarApp extends ConsumerWidget {
   const SearchBarApp({super.key});
@@ -9,8 +9,10 @@ class SearchBarApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: () {
-        ref.read(navigationProvider.notifier).changeTab(NavigationTab.map);
-        ref.read(mapTabViewProvider.notifier).showSearch();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeSearchScreen()),
+        );
       },
       child: Container(
         height: 55,
@@ -32,7 +34,7 @@ class SearchBarApp extends ConsumerWidget {
                 ),
               ),
             ),
-            Icon(Icons.filter_list, color: Colors.grey),
+            Icon(Icons.tune, color: Colors.grey),
           ],
         ),
       ),

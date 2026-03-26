@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/inquiry/views/my_inquiries.dart';
 import 'package:zoneer_mobile/features/messaging/views/screens/conversation_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/my_properties_screen.dart';
@@ -29,7 +30,7 @@ class TenantProfileSetting extends ConsumerWidget {
       return const AuthRequiredScreen();
     }
 
-    final userAsync = ref.watch(userByIdProvider(authUser.id));
+    final userAsync = ref.watch(userProfileOrCreateProvider(authUser.id));
 
     return Scaffold(
       body: SafeArea(
@@ -127,16 +128,88 @@ ActionRow(
                     label: "Logout",
                     textColor: Colors.red,
                     onTap: () async {
+                      // Step 1: Confirmation dialog
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: const Text(
+                            'Log out?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                          content: const Text(
+                            'Are you sure you want to sign out of Zoneer?',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
+                              child: const Text(
+                                'Log Out',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed != true || !context.mounted) return;
+
+                      // Step 2: Loading overlay
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (_) =>
-                            const Center(child: CircularProgressIndicator()),
+                        builder: (_) => PopScope(
+                          canPop: false,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 24,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Signing out...',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       );
+
+                      // Step 3: Sign out
                       bool shouldNavigate = false;
                       try {
                         await Supabase.instance.client.auth.signOut();
-                        ref.invalidate(userByIdProvider); // ← add this
+                        ref.invalidate(userByIdProvider);
                         shouldNavigate = true;
                       } catch (e) {
                         if (context.mounted) {

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
@@ -109,12 +110,16 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   final Set<String> _selectedSecurityFeatures = {};
   final Set<String> _selectedBadgeOptions = {};
 
+  // Listing status (edit mode only)
+  late PropertyStatus _selectedStatus;
+
   bool get _isEditing => widget.existingProperty != null;
 
   @override
   void initState() {
     super.initState();
     final p = widget.existingProperty;
+    _selectedStatus = p?.propertyStatus ?? PropertyStatus.available;
     _nameController = TextEditingController(text: p?.name ?? '');
     _addressController = TextEditingController(text: p?.address ?? '');
     _priceController = TextEditingController(
@@ -389,6 +394,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             badgeOptions: badgeOptions,
             type: type,
             name: _nameController.text.trim(),
+            propertyStatus: _isEditing ? _selectedStatus : null,
           );
 
       if (_selectedLocation != null) {
@@ -792,6 +798,79 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 14),
+
+              // ── Listing Tags ──────────────────────────────────────────────
+              _buildCard(
+                title: 'Listing Tags',
+                children: [
+                  const Text(
+                    'Help renters understand your listing status at a glance.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildListingTagToggle(
+                    key: 'urgent',
+                    label: 'Urgent',
+                    subtitle: 'Needs to be rented soon',
+                    icon: Icons.warning_amber_rounded,
+                    activeColor: const Color(0xFFDC2626),
+                    selected: _selectedBadgeOptions,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildListingTagToggle(
+                    key: 'negotiable',
+                    label: 'Negotiable',
+                    subtitle: 'Price is open to discussion',
+                    icon: Icons.handshake_outlined,
+                    activeColor: const Color(0xFFD97706),
+                    selected: _selectedBadgeOptions,
+                  ),
+                ],
+              ),
+
+              // ── Listing Status (edit mode only) ──────────────────────────
+              if (_isEditing) ...[
+                const SizedBox(height: 14),
+                _buildCard(
+                  title: 'Listing Status',
+                  children: [
+                    const Text(
+                      'This status is visible to all users.',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatusOption(
+                            label: 'Available',
+                            icon: Icons.check_circle_outline,
+                            color: Colors.green,
+                            isSelected:
+                                _selectedStatus == PropertyStatus.available,
+                            onTap: () => setState(() =>
+                                _selectedStatus = PropertyStatus.available),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildStatusOption(
+                            label: 'Rented',
+                            icon: Icons.cancel_outlined,
+                            color: Colors.red,
+                            isSelected:
+                                _selectedStatus == PropertyStatus.rented,
+                            onTap: () => setState(() =>
+                                _selectedStatus = PropertyStatus.rented),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 24),
 
@@ -1207,6 +1286,147 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Listing tag toggle (urgent / negotiable) — visually distinct from amenities
+  // -------------------------------------------------------------------------
+
+  Widget _buildListingTagToggle({
+    required String key,
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required Color activeColor,
+    required Set<String> selected,
+  }) {
+    final isSelected = selected.contains(key);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            selected.remove(key);
+          } else {
+            selected.add(key);
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withValues(alpha: 0.07) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? activeColor : Colors.black12,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withValues(alpha: 0.12)
+                    : Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: isSelected ? activeColor : Colors.grey,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isSelected ? activeColor : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected
+                          ? activeColor.withValues(alpha: 0.7)
+                          : Colors.black38,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? activeColor : Colors.black26,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Status option tile
+  // -------------------------------------------------------------------------
+
+  Widget _buildStatusOption({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.08) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.black12,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? color : Colors.grey, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: isSelected ? color : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

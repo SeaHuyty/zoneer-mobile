@@ -6,6 +6,7 @@ import 'package:zoneer_mobile/features/property/viewmodels/property_sections_vie
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 
@@ -42,6 +43,8 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required Map<String, dynamic>? propertyFeatures,
     required Map<String, dynamic>? securityFeatures,
     required Map<String, dynamic>? badgeOptions,
+    // Status (only set when editing)
+    PropertyStatus? propertyStatus,
   }) async {
     final locationUrl = 'https://www.google.com/maps?q=$latitude,$longitude';
 
@@ -98,7 +101,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             name: name,
             landlordId: userId,
             verifyStatus: existingProperty.verifyStatus,
-            propertyStatus: existingProperty.propertyStatus,
+            propertyStatus: propertyStatus ?? existingProperty.propertyStatus,
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
             badgeOptions: badgeOptions,

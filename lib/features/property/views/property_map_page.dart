@@ -15,6 +15,7 @@ import 'package:zoneer_mobile/features/property/widgets/property_map_controls.da
 import 'package:zoneer_mobile/features/property/widgets/property_map_detail_sheet.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_map_marker.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_price_pin.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/features/property/widgets/search_filter_sheet.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 
@@ -393,6 +394,16 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
                 ),
                 child: Row(
                   children: [
+                    // Back to search list view
+                    IconButton(
+                      onPressed: () =>
+                          ref.read(mapTabViewProvider.notifier).showSearch(),
+                      icon: Icon(
+                        Icons.format_list_bulleted,
+                        color: AppColors.primary,
+                      ),
+                      tooltip: 'Back to Search',
+                    ),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
@@ -483,11 +494,12 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
           ),
 
           // ── Right-side FAB controls ───────────────────────────
+          // Only visible when map tab is active — prevents flash during logout
+          if (ref.watch(navigationProvider) == NavigationTab.map)
           Positioned(
             right: 16,
             bottom: 24,
             child: PropertyMapControls(
-              mapController: _mapController,
               onMyLocation: () async {
                 if (userLocation != null) {
                   _mapController.move(userLocation, 15);
@@ -507,9 +519,10 @@ class _PropertyMapPageState extends ConsumerState<PropertyMapPage> {
           ),
 
           // ── Map style toggle ──────────────────────────────────
+          if (ref.watch(navigationProvider) == NavigationTab.map)
           Positioned(
             right: 16,
-            bottom: 190,
+            bottom: 84,
             child: FloatingActionButton.small(
               heroTag: 'mapStyle',
               onPressed: _toggleMapStyle,

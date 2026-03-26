@@ -201,7 +201,7 @@ Future<void> _googleLogin() async {
   }
 
   Widget _buildLoadingOverlay(String message) {
-    return ColoredBox(
+    return Material(
       color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
@@ -221,6 +221,7 @@ Future<void> _googleLogin() async {
                   color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ],

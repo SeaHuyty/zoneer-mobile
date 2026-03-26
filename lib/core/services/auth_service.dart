@@ -9,6 +9,7 @@ import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 
 class AuthService {
   final SupabaseClient _client;
+  bool _googleInitialized = false;
 
   AuthService(this._client);
 
@@ -49,21 +50,21 @@ class AuthService {
       final iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
       const scopes = ['email', 'profile'];
 
-      await GoogleSignIn.instance.initialize(
-        serverClientId: webClientId,
-        clientId: Platform.isIOS && iosClientId.isNotEmpty ? iosClientId : null,
-
-      );
-
-      try {
-        await GoogleSignIn.instance.disconnect();
-      } catch (_) {
-        // No cached account, safe to ignore
+      if (!_googleInitialized) {
+        await GoogleSignIn.instance.initialize(
+          serverClientId: webClientId,
+          clientId: (Platform.isIOS || Platform.isMacOS) && iosClientId.isNotEmpty ? iosClientId : null,
+        );
+        _googleInitialized = true;
       }
 
-      final googleUser =
-          await GoogleSignIn.instance.attemptLightweightAuthentication() ??
-          await GoogleSignIn.instance.authenticate();
+      // Clear any stale cached credentials before each sign-in to avoid
+      // reauth failures on devices with expired Google account tokens.
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+
+      final googleUser = await GoogleSignIn.instance.authenticate();
 
       final authorization =
           await googleUser.authorizationClient.authorizationForScopes(scopes) ??

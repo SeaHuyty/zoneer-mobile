@@ -130,6 +130,37 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     );
   }
 
+  /// Urgent / Negotiable tag chip shown to all users.
+  Widget _buildListingTag({
+    required String label,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDistanceChip(PropertyModel property) {
     final distanceMeters = Geolocator.distanceBetween(
       _userPosition!.latitude,
@@ -160,6 +191,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     final authUser = Supabase.instance.client.auth.currentUser;
 
     if (authUser == null) {
+      setState(() => _isTogglingWishlist = false);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AuthRequiredScreen()),
@@ -336,42 +368,62 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 5,
                     children: [
+                      // Property name — full width, no overlap
+                      Text(
+                        property.name?.isNotEmpty == true
+                            ? property.name!
+                            : 'House in ${property.address}',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      // Price + status row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              property.name?.isNotEmpty == true
-                                  ? property.name!
-                                  : 'House in ${property.address}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+                          _buildStatusBadge(property.propertyStatus),
+                          // Price
                           Text(
-                            '\$${property.price} / month',
+                            '\$${property.price.toStringAsFixed(0)} / mo',
                             style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
 
-                      Row(
-                        children: [
-                          _buildStatusBadge(property.propertyStatus),
-                          if (_userPosition != null &&
-                              property.latitude != null &&
-                              property.longitude != null) ...[
-                            const SizedBox(width: 8),
-                            _buildDistanceChip(property),
+                      // Urgent / Negotiable tags (visible to all users)
+                      if ((property.badgeOptions?['urgent'] == true) ||
+                          (property.badgeOptions?['negotiable'] == true))
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            if (property.badgeOptions?['urgent'] == true)
+                              _buildListingTag(
+                                label: 'Urgent',
+                                icon: Icons.warning_amber_rounded,
+                                color: const Color(0xFFDC2626),
+                              ),
+                            if (property.badgeOptions?['negotiable'] == true)
+                              _buildListingTag(
+                                label: 'Negotiable',
+                                icon: Icons.handshake_outlined,
+                                color: const Color(0xFFD97706),
+                              ),
                           ],
-                        ],
-                      ),
+                        ),
+
+                      // Distance chip
+                      if (_userPosition != null &&
+                          property.latitude != null &&
+                          property.longitude != null)
+                        _buildDistanceChip(property),
 
                       Row(
                         children: [
@@ -730,3 +782,4 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     );
   }
 }
+

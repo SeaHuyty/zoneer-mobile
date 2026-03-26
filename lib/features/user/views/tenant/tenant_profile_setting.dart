@@ -6,7 +6,7 @@ import 'package:zoneer_mobile/features/inquiry/views/my_inquiries.dart';
 import 'package:zoneer_mobile/features/messaging/views/screens/conversation_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/my_properties_screen.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
-import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
+import 'package:zoneer_mobile/features/user/widgets/profile_auth_state.dart';
 import 'package:zoneer_mobile/features/user/views/tenant/edit_profile_screen.dart';
 import 'package:zoneer_mobile/features/user/widgets/action_row.dart';
 import 'package:zoneer_mobile/features/user/widgets/profile_header_card.dart';
@@ -27,7 +27,7 @@ class TenantProfileSetting extends ConsumerWidget {
         Supabase.instance.client.auth.currentUser;
 
     if (authUser == null) {
-      return const AuthRequiredScreen();
+      return const ProfileAuthState();
     }
 
     final userAsync = ref.watch(userProfileOrCreateProvider(authUser.id));

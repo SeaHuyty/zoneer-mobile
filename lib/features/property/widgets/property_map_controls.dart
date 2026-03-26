@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 
 /// Vertical column of circular FABs on the right side of the map.
 class PropertyMapControls extends StatelessWidget {
-  final MapController mapController;
   final VoidCallback onMyLocation;
 
   const PropertyMapControls({
     super.key,
-    required this.mapController,
     required this.onMyLocation,
   });
 
@@ -22,24 +19,6 @@ class PropertyMapControls extends StatelessWidget {
           heroTag: 'myLocation',
           icon: Icons.my_location,
           onPressed: onMyLocation,
-        ),
-        const SizedBox(height: 8),
-        _ControlFab(
-          heroTag: 'zoomIn',
-          icon: Icons.add,
-          onPressed: () {
-            final camera = mapController.camera;
-            mapController.move(camera.center, camera.zoom + 1);
-          },
-        ),
-        const SizedBox(height: 8),
-        _ControlFab(
-          heroTag: 'zoomOut',
-          icon: Icons.remove,
-          onPressed: () {
-            final camera = mapController.camera;
-            mapController.move(camera.center, camera.zoom - 1);
-          },
         ),
       ],
     );

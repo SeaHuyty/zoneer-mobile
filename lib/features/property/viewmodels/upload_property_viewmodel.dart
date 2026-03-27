@@ -11,7 +11,7 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 
 /// Holds data for one photo slot (either new bytes or an existing URL).
-typedef PhotoData = ({Uint8List? bytes, String? ext, String? existingUrl});
+typedef PhotoData = ({Uint8List? bytes, String? ext, String? mimeType, String? existingUrl});
 
 class UploadPropertyViewModel extends Notifier<bool> {
   @override
@@ -21,6 +21,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
     // Thumbnail – index 0 of the photo list
     required Uint8List? thumbnailBytes,
     required String? thumbnailExt,
+    required String? thumbnailMimeType,
     required String? existingThumbnailUrl,
     // Additional photos (indices 1–9)
     required List<PhotoData> additionalPhotos,
@@ -61,6 +62,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
           thumbnailExt ?? 'jpg',
           userId,
           index: 0,
+          contentType: thumbnailMimeType ?? 'image/jpeg',
         );
       }
 
@@ -74,6 +76,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             photo.ext ?? 'jpg',
             userId,
             index: i + 1,
+            contentType: photo.mimeType ?? 'image/jpeg',
           );
           additionalUrls.add(url);
         } else if (photo.existingUrl != null) {

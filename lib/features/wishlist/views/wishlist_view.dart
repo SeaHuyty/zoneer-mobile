@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
-import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
+import 'package:zoneer_mobile/features/wishlist/widgets/wishlist_auth_state.dart';
 import 'package:zoneer_mobile/features/wishlist/widgets/wishlist_empty_state.dart';
 import 'package:zoneer_mobile/shared/widgets/cards/property_wishlist_card.dart';
 
@@ -32,7 +32,7 @@ class _WishlistViewState extends ConsumerState<WishlistView> {
     final authUser = Supabase.instance.client.auth.currentUser;
 
     if (authUser == null) {
-      return const AuthRequiredScreen();
+      return const WishlistAuthState();
     }
 
     final wishlistAsync = ref.watch(wishlistViewmodelProvider);

@@ -32,5 +32,18 @@
 	<string>We need your location to show properties near you</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to show properties near you</string>
+	<key>GIDClientID</key>
+	<string>102797929514-8k87qcg8tt6avbgfhfke0i4slr3h6gbo.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.102797929514-8k87qcg8tt6avbgfhfke0i4slr3h6gbo</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

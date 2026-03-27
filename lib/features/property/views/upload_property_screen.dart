@@ -62,9 +62,10 @@ const _kPropertyTypeIcons = {
 class _PhotoEntry {
   Uint8List? bytes;
   String? ext;
+  String? mimeType;
   String? existingUrl;
 
-  _PhotoEntry({this.bytes, this.ext, this.existingUrl});
+  _PhotoEntry({this.bytes, this.ext, this.mimeType, this.existingUrl});
 
   bool get hasImage => bytes != null || existingUrl != null;
 }
@@ -238,13 +239,14 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       );
       if (image == null) return;
       final bytes = await image.readAsBytes();
-      final ext = image.path.split('.').last;
+      final mime = image.mimeType ?? 'image/jpeg';
+      final ext = mime.split('/').last == 'jpeg' ? 'jpg' : mime.split('/').last;
       setState(() {
         final oldEntry = _photos[startIndex];
         if (oldEntry.existingUrl != null) {
           _removedExistingUrls.add(oldEntry.existingUrl!);
         }
-        _photos[startIndex] = _PhotoEntry(bytes: bytes, ext: ext);
+        _photos[startIndex] = _PhotoEntry(bytes: bytes, ext: ext, mimeType: mime);
       });
       return;
     }
@@ -274,8 +276,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     final entries = await Future.wait(
       toAdd.map((img) async {
         final bytes = await img.readAsBytes();
-        final ext = img.path.split('.').last;
-        return _PhotoEntry(bytes: bytes, ext: ext);
+        final mime = img.mimeType ?? 'image/jpeg';
+        final ext = mime.split('/').last == 'jpeg' ? 'jpg' : mime.split('/').last;
+        return _PhotoEntry(bytes: bytes, ext: ext, mimeType: mime);
       }),
     );
 
@@ -425,7 +428,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         ? _photos
               .sublist(1)
               .map(
-                (p) => (bytes: p.bytes, ext: p.ext, existingUrl: p.existingUrl),
+                (p) => (bytes: p.bytes, ext: p.ext, mimeType: p.mimeType, existingUrl: p.existingUrl),
               )
               .toList()
         : <PhotoData>[];
@@ -458,6 +461,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           .submit(
             thumbnailBytes: thumbnail.bytes,
             thumbnailExt: thumbnail.ext,
+            thumbnailMimeType: thumbnail.mimeType,
             existingThumbnailUrl: thumbnail.existingUrl,
             additionalPhotos: additional,
             removedImageUrls: _removedExistingUrls,

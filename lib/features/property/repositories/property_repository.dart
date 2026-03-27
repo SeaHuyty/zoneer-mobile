@@ -221,6 +221,7 @@ class PropertyRepository {
     String ext,
     String userId, {
     int index = 0,
+    String? contentType,
   }) async {
     final fileName =
         'properties/$userId/${DateTime.now().millisecondsSinceEpoch}_$index.$ext';
@@ -230,7 +231,10 @@ class PropertyRepository {
         .uploadBinary(
           fileName,
           bytes,
-          fileOptions: const FileOptions(upsert: true),
+          fileOptions: FileOptions(
+            upsert: true,
+            contentType: contentType ?? 'image/jpeg',
+          ),
         );
     return _supabase.storage.from(bucketName).getPublicUrl(fileName);
   }

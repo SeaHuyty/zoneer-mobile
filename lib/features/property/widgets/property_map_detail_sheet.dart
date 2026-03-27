@@ -1,13 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
+import 'package:zoneer_mobile/features/property/viewmodels/media_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
+import 'package:zoneer_mobile/features/property/widgets/fullscreen_image_viewer.dart';
 
 /// Full property card shown in the bottom sheet when a marker is tapped.
 /// Photo grid · title · price + badge · location · amenity chips · description · CTA.
-class PropertyMapDetailSheet extends StatelessWidget {
+class PropertyMapDetailSheet extends ConsumerWidget {
   final PropertyModel selectedProperty;
 
   // Kept for API compatibility.
@@ -22,9 +25,19 @@ class PropertyMapDetailSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = selectedProperty;
     final isRented = p.propertyStatus == PropertyStatus.rented;
+
+    // Async fetch of additional media; show thumbnail-only grid while loading.
+    final mediaAsync = ref.watch(mediaViewmodelProvider(p.id));
+    final List<String> images = [
+      if (p.thumbnail.isNotEmpty) p.thumbnail,
+      ...mediaAsync.whenOrNull(
+            data: (list) => list.map((m) => m.url).where((u) => u.isNotEmpty),
+          ) ??
+          <String>[],
+    ];
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -60,57 +73,103 @@ class PropertyMapDetailSheet extends StatelessWidget {
             // ── Photo grid ───────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                height: 200,
-                child: Row(
-                  children: [
-                    // Large image — left half
-                    Expanded(
-                      flex: 3,
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
-                        ),
-                        child: SizedBox(
-                          height: double.infinity,
-                          child: _buildImage(p.thumbnail),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    // Two stacked images — right half
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(12),
-                              ),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: _buildImage(p.thumbnail),
-                              ),
+              child: GestureDetector(
+                onTap: images.isNotEmpty
+                    ? () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullscreenImageViewer(
+                              images: images,
+                              initialIndex: 0,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                bottomRight: Radius.circular(12),
-                              ),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: _buildImage(p.thumbnail),
+                        )
+                    : null,
+                child: SizedBox(
+                  height: 200,
+                  child: Row(
+                    children: [
+                      // Large image — left 60%
+                      Expanded(
+                        flex: 3,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            bottomLeft: Radius.circular(12),
+                          ),
+                          child: SizedBox(
+                            height: double.infinity,
+                            child: _buildImage(
+                                images.isNotEmpty ? images[0] : ''),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // Two stacked images — right 40%
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            // Top-right slot
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(12),
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: _buildImage(
+                                    images.length > 1
+                                        ? images[1]
+                                        : (images.isNotEmpty ? images[0] : ''),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            // Bottom-right slot with +N overlay
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  bottomRight: Radius.circular(12),
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      _buildImage(
+                                        images.length > 2
+                                            ? images[2]
+                                            : (images.isNotEmpty
+                                                ? images[0]
+                                                : ''),
+                                      ),
+                                      // +N overlay when there are more than 3 images
+                                      if (images.length > 3)
+                                        Container(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.55),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            '+${images.length - 3}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -134,7 +193,7 @@ class PropertyMapDetailSheet extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // ── Price + status badge ──────────────────────────────
+            // ── Price + status/listing tags ───────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -149,22 +208,78 @@ class PropertyMapDetailSheet extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isRented ? Colors.grey[600] : AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      isRented ? 'Rented' : 'For Rent',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                  // Rented badge (only when rented)
+                  if (isRented)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[600],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Rented',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ),
+                  // Urgent tag
+                  if (!isRented && p.badgeOptions?['urgent'] == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      margin: const EdgeInsets.only(left: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.white, size: 13),
+                          SizedBox(width: 4),
+                          Text(
+                            'Urgent',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Negotiable tag
+                  if (!isRented && p.badgeOptions?['negotiable'] == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      margin: const EdgeInsets.only(left: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD97706),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.handshake_outlined,
+                              color: Colors.white, size: 13),
+                          SizedBox(width: 4),
+                          Text(
+                            'Negotiable',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

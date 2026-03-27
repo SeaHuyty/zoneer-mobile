@@ -65,3 +65,11 @@ final conversationByInquiryIdProvider =
           .read(messagingRepositoryProvider)
           .getConversationByInquiryId(inquiryId);
     });
+
+final hasAnyUnreadProvider = Provider<bool>((ref) {
+  final conversations = ref.watch(messagingViewModelProvider);
+  return conversations.maybeWhen(
+    data: (list) => list.any((c) => c.hasUnread),
+    orElse: () => false,
+  );
+});

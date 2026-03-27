@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/services/auth_service.dart';
@@ -117,17 +119,30 @@ Future<void> _googleLogin() async {
     try {
       final authService = ref.read(authServiceProvider);
       await authService.signInWithGoogle();
-      ref.invalidate(userByIdProvider);
-      if (mounted) {
+
+      // Android: signInWithOAuth opens browser and returns immediately.
+      // Navigation is handled by the authStateProvider listener in build().
+      // iOS/Web: auth completes synchronously — navigate now.
+      if (!mounted) return;
+      if (kIsWeb || !Platform.isAndroid) {
+        ref.invalidate(userByIdProvider);
         _showSuccessSnackbar('Signed in with Google successfully!');
         _goHome();
       }
+      // Android: keep loading overlay visible until browser returns
     } catch (e) {
       if (mounted) {
-        _showErrorSnackbar('Google sign-in failed. Please try again.');
+        final msg = kDebugMode
+            ? 'Google sign-in failed: $e'
+            : 'Google sign-in failed. Please try again.';
+        _showErrorSnackbar(msg);
+        setState(() => _isGoogleLoading = false);
       }
     } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
+      // Android: don't reset loading here — authStateProvider listener does it
+      if (mounted && (kIsWeb || !Platform.isAndroid)) {
+        setState(() => _isGoogleLoading = false);
+      }
     }
   }
 
@@ -264,6 +279,20 @@ Future<void> _googleLogin() async {
 
   @override
   Widget build(BuildContext context) {
+    // Android: when browser OAuth completes and app returns, navigate home
+    ref.listen<AsyncValue<AuthState>>(authStateProvider, (_, next) {
+      next.whenData((state) {
+        if (state.event == AuthChangeEvent.signedIn && _isGoogleLoading) {
+          if (mounted) {
+            setState(() => _isGoogleLoading = false);
+            ref.invalidate(userByIdProvider);
+            _showSuccessSnackbar('Signed in with Google successfully!');
+            _goHome();
+          }
+        }
+      });
+    });
+
     return Stack(
       children: [
         Scaffold(

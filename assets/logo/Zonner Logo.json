@@ -1,0 +1,22 @@
+{
+    "file_info": {
+        "name": "Zonner Logo.png",
+        "size": "381.24 KB",
+        "size_bytes": 390389,
+        "type": "image/png",
+        "last_modified": "3/27/2026, 3:01:33 PM"
+    },
+    "image_header": {
+        "width": 4259,
+        "height": 4261,
+        "bit_depth": 8,
+        "color_type": "Truecolor with Alpha (RGBA)",
+        "compression": "Deflate",
+        "filter": "Adaptive",
+        "interlace": "No Interlace",
+        "physical_dimensions": "11811x11811 (pixels per meter)"
+    },
+    "text_chunks": {
+        "XML:com.adobe.xmp": "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"XMP Core 6.0.0\">\n   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n      <rdf:Description rdf:about=\"\"\n            xmlns:tiff=\"http://ns.adobe.com/tiff/1.0/\">\n         <tiff:Orientation>1</tiff:Orientation>\n      </rdf:Description>\n   </rdf:RDF>\n</x:xmpmeta>\n"
+    }
+}

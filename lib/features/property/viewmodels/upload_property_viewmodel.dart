@@ -6,6 +6,7 @@ import 'package:zoneer_mobile/features/property/viewmodels/property_sections_vie
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 
@@ -16,7 +17,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
   @override
   bool build() => false;
 
-  Future<void> submit({
+  Future<String> submit({
     // Thumbnail – index 0 of the photo list
     required Uint8List? thumbnailBytes,
     required String? thumbnailExt,
@@ -37,10 +38,13 @@ class UploadPropertyViewModel extends Notifier<bool> {
     required double longitude,
     required String description,
     required String type,
+    required String name,
     // Amenities
     required Map<String, dynamic>? propertyFeatures,
     required Map<String, dynamic>? securityFeatures,
     required Map<String, dynamic>? badgeOptions,
+    // Status (only set when editing)
+    PropertyStatus? propertyStatus,
   }) async {
     final locationUrl = 'https://www.google.com/maps?q=$latitude,$longitude';
 
@@ -94,9 +98,10 @@ class UploadPropertyViewModel extends Notifier<bool> {
             description: description,
             thumbnail: thumbnailUrl,
             type: type,
+            name: name,
             landlordId: userId,
             verifyStatus: existingProperty.verifyStatus,
-            propertyStatus: existingProperty.propertyStatus,
+            propertyStatus: propertyStatus ?? existingProperty.propertyStatus,
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
             badgeOptions: badgeOptions,
@@ -118,6 +123,7 @@ class UploadPropertyViewModel extends Notifier<bool> {
             description: description,
             thumbnail: thumbnailUrl,
             type: type,
+            name: name,
             landlordId: userId,
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
@@ -126,18 +132,24 @@ class UploadPropertyViewModel extends Notifier<bool> {
         );
         propertyId = createdProperty.id;
 
+        // Instantly add the new property to the landlord list — no reload needed.
+        ref
+            .read(landlordPropertiesProvider(userId).notifier)
+            .prependProperty(createdProperty);
+
         // Notify user the newly created property is under review.
         var helper = NotificationHelper.upload;
+        final newNotification = NotificationModel(
+          userId: userId,
+          title: helper.title,
+          message: helper.message,
+          type: NotificationType.propertyVerification,
+          metadata: {'property_id': propertyId},
+        );
         await ref
             .read(notificationsViewModelProvider.notifier)
-            .createNotification(
-              NotificationModel(
-                userId: userId,
-                title: helper.title,
-                message: helper.message,
-                type: NotificationType.system,
-              ),
-            );
+            .createNotification(newNotification);
+        // Banner is triggered by the upload screen after dialog is dismissed.
       }
 
       // --- Manage property_media records ---
@@ -154,13 +166,18 @@ class UploadPropertyViewModel extends Notifier<bool> {
         await repo.deleteStorageImages(removedImageUrls);
       }
 
-      // Refresh only targeted property queries used by screens.
-      ref.invalidate(landlordPropertiesProvider(userId));
+      // For edit: reload landlord list to reflect changes (create case handled
+      // instantly above via prependProperty).
+      if (existingProperty != null) {
+        ref.invalidate(landlordPropertiesProvider(userId));
+      }
+      // Refresh public-facing property queries.
       ref.invalidate(mapPropertiesProvider);
-      ref.invalidate(propertySectionProvider(PropertySection.room));
-      ref.invalidate(propertySectionProvider(PropertySection.condo));
-      ref.invalidate(propertySectionProvider(PropertySection.apartment));
-      ref.invalidate(propertySectionProvider(PropertySection.house));
+      ref.invalidate(allPropertiesSectionProvider);
+      ref.invalidate(phnomPenhSectionProvider);
+      ref.invalidate(siemReapSectionProvider);
+      ref.invalidate(nearbyPropertiesSectionProvider);
+      return propertyId;
     } finally {
       state = false;
     }

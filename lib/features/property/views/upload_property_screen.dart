@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:zoneer_mobile/core/providers/service_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
+import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/repositories/property_repository.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/upload_property_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/location_picker_screen.dart';
+import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 
 // ---------------------------------------------------------------------------
 // Amenity definitions
@@ -41,6 +44,15 @@ const _kBadgeOptions = {
   'utilities_included': ('Utilities Included', Icons.electrical_services),
   'near_school': ('Near School', Icons.school),
   'near_market': ('Near Market', Icons.storefront),
+};
+
+const _kAllowedPropertyTypes = ['room', 'apartment', 'condo', 'house'];
+
+const _kPropertyTypeIcons = {
+  'room': Icons.door_front_door_outlined,
+  'apartment': Icons.apartment_outlined,
+  'condo': Icons.business_outlined,
+  'house': Icons.home_outlined,
 };
 
 // ---------------------------------------------------------------------------
@@ -77,6 +89,7 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
+  late final TextEditingController _nameController;
   late final TextEditingController _addressController;
   late final TextEditingController _priceController;
   late final TextEditingController _bedroomController;
@@ -97,12 +110,17 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   final Set<String> _selectedSecurityFeatures = {};
   final Set<String> _selectedBadgeOptions = {};
 
+  // Listing status (edit mode only)
+  late PropertyStatus _selectedStatus;
+
   bool get _isEditing => widget.existingProperty != null;
 
   @override
   void initState() {
     super.initState();
     final p = widget.existingProperty;
+    _selectedStatus = p?.propertyStatus ?? PropertyStatus.available;
+    _nameController = TextEditingController(text: p?.name ?? '');
     _addressController = TextEditingController(text: p?.address ?? '');
     _priceController = TextEditingController(
       text: p != null ? p.price.toString() : '',
@@ -117,7 +135,25 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       text: p != null ? p.squareArea.toString() : '',
     );
     _descriptionController = TextEditingController(text: p?.description ?? '');
-    _typeController = TextEditingController(text: p?.type ?? '');
+    final initialTypeRaw = (p?.type ?? '').trim();
+    final normalizedType = initialTypeRaw.toLowerCase();
+    final String typeControllerText;
+    if (p == null) {
+      // New property: keep existing default behavior of "room".
+      typeControllerText = 'room';
+    } else if (_kAllowedPropertyTypes.contains(normalizedType)) {
+      // Existing property with a recognized type: use normalized value.
+      typeControllerText = normalizedType;
+    } else if (initialTypeRaw.isEmpty) {
+      // Existing property with no type: leave unselected so user must choose.
+      typeControllerText = '';
+    } else {
+      // Existing property with an unrecognized/legacy type: preserve and display it.
+      typeControllerText = initialTypeRaw;
+    }
+    _typeController = TextEditingController(
+      text: typeControllerText,
+    );
 
     if (p?.latitude != null && p?.longitude != null) {
       _selectedLocation = LatLng(p!.latitude!, p.longitude!);
@@ -166,12 +202,14 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _addressController.dispose();
     _priceController.dispose();
     _bedroomController.dispose();
     _bathroomController.dispose();
     _areaController.dispose();
     _descriptionController.dispose();
+    _typeController.dispose();
     super.dispose();
   }
 
@@ -179,25 +217,57 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   // Photo helpers
   // -------------------------------------------------------------------------
 
-  Future<void> _pickPhoto(int index) async {
+  Future<void> _pickPhoto(int startIndex) async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
+
+    // Replacing an existing slot — single pick only
+    if (startIndex < _photos.length) {
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxHeight: 1200,
+        maxWidth: 1200,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      final bytes = await image.readAsBytes();
+      final ext = image.path.split('.').last;
+      setState(() {
+        _photos[startIndex] = _PhotoEntry(bytes: bytes, ext: ext);
+      });
+      return;
+    }
+
+    // Adding new slots — multi-pick
+    final images = await picker.pickMultiImage(
       maxHeight: 1200,
       maxWidth: 1200,
       imageQuality: 85,
     );
-    if (image == null) return;
-    final bytes = await image.readAsBytes();
-    final ext = image.path.split('.').last;
-    setState(() {
-      if (index < _photos.length) {
-        _photos[index] = _PhotoEntry(bytes: bytes, ext: ext);
-      } else {
-        // Adding a new slot
-        _photos.add(_PhotoEntry(bytes: bytes, ext: ext));
-      }
-    });
+    if (images.isEmpty) return;
+
+    final remaining = _maxPhotos - _photos.length;
+    final toAdd = images.take(remaining).toList();
+
+    if (images.length > remaining && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Only $remaining photo${remaining == 1 ? '' : 's'} remaining. '
+            'Added the first $remaining.',
+          ),
+        ),
+      );
+    }
+
+    final entries = await Future.wait(
+      toAdd.map((img) async {
+        final bytes = await img.readAsBytes();
+        final ext = img.path.split('.').last;
+        return _PhotoEntry(bytes: bytes, ext: ext);
+      }),
+    );
+
+    setState(() => _photos.addAll(entries));
   }
 
   void _removePhoto(int index) {
@@ -214,6 +284,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   // Location
   // -------------------------------------------------------------------------
 
+  bool _geocoding = false;
+
   Future<void> _openLocationPicker() async {
     final result = await Navigator.push<LatLng>(
       context,
@@ -223,7 +295,23 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       ),
     );
     if (result != null) {
-      setState(() => _selectedLocation = result);
+      setState(() {
+        _selectedLocation = result;
+        _geocoding = true;
+      });
+      // Auto-fill address via reverse geocoding
+      try {
+        final locationService = ref.read(locationServiceProvider);
+        final address = await locationService.getCityFromCoordinates(
+          result.latitude,
+          result.longitude,
+        );
+        if (address != null && mounted) {
+          _addressController.text = address;
+        }
+      } finally {
+        if (mounted) setState(() => _geocoding = false);
+      }
     }
   }
 
@@ -270,9 +358,21 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     final badgeOptions = _selectedBadgeOptions.isEmpty
         ? null
         : {for (final k in _selectedBadgeOptions) k: true};
+    final type = _typeController.text.trim().toLowerCase();
+
+    if (!_kAllowedPropertyTypes.contains(type)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Property type must be room, apartment, condo, or house.',
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
-      await ref
+      final propertyId = await ref
           .read(uploadPropertyViewModelProvider.notifier)
           .submit(
             thumbnailBytes: thumbnail.bytes,
@@ -292,7 +392,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
             propertyFeatures: propertyFeatures,
             securityFeatures: securityFeatures,
             badgeOptions: badgeOptions,
-            type: _typeController.text.trim()
+            type: type,
+            name: _nameController.text.trim(),
+            propertyStatus: _isEditing ? _selectedStatus : null,
           );
 
       if (_selectedLocation != null) {
@@ -300,16 +402,23 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditing
-                  ? 'Property updated successfully.'
-                  : 'Property uploaded successfully.',
-            ),
-          ),
+        final viewDetail = await _showSuccessDialog(
+          context,
+          propertyId: propertyId,
+          propertyName: _nameController.text.trim(),
+          isEditing: _isEditing,
         );
-        Navigator.pop(context);
+        if (mounted) {
+          if (viewDetail) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => PropertyDetailPage(id: propertyId),
+              ),
+            );
+          } else {
+            Navigator.pop(context);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -318,6 +427,28 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Success dialog
+  // -------------------------------------------------------------------------
+
+  Future<bool> _showSuccessDialog(
+    BuildContext context, {
+    required String propertyId,
+    required String propertyName,
+    required bool isEditing,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _UploadSuccessDialog(
+        propertyId: propertyId,
+        propertyName: propertyName,
+        isEditing: isEditing,
+      ),
+    );
+    return result ?? false;
   }
 
   // -------------------------------------------------------------------------
@@ -368,17 +499,48 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
               const SizedBox(height: 14),
 
+              // ── Name ─────────────────────────────────────────────────────
+              _buildCard(
+                title: 'Property Name',
+                children: [
+                  _buildField(
+                    controller: _nameController,
+                    label: 'Name',
+                    hint: 'e.g. Cozy Studio near BKK1',
+                    icon: Icons.label_outline,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
               // ── Location ────────────────────────────────────────────────
               _buildCard(
                 title: 'Location',
                 children: [
-                  _buildField(
-                    controller: _addressController,
-                    label: 'Address',
-                    hint: 'e.g. 12 Street, Phnom Penh',
-                    icon: Icons.location_on_outlined,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  Stack(
+                    children: [
+                      _buildField(
+                        controller: _addressController,
+                        label: 'Address',
+                        hint: 'e.g. Chbar Ampov, Phnom Penh',
+                        icon: Icons.location_on_outlined,
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      ),
+                      if (_geocoding)
+                        const Positioned(
+                          right: 12,
+                          top: 14,
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   if (_selectedLocation != null) ...[
@@ -488,6 +650,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
               _buildCard(
                 title: 'Details',
                 children: [
+                  _buildPropertyTypeSelector(),
+                  const SizedBox(height: 14),
                   _buildField(
                     controller: _priceController,
                     label: 'Price per month (\$)',
@@ -634,6 +798,79 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 14),
+
+              // ── Listing Tags ──────────────────────────────────────────────
+              _buildCard(
+                title: 'Listing Tags',
+                children: [
+                  const Text(
+                    'Help renters understand your listing status at a glance.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildListingTagToggle(
+                    key: 'urgent',
+                    label: 'Urgent',
+                    subtitle: 'Needs to be rented soon',
+                    icon: Icons.warning_amber_rounded,
+                    activeColor: const Color(0xFFDC2626),
+                    selected: _selectedBadgeOptions,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildListingTagToggle(
+                    key: 'negotiable',
+                    label: 'Negotiable',
+                    subtitle: 'Price is open to discussion',
+                    icon: Icons.handshake_outlined,
+                    activeColor: const Color(0xFFD97706),
+                    selected: _selectedBadgeOptions,
+                  ),
+                ],
+              ),
+
+              // ── Listing Status (edit mode only) ──────────────────────────
+              if (_isEditing) ...[
+                const SizedBox(height: 14),
+                _buildCard(
+                  title: 'Listing Status',
+                  children: [
+                    const Text(
+                      'This status is visible to all users.',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatusOption(
+                            label: 'Available',
+                            icon: Icons.check_circle_outline,
+                            color: Colors.green,
+                            isSelected:
+                                _selectedStatus == PropertyStatus.available,
+                            onTap: () => setState(() =>
+                                _selectedStatus = PropertyStatus.available),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildStatusOption(
+                            label: 'Rented',
+                            icon: Icons.cancel_outlined,
+                            color: Colors.red,
+                            isSelected:
+                                _selectedStatus == PropertyStatus.rented,
+                            onTap: () => setState(() =>
+                                _selectedStatus = PropertyStatus.rented),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 24),
 
@@ -797,6 +1034,196 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   }
 
   // -------------------------------------------------------------------------
+  // Property type selector
+  // -------------------------------------------------------------------------
+
+  Widget _buildPropertyTypeSelector() {
+    final selected = _typeController.text;
+    final icon = _kPropertyTypeIcons[selected] ?? Icons.home_work_outlined;
+    final label = selected.isEmpty
+        ? 'Select a property type'
+        : selected[0].toUpperCase() + selected.substring(1);
+
+    return FormField<String>(
+      initialValue: selected,
+      validator: (_) {
+        final v = _typeController.text.trim();
+        if (v.isEmpty) return 'Required';
+        return _kAllowedPropertyTypes.contains(v) ? null : 'Invalid type';
+      },
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () => _showPropertyTypeSheet(field),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: field.hasError
+                        ? Colors.red
+                        : selected.isNotEmpty
+                        ? AppColors.primary
+                        : Colors.black12,
+                    width: selected.isNotEmpty ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: selected.isNotEmpty
+                          ? AppColors.primary
+                          : Colors.black38,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: selected.isNotEmpty
+                              ? Colors.black87
+                              : Colors.black38,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: selected.isNotEmpty
+                          ? AppColors.primary
+                          : Colors.black38,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (field.hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 12),
+                child: Text(
+                  field.errorText!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showPropertyTypeSheet(FormFieldState<String> field) async {
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final current = _typeController.text;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const Text(
+                    'Select Property Type',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.2,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: _kAllowedPropertyTypes.map((type) {
+                      final isSelected = current == type;
+                      final typeIcon =
+                          _kPropertyTypeIcons[type] ?? Icons.home_outlined;
+                      final typeLabel =
+                          type[0].toUpperCase() + type.substring(1);
+                      return GestureDetector(
+                        onTap: () {
+                          setSheetState(() {});
+                          setState(() => _typeController.text = type);
+                          field.didChange(type);
+                          Navigator.pop(ctx);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.black12,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                typeIcon,
+                                size: 22,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                typeLabel,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // -------------------------------------------------------------------------
   // Amenity section
   // -------------------------------------------------------------------------
 
@@ -859,6 +1286,147 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Listing tag toggle (urgent / negotiable) — visually distinct from amenities
+  // -------------------------------------------------------------------------
+
+  Widget _buildListingTagToggle({
+    required String key,
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required Color activeColor,
+    required Set<String> selected,
+  }) {
+    final isSelected = selected.contains(key);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            selected.remove(key);
+          } else {
+            selected.add(key);
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withValues(alpha: 0.07) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? activeColor : Colors.black12,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withValues(alpha: 0.12)
+                    : Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: isSelected ? activeColor : Colors.grey,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isSelected ? activeColor : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected
+                          ? activeColor.withValues(alpha: 0.7)
+                          : Colors.black38,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? activeColor : Colors.black26,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Status option tile
+  // -------------------------------------------------------------------------
+
+  Widget _buildStatusOption({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.08) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.black12,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? color : Colors.grey, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: isSelected ? color : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -928,6 +1496,140 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 14,
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Success dialog shown after upload / edit
+// =============================================================================
+
+class _UploadSuccessDialog extends StatelessWidget {
+  final String propertyId; // kept for potential future use
+  final String propertyName;
+  final bool isEditing;
+
+  const _UploadSuccessDialog({
+    required this.propertyId,
+    required this.propertyName,
+    required this.isEditing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Success icon
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline_rounded,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Title
+            Text(
+              isEditing ? 'Property Updated!' : 'Property Uploaded!',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Property name
+            if (propertyName.isNotEmpty)
+              Text(
+                '"$propertyName"',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 8),
+
+            // Message
+            Text(
+              isEditing
+                  ? 'Your property has been updated successfully.'
+                  : 'Your property is now under review. We\'ll notify you once it\'s verified.',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+
+            // Buttons
+            Row(
+              children: [
+                // OK button
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(
+                        color: Colors.black.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // View Detail button
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'View Detail',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

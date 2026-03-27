@@ -1,82 +1,222 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
-import 'package:zoneer_mobile/features/property/viewmodels/property_filter_provider.dart';
 import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
 import 'package:zoneer_mobile/features/property/widgets/property_card.dart';
+import 'package:zoneer_mobile/features/property/widgets/property_card_skeleton.dart';
 
-class HomePropertySection extends ConsumerWidget {
+/// A snapping horizontal-scroll property section with peek & haptic feedback.
+///
+/// [nearbyItems] — if provided, cards show distance badges (for Nearby section).
+/// [propertiesAsync] — used for non-nearby sections.
+/// Exactly one of these must be non-null.
+class HomePropertySection extends StatefulWidget {
   final String title;
-  final String sectionType;
-  final AsyncValue<List<PropertyModel>> propertiesAsync;
+  final String emptyMessage;
+  final VoidCallback onSeeAll;
+
+  // For regular sections
+  final AsyncValue<List<PropertyModel>>? propertiesAsync;
+
+  // For nearby section: tuples of (property, distanceMeters)
+  final AsyncValue<List<(PropertyModel, double)>>? nearbyAsync;
 
   const HomePropertySection({
     super.key,
     required this.title,
-    required this.sectionType,
-    required this.propertiesAsync,
-  });
+    required this.emptyMessage,
+    required this.onSeeAll,
+    this.propertiesAsync,
+    this.nearbyAsync,
+  }) : assert(
+          (propertiesAsync == null) != (nearbyAsync == null),
+          'Provide exactly one of propertiesAsync or nearbyAsync, not both or neither',
+        );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<HomePropertySection> createState() => _HomePropertySectionState();
+}
+
+class _HomePropertySectionState extends State<HomePropertySection> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.88);
+    _pageController.addListener(() {
+      final page = _pageController.page?.round() ?? 0;
+      if (page != _currentPage) {
+        _currentPage = page;
+        HapticFeedback.lightImpact();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
-      spacing: 10,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Section header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              title,
+              widget.title,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             TextButton(
-              onPressed: () {
-                ref
-                    .read(propertyFilterProvider.notifier)
-                    .updatePropertyType(sectionType);
-                ref
-                    .read(navigationProvider.notifier)
-                    .changeTab(NavigationTab.map);
-                ref.read(mapTabViewProvider.notifier).showSearch();
-              },
-              child: Text('See all'),
+              onPressed: widget.onSeeAll,
+              child: const Text('See all'),
             ),
           ],
         ),
-        propertiesAsync.when(
-          data: (properties) => Align(
-            alignment: Alignment.centerLeft,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: properties
-                    .map(
-                      (property) => Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: GestureDetector(
-                          child: PropertyCard(property: property),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  PropertyDetailPage(id: property.id),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error: $err')),
-        ),
-        SizedBox(height: 10),
+        const SizedBox(height: 6),
+
+        // Content
+        if (widget.nearbyAsync != null)
+          _buildNearbyContent(context, widget.nearbyAsync!)
+        else
+          _buildRegularContent(context, widget.propertiesAsync!),
+
+        const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _buildRegularContent(
+    BuildContext context,
+    AsyncValue<List<PropertyModel>> async,
+  ) {
+    return async.when(
+      loading: () => _buildSkeletonRow(),
+      error: (_, __) => _buildError(),
+      data: (properties) {
+        if (properties.isEmpty) return _buildEmpty();
+        final cards = properties
+            .map(
+              (p) => GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PropertyDetailPage(id: p.id),
+                  ),
+                ),
+                child: PropertyCard(property: p),
+              ),
+            )
+            .toList();
+        return _pageViewScroll(cards);
+      },
+    );
+  }
+
+  Widget _buildNearbyContent(
+    BuildContext context,
+    AsyncValue<List<(PropertyModel, double)>> async,
+  ) {
+    return async.when(
+      loading: () => _buildSkeletonRow(),
+      error: (_, __) => _buildError(),
+      data: (items) {
+        if (items.isEmpty) return _buildEmpty();
+        final cards = items
+            .map(
+              (item) => GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PropertyDetailPage(id: item.$1.id),
+                  ),
+                ),
+                child: PropertyCard(
+                  property: item.$1,
+                  distanceMeters: item.$2,
+                ),
+              ),
+            )
+            .toList();
+        return _pageViewScroll(cards);
+      },
+    );
+  }
+
+  Widget _pageViewScroll(List<Widget> cards) {
+    return SizedBox(
+      height: 220,
+      child: ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: PageView.builder(
+          controller: _pageController,
+          clipBehavior: Clip.none,
+          padEnds: false,
+          itemCount: cards.length,
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: cards[index],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonRow() {
+    const skeletons = [
+      PropertyCardSkeleton(),
+      PropertyCardSkeleton(),
+      PropertyCardSkeleton(),
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: skeletons
+            .map((s) => Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: s,
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return SizedBox(
+      height: 120,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 36, color: Colors.grey),
+            const SizedBox(height: 8),
+            Text(
+              widget.emptyMessage,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return const SizedBox(
+      height: 120,
+      child: Center(
+        child: Text(
+          'Something went wrong. Please try again.',
+          style: TextStyle(color: Colors.grey, fontSize: 13),
+        ),
+      ),
     );
   }
 }

@@ -1,9 +1,18 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:lottie/lottie.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/features/property/views/property_detail_page.dart';
+import 'package:zoneer_mobile/features/notification/models/notification_model.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
+import 'package:zoneer_mobile/features/notification/widgets/floating_banner.dart';
+import 'package:zoneer_mobile/features/notification/widgets/in_app_notification_banner.dart';
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/property_map_page.dart';
@@ -24,9 +33,15 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   late AnimationController _mapController;
   late AnimationController _profileController;
 
+  RealtimeChannel? _notificationChannel;
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _deepLinkSubscription;
+
   @override
   void initState() {
     super.initState();
+    _appLinks = AppLinks();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleInitialDeepLink());
     _homeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -43,14 +58,87 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // Listen for deep links arriving while app is running.
+    _deepLinkSubscription = _appLinks.uriLinkStream.listen(
+      _handleDeepLink,
+      onError: (err) => debugPrint('Deep link error: $err'),
+    );
+
+    // Subscribe to real-time notification inserts for the current user.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _subscribeNotifications());
+  }
+
+  Future<void> _handleInitialDeepLink() async {
+    try {
+      final uri = await _appLinks.getInitialLink();
+      if (uri != null) _handleDeepLink(uri);
+    } catch (error, stackTrace) {
+      debugPrint('Failed to handle initial deep link: $error');
+      debugPrint(stackTrace.toString());
+    }
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme != 'zoneer') return;
+    if (uri.host == 'property') {
+      final id = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+      if (id != null && id.isNotEmpty && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PropertyDetailPage(id: id)),
+        );
+      }
+    }
+  }
+
+  void _subscribeNotifications() {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _notificationChannel = Supabase.instance.client
+        .channel('notifications_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            if (!mounted) return;
+            try {
+              final notification = NotificationModel.fromJson(payload.newRecord);
+              // Append to in-memory list so badge + notification screen update.
+              ref
+                  .read(notificationsViewModelProvider.notifier)
+                  .prependNotification(notification);
+              // Show floating banner on top of whatever screen is active.
+              showFloatingBanner(
+                context,
+                title: notification.title,
+                message: notification.message,
+              );
+            } catch (_) {
+              // Malformed payload — ignore silently.
+            }
+          },
+        )
+        .subscribe();
   }
 
   @override
   void dispose() {
+    _deepLinkSubscription?.cancel();
     _homeController.dispose();
     _wishlistController.dispose();
     _mapController.dispose();
     _profileController.dispose();
+    if (_notificationChannel != null) {
+      Supabase.instance.client.removeChannel(_notificationChannel!);
+    }
     super.dispose();
   }
 
@@ -70,7 +158,12 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: IndexedStack(index: selectedIndex, children: widgetOptions),
+      body: Stack(
+        children: [
+          IndexedStack(index: selectedIndex, children: widgetOptions),
+          const InAppNotificationBanner(),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,

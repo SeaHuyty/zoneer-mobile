@@ -3,14 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lottie/lottie.dart';
+import 'package:zoneer_mobile/core/services/auth_service.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/core/providers/service_provider.dart';
 import 'package:zoneer_mobile/core/providers/location_permission_provider.dart';
 import 'package:zoneer_mobile/features/notification/views/notification_screen.dart';
+import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
+import 'package:zoneer_mobile/features/property/views/home_search_screen.dart';
+import 'package:zoneer_mobile/features/property/widgets/banner.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
+import 'package:zoneer_mobile/shared/widgets/search_bar.dart';
 
 class HomeHeader extends ConsumerStatefulWidget {
-  const HomeHeader({super.key});
+  const HomeHeader({super.key, required this.isCollapsed});
+  final bool isCollapsed;
 
   @override
   ConsumerState<HomeHeader> createState() => _HomeHeaderState();
@@ -158,93 +164,190 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
         _autoUpdateCityFromLocation(next.userLocation!);
       }
     });
+    final isAuthenticated = ref.watch(isAuthenticatedProvider);
+    final user = ref.watch(authServiceProvider).currentUser;
+
+    final avatar = user?.userMetadata?['avatar_url'];
 
     return Container(
-      color: AppColors.white,
+      decoration: BoxDecoration(
+        color: isAuthenticated ? AppColors.primary : AppColors.white,
+
+        borderRadius: isAuthenticated
+            ? BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              )
+            : BorderRadius.circular(0),
+      ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, widget.isCollapsed ? 12 : 0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Flexible(
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _isLoadingLocation
+                              ? null
+                              : _handleLocationRequest,
+                          child: SvgPicture.asset(
+                            'assets/icons/map-pin-house.svg',
+                            width: 32,
+                            height: 32,
+                            colorFilter: isAuthenticated
+                                ? const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: _isLoadingLocation
+                                ? null
+                                : _handleLocationRequest,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 180),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isAuthenticated
+                                    ? Colors.white24
+                                    : AppColors.primary,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: _isLoadingLocation
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      currentCity,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: const TextStyle(
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: _isLoadingLocation
-                            ? null
-                            : _handleLocationRequest,
-                        child: SvgPicture.asset(
-                          'assets/icons/map-pin-house.svg',
-                          width: 32,
-                          height: 32,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _isLoadingLocation
-                            ? null
-                            : _handleLocationRequest,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: isAuthenticated
+                                  ? AppColors.white
+                                  : Colors.transparent,
+                              side: BorderSide(
+                                color: isAuthenticated
+                                    ? Colors.white24
+                                    : AppColors.greyLight,
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            icon: Lottie.asset(
+                              'assets/icons/system-solid-46-notification-bell-hover-bell.json',
+                              controller: _notificationController,
+                              width: 28,
+                              height: 28,
+                              onLoaded: (composition) {
+                                _notificationController.duration =
+                                    composition.duration;
+                              },
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationScreen(),
+                                ),
+                              );
+                            },
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: _isLoadingLocation
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  currentCity,
-                                  style: const TextStyle(
-                                    color: AppColors.white,
+                          // Unread dot badge
+                          Builder(
+                            builder: (ctx) {
+                              final notifications = ref
+                                  .watch(notificationsViewModelProvider)
+                                  .value;
+                              final hasUnread = notifications != null &&
+                                  notifications.any((n) => !n.isRead);
+                              if (!hasUnread) return const SizedBox.shrink();
+                              return Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
-                        ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      side: const BorderSide(color: AppColors.greyLight),
-                      padding: EdgeInsets.zero,
-                    ),
-                    icon: Lottie.asset(
-                      'assets/icons/system-solid-46-notification-bell-hover-bell.json',
-                      controller: _notificationController,
-                      width: 28,
-                      height: 28,
-                      onLoaded: (composition) {
-                        _notificationController.duration = composition.duration;
-                      },
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationScreen(),
+                      if (isAuthenticated) ...[
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: avatar != null
+                              ? NetworkImage(avatar)
+                              : null,
+                          backgroundColor: Colors.white24,
+                          child: avatar == null
+                              ? const Icon(Icons.person, color: Colors.white)
+                              : null,
                         ),
-                      );
-                    },
+                      ],
+                    ],
                   ),
                 ],
               ),
-              const Text(
-                'Discover your perfect place to stay today.',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+
+              isAuthenticated ? const SizedBox(height: 10) : SizedBox.shrink(),
+              const SearchBarApp(),
+
+              (isAuthenticated && !widget.isCollapsed)
+                  ? BannerZoneer(
+                      onBrowseNow: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HomeSearchScreen(
+                            initialSection: SectionFilter.all,
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ],
           ),
         ),

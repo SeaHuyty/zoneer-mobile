@@ -3,12 +3,17 @@ import 'package:zoneer_mobile/core/utils/app_config.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/inquiry/views/inquiry.dart';
+import 'package:zoneer_mobile/features/property/models/enums/property_status.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
+import 'package:zoneer_mobile/features/property/providers/map_focus_provider.dart';
 import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
 import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
@@ -28,6 +33,153 @@ class PropertyDetailPage extends ConsumerStatefulWidget {
 
 class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
   bool _isTogglingWishlist = false;
+  Position? _userPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserLocation();
+  }
+
+  Future<void> _fetchUserLocation() async {
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+        ),
+      );
+      if (mounted) setState(() => _userPosition = pos);
+    } catch (_) {}
+  }
+
+  void _shareProperty(PropertyModel property) {
+    final name =
+        property.name?.isNotEmpty == true ? property.name! : property.address;
+    final price = property.price.toStringAsFixed(0);
+    final text = '📍 Check out this property on Zoneer!\n\n'
+        '🏠 $name\n'
+        '💰 \$$price/month\n'
+        '📍 ${property.address}\n\n'
+        'View it here: zoneer://property/${property.id}';
+    Share.share(text, subject: 'Check out this property on Zoneer!');
+  }
+
+  void _viewInOurMap(PropertyModel property) {
+    if (property.latitude == null || property.longitude == null) return;
+    ref.read(mapFocusProvider.notifier).focus(
+      LatLng(property.latitude!, property.longitude!),
+    );
+    Navigator.popUntil(context, (route) => route.isFirst);
+    ref.read(mapTabViewProvider.notifier).showMap();
+    ref.read(navigationProvider.notifier).changeTab(NavigationTab.map);
+  }
+
+  Future<void> _getDirections(PropertyModel property) async {
+    final lat = property.latitude;
+    final lng = property.longitude;
+    if (lat == null || lng == null) return;
+
+    final String url;
+    if (_userPosition != null) {
+      url =
+          'https://www.google.com/maps/dir/${_userPosition!.latitude},${_userPosition!.longitude}/$lat,$lng';
+    } else {
+      url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    }
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  String _formatDistance(double meters) {
+    if (meters < 1000) return '${meters.round()}m';
+    return '${(meters / 1000).toStringAsFixed(1)}km';
+  }
+
+  Widget _buildStatusBadge(PropertyStatus? status) {
+    final isAvailable = status != PropertyStatus.rented;
+    final color = isAvailable ? Colors.green : Colors.red;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color, width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 8, color: color),
+          const SizedBox(width: 4),
+          Text(
+            isAvailable ? 'Available' : 'Rented',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Urgent / Negotiable tag chip shown to all users.
+  Widget _buildListingTag({
+    required String label,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistanceChip(PropertyModel property) {
+    final distanceMeters = Geolocator.distanceBetween(
+      _userPosition!.latitude,
+      _userPosition!.longitude,
+      property.latitude!,
+      property.longitude!,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.near_me_outlined, size: 13, color: Colors.grey),
+        const SizedBox(width: 2),
+        Text(
+          _formatDistance(distanceMeters),
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ],
+    );
+  }
 
   void _toggleWishlist(BuildContext context) async {
     if (_isTogglingWishlist) return;
@@ -39,6 +191,7 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     final authUser = Supabase.instance.client.auth.currentUser;
 
     if (authUser == null) {
+      setState(() => _isTogglingWishlist = false);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AuthRequiredScreen()),
@@ -152,7 +305,24 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
           ),
         ),
         actions: [
-          CircleIcon(icon: Icons.share_outlined, onTap: () {}),
+          CircleIcon(
+            icon: Icons.share_outlined,
+            onTap: () {
+              final p = ref
+                  .read(propertyViewModelProvider(widget.id))
+                  .value;
+              if (p != null) {
+                _shareProperty(p);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Property is still loading, please try again.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
           const SizedBox(width: 4),
           CircleIcon(
             icon: isInWishlist
@@ -198,28 +368,62 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 5,
                     children: [
+                      // Property name — full width, no overlap
+                      Text(
+                        property.name?.isNotEmpty == true
+                            ? property.name!
+                            : 'House in ${property.address}',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      // Price + status row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              'House in ${property.address}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+                          _buildStatusBadge(property.propertyStatus),
+                          // Price
                           Text(
-                            '\$${property.price} / month',
+                            '\$${property.price.toStringAsFixed(0)} / mo',
                             style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
+
+                      // Urgent / Negotiable tags (visible to all users)
+                      if ((property.badgeOptions?['urgent'] == true) ||
+                          (property.badgeOptions?['negotiable'] == true))
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            if (property.badgeOptions?['urgent'] == true)
+                              _buildListingTag(
+                                label: 'Urgent',
+                                icon: Icons.warning_amber_rounded,
+                                color: const Color(0xFFDC2626),
+                              ),
+                            if (property.badgeOptions?['negotiable'] == true)
+                              _buildListingTag(
+                                label: 'Negotiable',
+                                icon: Icons.handshake_outlined,
+                                color: const Color(0xFFD97706),
+                              ),
+                          ],
+                        ),
+
+                      // Distance chip
+                      if (_userPosition != null &&
+                          property.latitude != null &&
+                          property.longitude != null)
+                        _buildDistanceChip(property),
 
                       Row(
                         children: [
@@ -259,13 +463,14 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                         ],
                       ),
 
-                      const Text(
-                        'Description',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
                       if (property.description != null &&
-                          property.description!.isNotEmpty)
+                          property.description!.isNotEmpty) ...[
+                        const Text(
+                          'Description',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         Text(property.description!),
+                      ],
 
                       // Amenities
                       if (_hasAnyAmenities(property)) ...[
@@ -325,33 +530,54 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final url = property.locationUrl?.trim();
-                              if (url == null || url.isEmpty) {
-                                return;
-                              }
-                              final uri = Uri.parse(url);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.map_outlined, size: 18),
-                            label: const Text('Open in Google Maps'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              side: const BorderSide(color: AppColors.primary),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _viewInOurMap(property),
+                                icon: const Icon(
+                                  Icons.map_outlined,
+                                  size: 16,
+                                ),
+                                label: const Text('View in Map'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  side: const BorderSide(
+                                    color: AppColors.primary,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _getDirections(property),
+                                icon: const Icon(
+                                  Icons.directions_outlined,
+                                  size: 16,
+                                ),
+                                label: const Text('Get Directions'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  side: const BorderSide(
+                                    color: AppColors.primary,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -556,3 +782,4 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
     );
   }
 }
+

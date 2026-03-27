@@ -5,6 +5,7 @@ import 'package:zoneer_mobile/core/services/auth_service.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/models/user_model.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_mutation_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/shared/models/enums/verify_status.dart';
 import 'package:zoneer_mobile/shared/widgets/google_nav_bar.dart';
 
@@ -27,7 +28,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
+
+  bool get _anyLoading => _isLoading || _isGoogleLoading;
 
   @override
   void initState() {
@@ -43,26 +47,87 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
+void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        elevation: 4,
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        elevation: 4,
+      ),
+    );
+  }
+
   void _goHome() {
+    ref.invalidate(userByIdProvider);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const GoogleNavBar()),
     );
   }
-  Future<void> _googleLogin() async {
+Future<void> _googleLogin() async {
+    setState(() => _isGoogleLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
-
       await authService.signInWithGoogle();
+      ref.invalidate(userByIdProvider);
+      if (mounted) {
+        _showSuccessSnackbar('Signed in with Google successfully!');
+        _goHome();
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google login failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackbar('Google sign-in failed. Please try again.');
       }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -105,14 +170,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           }
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Registration successful! Please check your email to verify your account.',
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
+            _showSuccessSnackbar('Account created! Check your email to verify.');
             _goHome();
           }
         }
@@ -124,31 +182,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
         if (response.user != null) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Login successful!'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            _showSuccessSnackbar('Welcome back! You\'re now signed in.');
             _goHome();
           }
         }
       }
     } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _showErrorSnackbar(e.message);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('An error occurred: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) _showErrorSnackbar('Something went wrong. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -156,6 +198,37 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         });
       }
     }
+  }
+
+  Widget _buildLoadingOverlay(String message) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.5),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primary),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {
@@ -191,7 +264,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
@@ -318,7 +393,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
+                        onPressed: _anyLoading ? null : _submit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.white,
@@ -329,16 +404,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.white,
-                                ),
-                              )
-                            : Text(
+                        child: Text(
                                 isRegister ? 'Create Account' : 'Sign In',
                                 style: const TextStyle(
                                   fontSize: 16,
@@ -355,7 +421,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       width: double.infinity,
                       height: 48,
                       child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _goHome,
+                        onPressed: _anyLoading ? null : _goHome,
                         icon: const Icon(Icons.home_outlined, size: 18),
                         label: const Text('Continue Browsing'),
                         style: OutlinedButton.styleFrom(
@@ -390,15 +456,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       width: double.infinity,
                       height: 52,
                       child: OutlinedButton.icon(
-                        onPressed: _googleLogin,
+                        onPressed: _anyLoading ? null : _googleLogin,
                         icon: Image.asset('assets/logo/google.png', height: 20),
-                        label: const Text(
-                          "Continue with Google",
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        label: const Text("Continue with Google"),
                         style: OutlinedButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
+                          ),
+                          textStyle: const TextStyle(
+                            decoration: TextDecoration.none,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -417,7 +484,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: _isLoading
+                          onPressed: _anyLoading
                               ? null
                               : () {
                                   setState(() {
@@ -449,6 +516,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
         ),
       ),
+        ),
+        if (_isLoading)
+          _buildLoadingOverlay(
+            isRegister ? 'Creating your account...' : 'Signing in...',
+          ),
+        if (_isGoogleLoading)
+          _buildLoadingOverlay('Connecting to Google...'),
+      ],
     );
   }
 }

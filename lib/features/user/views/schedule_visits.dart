@@ -116,6 +116,12 @@ class _VisitRequestCard extends ConsumerWidget {
         MaterialPageRoute(
           builder: (_) => ScheduleVisitDetail(inquiry: inquiry),
         ),
+      ).then(
+        (_) => ref.invalidate(
+          scheduledVisitsProvider(
+            Supabase.instance.client.auth.currentUser!.id,
+          ),
+        ),
       ),
       child: Container(
         decoration: BoxDecoration(

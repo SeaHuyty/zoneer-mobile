@@ -1,24 +1,21 @@
-// Core Services - Authentication Service
-// This file contains the authentication service for managing user sessions
-// Handles login, logout, token management, and authentication state
-// Provides authentication status across the entire app
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'dart:io' show Platform;
+
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 
 class AuthService {
   final SupabaseClient _client;
+  bool _googleInitialized = false;
 
   AuthService(this._client);
 
   bool get isAuthenticated => _client.auth.currentUser != null;
-
   User? get currentUser => _client.auth.currentUser;
-
   Session? get currentSession => _client.auth.currentSession;
-
   Stream<AuthState> get authStateChange => _client.auth.onAuthStateChange;
 
   String _getWebGoogleRedirectTo() {
@@ -39,7 +36,6 @@ class AuthService {
     if (!kDebugMode && releaseRedirect.isNotEmpty) return releaseRedirect;
     if (configuredRedirect.isNotEmpty) return configuredRedirect;
 
-    // Default to the active web origin so OAuth callbacks work outside localhost.
     return Uri.base.origin;
   }
 
@@ -50,17 +46,37 @@ class AuthService {
         redirectTo: _getWebGoogleRedirectTo(),
       );
     } else {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final googleUser = await googleSignIn.signIn();
+      final webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID']!;
+      final iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
+      const scopes = ['email', 'profile'];
 
-      if (googleUser == null) return;
+      if (!_googleInitialized) {
+        await GoogleSignIn.instance.initialize(
+          serverClientId: webClientId,
+          clientId: (Platform.isIOS || Platform.isMacOS) && iosClientId.isNotEmpty ? iosClientId : null,
+        );
+        _googleInitialized = true;
+      }
 
-      final googleAuth = await googleUser.authentication;
+      // Clear any stale cached credentials before each sign-in to avoid
+      // reauth failures on devices with expired Google account tokens.
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+
+      final googleUser = await GoogleSignIn.instance.authenticate();
+
+      final authorization =
+          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+          await googleUser.authorizationClient.authorizeScopes(scopes);
+
+      final idToken = googleUser.authentication.idToken;
+      if (idToken == null) throw AuthException('No ID Token found.');
 
       await _client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
+        idToken: idToken,
+        accessToken: authorization.accessToken,
       );
     }
   }
@@ -70,28 +86,26 @@ class AuthService {
     required String password,
     required String fullname,
   }) async {
-    final response = await _client.auth.signUp(
-      email: email,
-      password: password,
-    );
-
-    return response;
+    return await _client.auth.signUp(email: email, password: password);
   }
 
   Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
-    final response = await _client.auth.signInWithPassword(
+    return await _client.auth.signInWithPassword(
       email: email,
       password: password,
     );
-
-    return response;
   }
 
+  // Only ONE signout — clears both Supabase & Google
   Future<void> signout() async {
     await _client.auth.signOut();
+    if (!kIsWeb) {
+      await GoogleSignIn.instance.signOut();
+      await GoogleSignIn.instance.disconnect();
+    }
   }
 }
 
@@ -100,6 +114,8 @@ final authServiceProvider = Provider<AuthService>((ref) {
 });
 
 final isAuthenticatedProvider = Provider<bool>((ref) {
-  final authService = ref.watch(authServiceProvider);
-  return authService.isAuthenticated;
+  final authState = ref.watch(authStateProvider);
+  return authState.value?.session?.user != null ||
+      Supabase.instance.client.auth.currentUser != null;
 });
+

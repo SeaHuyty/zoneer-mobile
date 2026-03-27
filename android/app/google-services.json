@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "459203661663",
+    "project_id": "zoneer-bf574",
+    "storage_bucket": "zoneer-bf574.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:459203661663:android:20c62db64fb3d498ad30ea",
+        "android_client_info": {
+          "package_name": "com.example.zoneer_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzsN44olYDhHgXA31x3iql14RYigAk2Jo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

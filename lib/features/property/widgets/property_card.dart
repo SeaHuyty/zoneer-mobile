@@ -4,8 +4,48 @@ import 'package:zoneer_mobile/features/property/models/property_model.dart';
 
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;
+  final double? distanceMeters;
+  final String? highlightQuery;
 
-  const PropertyCard({super.key, required this.property});
+  const PropertyCard({
+    super.key,
+    required this.property,
+    this.distanceMeters,
+    this.highlightQuery,
+  });
+
+  List<TextSpan> _highlight(String text, TextStyle base) {
+    final query = highlightQuery;
+    if (query == null || query.isEmpty) return [TextSpan(text: text, style: base)];
+    final spans = <TextSpan>[];
+    final lower = text.toLowerCase();
+    final q = query.toLowerCase();
+    int start = 0;
+    while (true) {
+      final idx = lower.indexOf(q, start);
+      if (idx == -1) {
+        spans.add(TextSpan(text: text.substring(start), style: base));
+        break;
+      }
+      if (idx > start) {
+        spans.add(TextSpan(text: text.substring(start, idx), style: base));
+      }
+      spans.add(TextSpan(
+        text: text.substring(idx, idx + query.length),
+        style: base.copyWith(
+          backgroundColor: Colors.yellow.withValues(alpha: 0.6),
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+      start = idx + query.length;
+    }
+    return spans;
+  }
+
+  String _formatDistance(double meters) {
+    if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +109,41 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
+            // Distance badge (top left) — only shown for nearby cards
+            if (distanceMeters != null)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.near_me,
+                        size: 12,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        _formatDistance(distanceMeters!),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Price tag (top right)
             Positioned(
               top: 12,
@@ -113,33 +188,52 @@ class PropertyCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Row 1: Property name
+                  RichText(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      children: _highlight(
+                        property.name?.isNotEmpty == true
+                            ? property.name!
+                            : property.address,
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Row 2: Location (left) + Bed/Bath (right)
                   Row(
                     children: [
                       const Icon(
                         Icons.location_on,
                         color: Colors.white,
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3),
                       Expanded(
-                        child: Text(
-                          property.address,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
+                        child: RichText(
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          text: TextSpan(
+                            children: _highlight(
+                              property.address,
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.bed, color: Colors.white, size: 16),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.bed, color: Colors.white, size: 14),
+                      const SizedBox(width: 3),
                       Text(
                         property.bedroom.toString(),
                         style: const TextStyle(
@@ -148,13 +242,13 @@ class PropertyCard extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       const Icon(
                         Icons.bathtub_rounded,
                         color: Colors.white,
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3),
                       Text(
                         property.bathroom.toString(),
                         style: const TextStyle(

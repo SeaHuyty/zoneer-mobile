@@ -5,11 +5,15 @@ class ConversationWithUserModel {
   final ConversationModel conversation;
   final ChatUserModel otherUser;
   final bool hasUnread;
+  final String? propertyName;
+  final String? propertyAddress;
 
   const ConversationWithUserModel({
     required this.conversation,
     required this.otherUser,
     this.hasUnread = false,
+    this.propertyName,
+    this.propertyAddress,
   });
 
   factory ConversationWithUserModel.fromJoinedJson(
@@ -35,6 +39,26 @@ class ConversationWithUserModel {
       conversation: conversation,
       otherUser: otherUser,
       hasUnread: hasUnread,
+      propertyName:
+          (json['property'] as Map<String, dynamic>?)?['name'] as String?,
+      propertyAddress:
+          (json['property'] as Map<String, dynamic>?)?['address'] as String?,
+    );
+  }
+
+  ConversationWithUserModel copyWith({
+    ConversationModel? conversation,
+    ChatUserModel? otherUser,
+    bool? hasUnread,
+    String? propertyName,
+    String? propertyAddress,
+  }) {
+    return ConversationWithUserModel(
+      conversation: conversation ?? this.conversation,
+      otherUser: otherUser ?? this.otherUser,
+      hasUnread: hasUnread ?? this.hasUnread,
+      propertyName: propertyName ?? this.propertyName,
+      propertyAddress: propertyAddress ?? this.propertyAddress,
     );
   }
 }

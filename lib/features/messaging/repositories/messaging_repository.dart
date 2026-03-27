@@ -33,6 +33,11 @@ class MessagingRepository {
             id,
             fullname,
             image_profile_url
+          ),
+          property:properties!conversations_property_id_fkey(
+            id,
+            name,
+            address
           )
         ''')
         .or('tenant_id.eq.$userId,landlord_id.eq.$userId')

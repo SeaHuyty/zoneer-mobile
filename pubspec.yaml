@@ -138,7 +138,3 @@ flutter_launcher_name:
 
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/logo/Zonner Logo.png
-  android_gravity: center
-  ios_content_mode: center
-  fullscreen: false

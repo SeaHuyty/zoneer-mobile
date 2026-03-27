@@ -53,16 +53,12 @@ class AuthService {
       if (!_googleInitialized) {
         await GoogleSignIn.instance.initialize(
           serverClientId: webClientId,
-          clientId: (Platform.isIOS || Platform.isMacOS) && iosClientId.isNotEmpty ? iosClientId : null,
+          clientId: (Platform.isIOS || Platform.isMacOS) && iosClientId.isNotEmpty
+              ? iosClientId
+              : null,
         );
         _googleInitialized = true;
       }
-
-      // Clear any stale cached credentials before each sign-in to avoid
-      // reauth failures on devices with expired Google account tokens.
-      try {
-        await GoogleSignIn.instance.signOut();
-      } catch (_) {}
 
       final googleUser = await GoogleSignIn.instance.authenticate();
 
@@ -99,7 +95,6 @@ class AuthService {
     );
   }
 
-  // Only ONE signout — clears both Supabase & Google
   Future<void> signout() async {
     await _client.auth.signOut();
     if (!kIsWeb) {
@@ -118,4 +113,3 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return authState.value?.session?.user != null ||
       Supabase.instance.client.auth.currentUser != null;
 });
-

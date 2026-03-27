@@ -104,6 +104,8 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   final List<_PhotoEntry> _photos = [];
   // Existing storage URLs that the user removed — deleted from storage on submit
   final List<String> _removedExistingUrls = [];
+  // True while existing media is being fetched asynchronously on edit open
+  bool _mediaLoading = false;
 
   // Amenity selections
   final Set<String> _selectedPropertyFeatures = {};
@@ -183,21 +185,27 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
 
     // Load additional media for edit mode
     if (_isEditing) {
+      _mediaLoading = true;
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadExistingMedia());
     }
   }
 
   Future<void> _loadExistingMedia() async {
     final repo = ref.read(propertyRepositoryProvider);
-    final medias = await repo.getPropertyMedias(widget.existingProperty!.id);
-    if (!mounted) return;
-    setState(() {
-      for (final m in medias) {
-        if (_photos.length < _maxPhotos) {
-          _photos.add(_PhotoEntry(existingUrl: m.url));
+    try {
+      final medias = await repo.getPropertyMedias(widget.existingProperty!.id);
+      if (!mounted) return;
+      setState(() {
+        for (final m in medias) {
+          if (_photos.length < _maxPhotos) {
+            _photos.add(_PhotoEntry(existingUrl: m.url));
+          }
         }
-      }
-    });
+        _mediaLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _mediaLoading = false);
+    }
   }
 
   @override
@@ -232,6 +240,10 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
       final bytes = await image.readAsBytes();
       final ext = image.path.split('.').last;
       setState(() {
+        final oldEntry = _photos[startIndex];
+        if (oldEntry.existingUrl != null) {
+          _removedExistingUrls.add(oldEntry.existingUrl!);
+        }
         _photos[startIndex] = _PhotoEntry(bytes: bytes, ext: ext);
       });
       return;
@@ -268,6 +280,66 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     );
 
     setState(() => _photos.addAll(entries));
+  }
+
+  void _setAsCover(int index) {
+    if (index == 0) return;
+    setState(() {
+      final cover = _photos.removeAt(index);
+      _photos.insert(0, cover);
+    });
+  }
+
+  void _showPhotoOptions(int index) {
+    final isCover = index == 0;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            if (!isCover)
+              ListTile(
+                leading: const Icon(Icons.star_rounded, color: AppColors.primary),
+                title: const Text('Set as Cover'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _setAsCover(index);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Replace Photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickPhoto(index);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Remove', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _removePhoto(index);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   void _removePhoto(int index) {
@@ -320,6 +392,15 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
   // -------------------------------------------------------------------------
 
   Future<void> _submit() async {
+    if (_mediaLoading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Loading existing images, please wait…'),
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     final hasThumbnail = _photos.isNotEmpty && _photos[0].hasImage;
@@ -948,9 +1029,9 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Image — tappable to replace, but sits below the delete button
+        // Image — tappable to open options (set as cover / replace / remove)
         GestureDetector(
-          onTap: () => _pickPhoto(index),
+          onTap: () => _showPhotoOptions(index),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: photo.bytes != null
@@ -958,43 +1039,27 @@ class _UploadPropertyScreenState extends ConsumerState<UploadPropertyScreen> {
                 : Image.network(photo.existingUrl!, fit: BoxFit.cover),
           ),
         ),
-        // Thumbnail badge
-        if (isThumbnail)
-          Positioned(
-            left: 4,
-            bottom: 4,
-            child: IgnorePointer(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Cover',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        // Delete button — rendered last so it sits on top
+        // Cover badge (index 0) or "tap" hint for others
         Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _removePhoto(index),
+          left: 4,
+          bottom: 4,
+          child: IgnorePointer(
             child: Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.9),
-                shape: BoxShape.circle,
+                color: isThumbnail
+                    ? AppColors.primary.withValues(alpha: 0.85)
+                    : Colors.black.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.close, color: Colors.white, size: 14),
+              child: Text(
+                isThumbnail ? 'Cover' : 'Tap to set',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ),

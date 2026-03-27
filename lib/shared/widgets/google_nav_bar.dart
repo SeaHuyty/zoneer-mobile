@@ -16,6 +16,8 @@ import 'package:zoneer_mobile/features/notification/widgets/in_app_notification_
 import 'package:zoneer_mobile/features/property/views/home_view.dart';
 import 'package:zoneer_mobile/features/property/views/properties_list_screen.dart';
 import 'package:zoneer_mobile/features/property/views/property_map_page.dart';
+import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
+import 'package:zoneer_mobile/features/messaging/views/screens/conversation_list_screen.dart';
 import 'package:zoneer_mobile/features/user/views/tenant/tenant_profile_setting.dart';
 import 'package:zoneer_mobile/features/wishlist/views/wishlist_view.dart';
 
@@ -146,6 +148,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationProvider);
     final mode = ref.watch(mapTabViewProvider);
+    final hasAnyUnread = ref.watch(hasAnyUnreadProvider);
 
     final List<Widget> widgetOptions = [
       const HomeView(),
@@ -153,6 +156,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
       mode == MapTabView.search
           ? const SearchScreen()
           : const PropertyMapPage(),
+      const ConversationListScreen(),
       const TenantProfileSetting(),
     ];
 
@@ -355,8 +359,82 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                   text: selectedIndex == 2 ? 'Map' : '',
                 ),
                 GButton(
+                  icon: Icons.chat_bubble_outline,
+                  leading: selectedIndex == NavigationTab.messages
+                      ? Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                AppColors.primary,
+                                BlendMode.srcIn,
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble,
+                                size: 24,
+                              ),
+                            ),
+                            if (hasAnyUnread)
+                              Positioned(
+                                right: -2,
+                                top: -2,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                ColorFiltered(
+                                  colorFilter: ColorFilter.mode(
+                                    AppColors.secondary,
+                                    BlendMode.srcIn,
+                                  ),
+                                  child: const Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 24,
+                                  ),
+                                ),
+                                if (hasAnyUnread)
+                                  Positioned(
+                                    right: -2,
+                                    top: -2,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Messages',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                  text: selectedIndex == NavigationTab.messages ? 'Messages' : '',
+                ),
+                GButton(
                   icon: Icons.person,
-                  leading: selectedIndex == 3
+                  leading: selectedIndex == NavigationTab.profile
                       ? ColorFiltered(
                           colorFilter: ColorFilter.mode(
                             AppColors.primary,
@@ -408,7 +486,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                             ),
                           ],
                         ),
-                  text: selectedIndex == 3 ? 'Profile' : '',
+                  text: selectedIndex == NavigationTab.profile ? 'Profile' : '',
                 ),
               ],
               selectedIndex: selectedIndex,
@@ -430,6 +508,9 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                     _mapController.forward(from: 0);
                     break;
                   case 3:
+                    // Messages tab — no Lottie animation
+                    break;
+                  case 4:
                     _profileController.forward(from: 0);
                     break;
                 }

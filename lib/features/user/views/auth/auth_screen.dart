@@ -322,7 +322,7 @@ Future<void> _googleLogin() async {
               // Logo
               Center(
                 child: Image.asset(
-                  'assets/logo/Zoneer-Logo-svg.png',
+                  'assets/logo/Zoneer Logo.png',
                   height: 50,
                   width: 50,
                 ),

@@ -129,7 +129,9 @@ class _ConversationListScreenState
     } else if (diff.inDays == 1) {
       return 'Yesterday';
     } else {
-      return '${dt.day}/${dt.month}/${dt.year}';
+      final d = dt.day.toString().padLeft(2, '0');
+      final mo = dt.month.toString().padLeft(2, '0');
+      return '$d/$mo/${dt.year}';
     }
   }
 
@@ -198,7 +200,7 @@ class _ConversationListScreenState
                           fontSize: 15,
                           fontWeight: hasUnread
                               ? FontWeight.bold
-                              : FontWeight.w600,
+                              : FontWeight.normal,
                           color: Colors.black87,
                         ),
                       ),

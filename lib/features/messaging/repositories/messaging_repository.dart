@@ -85,6 +85,8 @@ class MessagingRepository {
           body,
           created_at,
           read_at,
+          is_deleted,
+          is_system,
           sender:users!messages_sender_id_fkey(
             id,
             fullname,

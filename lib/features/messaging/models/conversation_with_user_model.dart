@@ -48,7 +48,7 @@ class ConversationWithUserModel {
       propertyAddress:
           (json['property'] as Map<String, dynamic>?)?['address'] as String?,
       propertyThumbnail:
-          (json['property'] as Map<String, dynamic>?)?['thumbnail'] as String?,
+          (json['property'] as Map<String, dynamic>?)?['thumbnail_url'] as String?,
       propertyPrice:
           ((json['property'] as Map<String, dynamic>?)?['price'] as num?)
               ?.toDouble(),

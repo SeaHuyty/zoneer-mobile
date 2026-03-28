@@ -38,7 +38,7 @@ class MessagingRepository {
             id,
             name,
             address,
-            thumbnail,
+            thumbnail_url,
             price
           )
         ''')

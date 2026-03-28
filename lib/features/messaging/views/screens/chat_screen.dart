@@ -7,6 +7,7 @@ import 'package:zoneer_mobile/features/messaging/models/message_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_with_sender_model.dart';
 import 'package:zoneer_mobile/features/messaging/utils/message_date_formatter.dart';
 import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/views/user_public_profile_screen.dart';
 import 'package:zoneer_mobile/shared/widgets/navigation_back_button.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -196,34 +197,66 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             return Column(
               children: [
-              if (firstOther != null)
-                ListTile(
-                  leading: NavigationBackButton(),
-                  title: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundImage:
-                            (firstOther.profileUrl != null &&
-                                firstOther.profileUrl!.isNotEmpty)
-                            ? NetworkImage(firstOther.profileUrl!)
-                            : null,
-                        child:
-                            (firstOther.profileUrl == null ||
-                                firstOther.profileUrl!.isEmpty)
-                            ? const Icon(Icons.person_outline)
-                            : null,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          firstOther.fullname,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                ),
+                child: Row(
+                  children: [
+                    NavigationBackButton(),
+                    const SizedBox(width: 4),
+                    if (firstOther != null) ...[
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserPublicProfileScreen(userId: firstOther.id),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundImage: (firstOther.profileUrl?.isNotEmpty == true)
+                                  ? NetworkImage(firstOther.profileUrl!)
+                                  : null,
+                              backgroundColor: const Color(0xFFE9E9E9),
+                              child: (firstOther.profileUrl == null || firstOther.profileUrl!.isEmpty)
+                                  ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  firstOther.fullname,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const Text(
+                                  'Tap to view profile',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
+                    ] else ...[
+                      const Text(
+                        'Chat',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
+              ),
 
               /// Messages
               Expanded(

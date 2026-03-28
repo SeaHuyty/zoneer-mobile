@@ -8,6 +8,7 @@ import 'package:zoneer_mobile/features/messaging/models/message_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_with_sender_model.dart';
 import 'package:zoneer_mobile/features/messaging/utils/message_date_formatter.dart';
 import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/user_public_profile_screen.dart';
 import 'package:zoneer_mobile/shared/widgets/navigation_back_button.dart';
 
@@ -214,6 +215,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  void _confirmEndConversation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('End conversation'),
+        content: const Text(
+          "End this conversation? Neither party will be able to send new messages.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _endConversation();
+            },
+            child: const Text('End', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _endConversation() async {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    if (currentUserId.isEmpty) return;
+
+    // Get current user's name for the system message
+    String userName = 'Someone';
+    try {
+      final user = await ref.read(userByIdProvider(currentUserId).future);
+      userName = user.fullname;
+    } catch (_) {}
+
+    await ref.read(messagingViewModelProvider.notifier).endConversation(
+      conversationId: widget.conversationData.conversation.id!,
+      endedBy: currentUserId,
+      endedByName: userName,
+    );
+    // Refresh the chat messages to show system message
+    ref.invalidate(messagesByConversationProvider(widget.conversationData.conversation.id!));
+  }
+
   Future<void> _sendMessage(String currentUserId) async {
     final text = _messageController.text.trim();
     if (text.isEmpty || currentUserId.isEmpty) {
@@ -240,6 +286,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
     final messagesAsync = ref.watch(
       messagesByConversationProvider(widget.conversationData.conversation.id!),
+    );
+    final conversationsAsync = ref.watch(messagingViewModelProvider);
+    final liveStatus = conversationsAsync.maybeWhen(
+      data: (list) {
+        try {
+          return list.firstWhere(
+            (c) => c.conversation.id == widget.conversationData.conversation.id,
+          ).conversation.status;
+        } catch (_) {
+          return widget.conversationData.conversation.status;
+        }
+      },
+      orElse: () => widget.conversationData.conversation.status,
     );
 
     return Scaffold(
@@ -407,6 +466,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
                       ),
                     ],
+                    const Spacer(),
+                    if (liveStatus == 'active')
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Colors.black54),
+                        onSelected: (value) {
+                          if (value == 'end') _confirmEndConversation(context);
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'end',
+                            child: Text('End conversation', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -459,7 +532,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                             ),
                           ),
-                        if (msg.isDeleted)
+                        if (msg.isSystem)
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                msg.body,
+                                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                              ),
+                            ),
+                          )
+                        else if (msg.isDeleted)
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               vertical: 5,
@@ -569,45 +657,57 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
 
               /// Input field
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black12)],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: "Type a message...",
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
+              if (liveStatus == 'ended')
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.grey[100],
+                  child: const Center(
+                    child: Text(
+                      'This conversation has ended',
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black12)],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: InputDecoration(
+                            hintText: "Type a message...",
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade200,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade200,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    CircleAvatar(
-                      backgroundColor: AppColors.primary,
-                      child: IconButton(
-                        onPressed: () => _sendMessage(currentUserId),
-                        icon: const Icon(Icons.send, color: Colors.white),
+                      const SizedBox(width: 8),
+                      CircleAvatar(
+                        backgroundColor: AppColors.primary,
+                        child: IconButton(
+                          onPressed: () => _sendMessage(currentUserId),
+                          icon: const Icon(Icons.send, color: Colors.white),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 ),
               ],
             );

@@ -51,6 +51,19 @@ class MessagingViewmodel
         .read(messagingRepositoryProvider)
         .markConversationMessagesRead(conversationId, currentUserId);
   }
+
+  Future<void> endConversation({
+    required String conversationId,
+    required String endedBy,
+    required String endedByName,
+  }) async {
+    await ref.read(messagingRepositoryProvider).endConversation(
+      conversationId: conversationId,
+      endedBy: endedBy,
+      endedByName: endedByName,
+    );
+    ref.invalidate(messagingViewModelProvider);
+  }
 }
 
 final messagingViewModelProvider =

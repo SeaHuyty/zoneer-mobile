@@ -105,6 +105,23 @@ class MessagingRepository {
     await _supabase.from('messages').insert(message.toJson());
   }
 
+  Future<void> endConversation({
+    required String conversationId,
+    required String endedBy,
+    required String endedByName,
+  }) async {
+    await _supabase
+        .from('conversations')
+        .update({'status': 'ended', 'ended_by': endedBy})
+        .eq('id', conversationId);
+    await _supabase.from('messages').insert({
+      'conversation_id': conversationId,
+      'sender_id': endedBy,
+      'body': '$endedByName has ended this conversation.',
+      'is_system': true,
+    });
+  }
+
   Future<void> deleteMessage(String messageId) async {
     await _supabase
         .from('messages')

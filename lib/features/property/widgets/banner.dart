@@ -8,13 +8,11 @@ class BannerZoneer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(left: 15, top: 15, bottom: 15),
+            padding: const EdgeInsets.only(left: 15, top: 15, bottom: 40),
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(10),
@@ -77,7 +75,6 @@ class BannerZoneer extends StatelessWidget {
             ),
           );
         },
-      ),
-    );
+      );
   }
 }

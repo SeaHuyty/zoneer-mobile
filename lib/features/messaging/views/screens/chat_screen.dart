@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
-import 'package:zoneer_mobile/features/messaging/models/chat_user_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/conversation_with_user_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_model.dart';
-import 'package:zoneer_mobile/features/messaging/models/message_with_sender_model.dart';
 import 'package:zoneer_mobile/features/messaging/utils/message_date_formatter.dart';
 import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
 import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
@@ -105,9 +103,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 return;
               }
 
-              ref.invalidate(
-                messagesByConversationProvider(widget.conversationData.conversation.id!),
-              );
+              ref.read(
+                messagesByConversationProvider(widget.conversationData.conversation.id!).notifier,
+              ).refresh();
 
               _scrollToBottomWhenReady(animated: true);
             },
@@ -126,9 +124,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 return;
               }
 
-              ref.invalidate(
-                messagesByConversationProvider(widget.conversationData.conversation.id!),
-              );
+              ref.read(
+                messagesByConversationProvider(widget.conversationData.conversation.id!).notifier,
+              ).refresh();
             },
           )
           .subscribe();
@@ -157,18 +155,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           )
           .subscribe();
     });
-  }
-
-  ChatUserModel? _findOtherUser(
-    List<MessageWithSenderModel> messages,
-    String currentUserId,
-  ) {
-    for (final item in messages) {
-      if (item.sender.id != currentUserId) {
-        return item.sender;
-      }
-    }
-    return null;
   }
 
   @override
@@ -289,7 +275,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
     if (mounted) setState(() => _liveStatus = 'ended');
     // Refresh the chat messages to show system message
-    ref.invalidate(messagesByConversationProvider(widget.conversationData.conversation.id!));
+    ref.read(messagesByConversationProvider(widget.conversationData.conversation.id!).notifier).refresh();
   }
 
   Future<void> _sendMessage(String currentUserId) async {
@@ -309,7 +295,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
 
     _messageController.clear();
-    ref.invalidate(messagesByConversationProvider(widget.conversationData.conversation.id!));
+    ref.read(messagesByConversationProvider(widget.conversationData.conversation.id!).notifier).refresh();
     _scrollToBottomWhenReady(animated: true);
   }
 
@@ -335,7 +321,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _scrollToBottomWhenReady(animated: !isInitialLoad);
           }
 
-          final firstOther = _findOtherUser(messages, currentUserId);
+            final otherUser = widget.conversationData.otherUser;
 
             return Column(
               children: [
@@ -349,53 +335,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   children: [
                     NavigationBackButton(),
                     const SizedBox(width: 4),
-                    if (firstOther != null) ...[
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => UserPublicProfileScreen(userId: firstOther.id),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UserPublicProfileScreen(userId: otherUser.id),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundImage: (otherUser.profileUrl?.isNotEmpty == true)
+                                ? NetworkImage(otherUser.profileUrl!)
+                                : null,
+                            backgroundColor: const Color(0xFFE9E9E9),
+                            child: (otherUser.profileUrl == null || otherUser.profileUrl!.isEmpty)
+                                ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                                : null,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundImage: (firstOther.profileUrl?.isNotEmpty == true)
-                                  ? NetworkImage(firstOther.profileUrl!)
-                                  : null,
-                              backgroundColor: const Color(0xFFE9E9E9),
-                              child: (firstOther.profileUrl == null || firstOther.profileUrl!.isEmpty)
-                                  ? const Icon(Icons.person, size: 18, color: Colors.grey)
-                                  : null,
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  firstOther.fullname,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                otherUser.fullname,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
                                 ),
-                                const Text(
-                                  'Tap to view profile',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                              const Text(
+                                'Tap to view profile',
+                                style: TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ] else ...[
-                      const Text(
-                        'Chat',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-                      ),
-                    ],
+                    ),
                     const Spacer(),
                     if (liveStatus == 'active')
                       PopupMenuButton<String>(

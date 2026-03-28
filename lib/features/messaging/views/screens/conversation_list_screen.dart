@@ -125,7 +125,13 @@ class _ConversationListScreenState
       List<ConversationWithUserModel> all) {
     return switch (_selectedFilter) {
       ConversationFilter.active =>
-        all.where((c) => c.conversation.status == 'active').toList(),
+        all
+            .where(
+              (c) =>
+                  c.conversation.status == 'active' ||
+                  (c.conversation.status == 'ended' && c.hasUnread),
+            )
+            .toList(),
       ConversationFilter.unread => all.where((c) => c.hasUnread).toList(),
       ConversationFilter.ended =>
         all.where((c) => c.conversation.status == 'ended').toList(),

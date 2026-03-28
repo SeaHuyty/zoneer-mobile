@@ -86,10 +86,34 @@ final messagingViewModelProvider =
       MessagingViewmodel.new,
     );
 
-final messagesByConversationProvider = FutureProvider.autoDispose
-    .family<List<MessageWithSenderModel>, String>((ref, conversationId) async {
-      return ref.read(messagingRepositoryProvider).getMessages(conversationId);
-    });
+class MessagesNotifier extends AsyncNotifier<List<MessageWithSenderModel>> {
+  final String conversationId;
+
+  MessagesNotifier(this.conversationId);
+
+  @override
+  Future<List<MessageWithSenderModel>> build() async {
+    return ref.read(messagingRepositoryProvider).getMessages(conversationId);
+  }
+
+  /// Re-fetches messages without clearing the previous list, so the ListView
+  /// stays visible during the refresh (no blank/loading flash).
+  Future<void> refresh() async {
+    try {
+      final updated = await ref
+          .read(messagingRepositoryProvider)
+          .getMessages(conversationId);
+      state = AsyncData(updated);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+}
+
+final messagesByConversationProvider = AsyncNotifierProvider.family<
+    MessagesNotifier, List<MessageWithSenderModel>, String>(
+  (conversationId) => MessagesNotifier(conversationId),
+);
 
 final conversationByInquiryIdProvider =
     FutureProvider.family<ConversationModel, String>((ref, inquiryId) async {

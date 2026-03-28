@@ -72,6 +72,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final userLocation = locationState.userLocation;
     final selectedType = ref.watch(selectedHomeCategoryProvider);
 
+    final topPadding = MediaQuery.of(context).padding.top;
+    // Collapsed: statusBar + topPad(12) + locationRow(32) + searchBar(55) + botPad(12) + buffer(4)
+    final collapsedH = topPadding + 115.0;
+    // Expanded (auth): collapsed content + gap(10) + banner(155) + buffer(8)
+    final expandedH = isAuthenticated ? topPadding + 288.0 : collapsedH;
+
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _onRefresh,
@@ -82,15 +88,15 @@ class _HomeViewState extends ConsumerState<HomeView> {
           SliverAppBar(
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
-                final isCollapsed = constraints.maxHeight <= 200;
+                final isCollapsed = constraints.maxHeight <= collapsedH + 20;
                 return ClipRRect(
                   child: HomeHeader(isCollapsed: isCollapsed),
                 );
               },
             ),
             pinned: true,
-            expandedHeight: isAuthenticated ? 270 : 140,
-            collapsedHeight: 140,
+            expandedHeight: expandedH,
+            collapsedHeight: collapsedH,
             elevation: _isScrolled ? 4 : 0,
             shadowColor: Colors.black26,
             backgroundColor: Colors.transparent,

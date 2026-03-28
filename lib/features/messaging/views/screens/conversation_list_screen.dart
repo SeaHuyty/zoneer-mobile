@@ -17,11 +17,14 @@ class ConversationListScreen extends ConsumerStatefulWidget {
       _ConversationListScreenState();
 }
 
+enum ConversationFilter { active, unread, ended, all }
+
 class _ConversationListScreenState
     extends ConsumerState<ConversationListScreen> {
   RealtimeChannel? _conversationsChannel;
   Timer? _refreshDebounce;
   String? _currentUserId;
+  ConversationFilter _selectedFilter = ConversationFilter.active;
 
   @override
   void initState() {
@@ -118,6 +121,18 @@ class _ConversationListScreenState
     super.dispose();
   }
 
+  List<ConversationWithUserModel> _applyFilter(
+      List<ConversationWithUserModel> all) {
+    return switch (_selectedFilter) {
+      ConversationFilter.active =>
+        all.where((c) => c.conversation.status == 'active').toList(),
+      ConversationFilter.unread => all.where((c) => c.hasUnread).toList(),
+      ConversationFilter.ended =>
+        all.where((c) => c.conversation.status == 'ended').toList(),
+      ConversationFilter.all => all,
+    };
+  }
+
   String _formatTimestamp(DateTime? dt) {
     if (dt == null) return '';
     final now = DateTime.now();
@@ -204,6 +219,22 @@ class _ConversationListScreenState
                           color: Colors.black87,
                         ),
                       ),
+                      if (conversation.conversation.status == 'ended') ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Ended',
+                            style:
+                                TextStyle(fontSize: 10, color: Colors.grey),
+                          ),
+                        ),
+                      ],
                       const Spacer(),
                       Text(
                         timestampText,
@@ -408,22 +439,61 @@ class _ConversationListScreenState
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add_comment_outlined, color: Colors.white),
       ),
-      body: conversationAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (conversations) {
-          if (conversations.isEmpty) {
-            return _buildEmptyState();
-          }
+      body: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: ConversationFilter.values.map((filter) {
+                final label = switch (filter) {
+                  ConversationFilter.active => 'Active',
+                  ConversationFilter.unread => 'Unread',
+                  ConversationFilter.ended => 'Ended',
+                  ConversationFilter.all => 'All',
+                };
+                final isSelected = _selectedFilter == filter;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(label),
+                    selected: isSelected,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontSize: 13,
+                    ),
+                    onSelected: (_) =>
+                        setState(() => _selectedFilter = filter),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          Expanded(
+            child: conversationAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (error, _) =>
+                  Center(child: Text(error.toString())),
+              data: (conversations) {
+                final filtered = _applyFilter(conversations);
+                if (filtered.isEmpty) {
+                  return _buildEmptyState();
+                }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: conversations.length,
-            itemBuilder: (context, index) {
-              return _buildConversationCard(conversations[index]);
-            },
-          );
-        },
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    return _buildConversationCard(filtered[index]);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

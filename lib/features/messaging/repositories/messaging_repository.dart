@@ -37,7 +37,9 @@ class MessagingRepository {
           property:properties!conversations_property_id_fkey(
             id,
             name,
-            address
+            address,
+            thumbnail,
+            price
           )
         ''')
         .or('tenant_id.eq.$userId,landlord_id.eq.$userId')

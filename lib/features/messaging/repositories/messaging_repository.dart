@@ -152,7 +152,9 @@ class MessagingRepository {
           landlord_id,
           created_at,
           last_message_at,
-          last_message_preview
+          last_message_preview,
+          status,
+          ended_by
         ''')
         .eq('inquiry_id', inquiryId)
         .single();

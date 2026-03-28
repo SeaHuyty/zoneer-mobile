@@ -38,6 +38,26 @@ class ConversationModel {
     );
   }
 
+  ConversationModel copyWith({
+    String? status,
+    String? endedBy,
+    String? lastMessageAt,
+    String? lastMessagePreview,
+  }) {
+    return ConversationModel(
+      id: id,
+      inquiryId: inquiryId,
+      propertyId: propertyId,
+      tenantId: tenantId,
+      landlordId: landlordId,
+      createdAt: createdAt,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      status: status ?? this.status,
+      endedBy: endedBy ?? this.endedBy,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{
       'inquiry_id': inquiryId,

@@ -62,7 +62,22 @@ class MessagingViewmodel
       endedBy: endedBy,
       endedByName: endedByName,
     );
-    ref.invalidate(messagingViewModelProvider);
+    // Update status in-place so the conversation moves to the Ended
+    // filter immediately without wiping the whole list.
+    if (state.hasValue) {
+      final updated = state.value!.map((c) {
+        if (c.conversation.id == conversationId) {
+          return c.copyWith(
+            conversation: c.conversation.copyWith(
+              status: 'ended',
+              endedBy: endedBy,
+            ),
+          );
+        }
+        return c;
+      }).toList();
+      state = AsyncValue.data(updated);
+    }
   }
 }
 

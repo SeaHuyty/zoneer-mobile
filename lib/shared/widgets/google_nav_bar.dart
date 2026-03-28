@@ -33,6 +33,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
   late AnimationController _homeController;
   late AnimationController _wishlistController;
   late AnimationController _mapController;
+  late AnimationController _messagesController;
   late AnimationController _profileController;
 
   RealtimeChannel? _notificationChannel;
@@ -53,6 +54,10 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
       duration: const Duration(milliseconds: 300),
     );
     _mapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _messagesController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
@@ -137,6 +142,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
     _homeController.dispose();
     _wishlistController.dispose();
     _mapController.dispose();
+    _messagesController.dispose();
     _profileController.dispose();
     if (_notificationChannel != null) {
       Supabase.instance.client.removeChannel(_notificationChannel!);
@@ -369,9 +375,18 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                                 AppColors.primary,
                                 BlendMode.srcIn,
                               ),
-                              child: const Icon(
-                                Icons.chat_bubble,
-                                size: 24,
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Lottie.asset(
+                                  'assets/icons/system-solid-47-chat-hover-chat.json',
+                                  controller: _messagesController,
+                                  fit: BoxFit.contain,
+                                  onLoaded: (composition) {
+                                    _messagesController.duration =
+                                        composition.duration;
+                                  },
+                                ),
                               ),
                             ),
                             if (hasAnyUnread)
@@ -400,9 +415,18 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                                     AppColors.secondary,
                                     BlendMode.srcIn,
                                   ),
-                                  child: const Icon(
-                                    Icons.chat_bubble_outline,
-                                    size: 24,
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Lottie.asset(
+                                      'assets/icons/system-solid-47-chat-hover-chat.json',
+                                      controller: _messagesController,
+                                      fit: BoxFit.contain,
+                                      onLoaded: (composition) {
+                                        _messagesController.duration =
+                                            composition.duration;
+                                      },
+                                    ),
                                   ),
                                 ),
                                 if (hasAnyUnread)
@@ -508,7 +532,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
                     _mapController.forward(from: 0);
                     break;
                   case 3:
-                    // Messages tab — no Lottie animation
+                    _messagesController.forward(from: 0);
                     break;
                   case 4:
                     _profileController.forward(from: 0);

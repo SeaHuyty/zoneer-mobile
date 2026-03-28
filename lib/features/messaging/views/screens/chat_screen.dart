@@ -25,8 +25,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   RealtimeChannel? _messagesChannel;
+  RealtimeChannel? _conversationChannel;
   int _lastRenderedMessageCount = -1;
   bool _didInitialAutoScroll = false;
+  late String _liveStatus;
 
   void _scrollToBottom({required bool animated}) {
     if (!_scrollController.hasClients) {
@@ -66,6 +68,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _liveStatus = widget.conversationData.conversation.status;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
@@ -128,6 +132,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             },
           )
           .subscribe();
+
+      _conversationChannel = Supabase.instance.client
+          .channel('conv_status_${widget.conversationData.conversation.id!}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'conversations',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: widget.conversationData.conversation.id!,
+            ),
+            callback: (payload) {
+              if (!mounted) return;
+              final newStatus = payload.newRecord['status'] as String?;
+              if (newStatus != null && newStatus != _liveStatus) {
+                setState(() => _liveStatus = newStatus);
+                ref.invalidate(
+                  messagesByConversationProvider(widget.conversationData.conversation.id!),
+                );
+              }
+            },
+          )
+          .subscribe();
     });
   }
 
@@ -149,6 +177,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollController.dispose();
     if (_messagesChannel != null) {
       Supabase.instance.client.removeChannel(_messagesChannel!);
+    }
+    if (_conversationChannel != null) {
+      Supabase.instance.client.removeChannel(_conversationChannel!);
     }
     super.dispose();
   }
@@ -256,6 +287,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       endedBy: currentUserId,
       endedByName: userName,
     );
+    if (mounted) setState(() => _liveStatus = 'ended');
     // Refresh the chat messages to show system message
     ref.invalidate(messagesByConversationProvider(widget.conversationData.conversation.id!));
   }
@@ -287,19 +319,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final messagesAsync = ref.watch(
       messagesByConversationProvider(widget.conversationData.conversation.id!),
     );
-    final conversationsAsync = ref.watch(messagingViewModelProvider);
-    final liveStatus = conversationsAsync.maybeWhen(
-      data: (list) {
-        try {
-          return list.firstWhere(
-            (c) => c.conversation.id == widget.conversationData.conversation.id,
-          ).conversation.status;
-        } catch (_) {
-          return widget.conversationData.conversation.status;
-        }
-      },
-      orElse: () => widget.conversationData.conversation.status,
-    );
+    final liveStatus = _liveStatus;
 
     return Scaffold(
       body: SafeArea(

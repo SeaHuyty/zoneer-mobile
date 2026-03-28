@@ -152,6 +152,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
+  void _showDeleteOptions(BuildContext context, MessageModel msg) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text(
+                'Delete message',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteMessage(context, msg);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteMessage(BuildContext context, MessageModel msg) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete message'),
+        content: const Text('Delete this message? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ref
+                  .read(messagingViewModelProvider.notifier)
+                  .deleteMessage(msg.id!);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _sendMessage(String currentUserId) async {
     final text = _messageController.text.trim();
     if (text.isEmpty || currentUserId.isEmpty) {
@@ -397,74 +459,109 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                             ),
                           ),
-                        Align(
-                          alignment: isMe
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Column(
-                            crossAxisAlignment: isMe
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                margin: const EdgeInsets.symmetric(vertical: 5),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                constraints: BoxConstraints(
-                                  maxWidth:
-                                      MediaQuery.of(context).size.width * 0.7,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isMe
-                                      ? AppColors.primary
-                                      : Colors.grey.shade200,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(16),
-                                    topRight: const Radius.circular(16),
-                                    bottomLeft: Radius.circular(isMe ? 16 : 0),
-                                    bottomRight: Radius.circular(isMe ? 0 : 16),
-                                  ),
-                                ),
-                                child: Text(
-                                  msg.body,
-                                  style: TextStyle(
-                                    color: isMe ? Colors.white : Colors.black,
-                                  ),
+                        if (msg.isDeleted)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 5,
+                              horizontal: 4,
+                            ),
+                            child: Align(
+                              alignment: isMe
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Text(
+                                isMe
+                                    ? 'You deleted a message'
+                                    : '${item.sender.fullname} deleted a message',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
-
-                              /// Time + Read status
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onLongPress: (msg.senderId == currentUserId &&
+                                    !msg.isDeleted &&
+                                    !msg.isSystem)
+                                ? () => _showDeleteOptions(context, msg)
+                                : null,
+                            child: Align(
+                              alignment: isMe
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: isMe
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    MessageDateFormatter.formatMessageTime(
-                                      msg.createdAt,
+                                  Container(
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
                                     ),
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey,
+                                    constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                          0.7,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isMe
+                                          ? AppColors.primary
+                                          : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: const Radius.circular(16),
+                                        topRight: const Radius.circular(16),
+                                        bottomLeft:
+                                            Radius.circular(isMe ? 16 : 0),
+                                        bottomRight:
+                                            Radius.circular(isMe ? 0 : 16),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      msg.body,
+                                      style: TextStyle(
+                                        color:
+                                            isMe ? Colors.white : Colors.black,
+                                      ),
                                     ),
                                   ),
-                                  if (isMe) ...[
-                                    const SizedBox(width: 5),
-                                    Icon(
-                                      msg.readAt != null
-                                          ? Icons.done_all
-                                          : Icons.check,
-                                      size: 14,
-                                      color: msg.readAt != null
-                                          ? AppColors.primary
-                                          : Colors.grey,
-                                    ),
-                                  ],
+
+                                  /// Time + Read status
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        MessageDateFormatter.formatMessageTime(
+                                          msg.createdAt,
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      if (isMe) ...[
+                                        const SizedBox(width: 5),
+                                        Icon(
+                                          msg.readAt != null
+                                              ? Icons.done_all
+                                              : Icons.check,
+                                          size: 14,
+                                          color: msg.readAt != null
+                                              ? AppColors.primary
+                                              : Colors.grey,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
                       ],
                     );
                   },

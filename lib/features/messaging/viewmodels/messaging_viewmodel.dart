@@ -39,6 +39,10 @@ class MessagingViewmodel
     await ref.read(messagingRepositoryProvider).sendMessage(message);
   }
 
+  Future<void> deleteMessage(String messageId) async {
+    await ref.read(messagingRepositoryProvider).deleteMessage(messageId);
+  }
+
   Future<void> markConversationRead(
     String conversationId,
     String currentUserId,

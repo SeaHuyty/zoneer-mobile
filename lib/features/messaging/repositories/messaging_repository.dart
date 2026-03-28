@@ -103,6 +103,13 @@ class MessagingRepository {
     await _supabase.from('messages').insert(message.toJson());
   }
 
+  Future<void> deleteMessage(String messageId) async {
+    await _supabase
+        .from('messages')
+        .update({'is_deleted': true})
+        .eq('id', messageId);
+  }
+
   Future<void> markConversationMessagesRead(
     String conversationId,
     String currentUserId,

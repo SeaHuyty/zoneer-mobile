@@ -45,6 +45,9 @@ class _InquiryState extends ConsumerState<Inquiry> {
       if (user.phoneNumber?.isNotEmpty == true) {
         _phoneController.text = user.phoneNumber!;
       }
+      if (user.occupation?.isNotEmpty == true) {
+        _occupationController.text = user.occupation!;
+      }
     } catch (_) {
       // silently fail — form remains manually fillable
     }

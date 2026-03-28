@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/messaging/models/chat_user_model.dart';
+import 'package:zoneer_mobile/features/messaging/models/conversation_with_user_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_model.dart';
 import 'package:zoneer_mobile/features/messaging/models/message_with_sender_model.dart';
 import 'package:zoneer_mobile/features/messaging/utils/message_date_formatter.dart';
@@ -11,9 +12,9 @@ import 'package:zoneer_mobile/features/user/views/user_public_profile_screen.dar
 import 'package:zoneer_mobile/shared/widgets/navigation_back_button.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
-  final String conversationId;
+  final ConversationWithUserModel conversationData;
 
-  const ChatScreen({super.key, required this.conversationId});
+  const ChatScreen({super.key, required this.conversationData});
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -70,11 +71,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (currentUserId.isNotEmpty) {
         ref
             .read(messagingViewModelProvider.notifier)
-            .markConversationRead(widget.conversationId, currentUserId);
+            .markConversationRead(widget.conversationData.conversation.id!, currentUserId);
       }
 
       _messagesChannel = Supabase.instance.client
-          .channel('messages_${widget.conversationId}')
+          .channel('messages_${widget.conversationData.conversation.id!}')
           .onPostgresChanges(
             event: PostgresChangeEvent.insert,
             schema: 'public',
@@ -82,7 +83,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             filter: PostgresChangeFilter(
               type: PostgresChangeFilterType.eq,
               column: 'conversation_id',
-              value: widget.conversationId,
+              value: widget.conversationData.conversation.id!,
             ),
             callback: (_) async {
               if (!mounted) {
@@ -92,7 +93,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               if (currentUserId.isNotEmpty) {
                 await ref
                     .read(messagingViewModelProvider.notifier)
-                    .markConversationRead(widget.conversationId, currentUserId);
+                    .markConversationRead(widget.conversationData.conversation.id!, currentUserId);
               }
 
               if (!mounted) {
@@ -100,7 +101,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               }
 
               ref.invalidate(
-                messagesByConversationProvider(widget.conversationId),
+                messagesByConversationProvider(widget.conversationData.conversation.id!),
               );
 
               _scrollToBottomWhenReady(animated: true);
@@ -113,7 +114,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             filter: PostgresChangeFilter(
               type: PostgresChangeFilterType.eq,
               column: 'conversation_id',
-              value: widget.conversationId,
+              value: widget.conversationData.conversation.id!,
             ),
             callback: (_) {
               if (!mounted) {
@@ -121,7 +122,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               }
 
               ref.invalidate(
-                messagesByConversationProvider(widget.conversationId),
+                messagesByConversationProvider(widget.conversationData.conversation.id!),
               );
             },
           )
@@ -161,14 +162,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         .read(messagingViewModelProvider.notifier)
         .sendMessage(
           MessageModel(
-            conversationId: widget.conversationId,
+            conversationId: widget.conversationData.conversation.id!,
             senderId: currentUserId,
             body: text,
           ),
         );
 
     _messageController.clear();
-    ref.invalidate(messagesByConversationProvider(widget.conversationId));
+    ref.invalidate(messagesByConversationProvider(widget.conversationData.conversation.id!));
     _scrollToBottomWhenReady(animated: true);
   }
 
@@ -176,7 +177,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
     final messagesAsync = ref.watch(
-      messagesByConversationProvider(widget.conversationId),
+      messagesByConversationProvider(widget.conversationData.conversation.id!),
     );
 
     return Scaffold(
@@ -197,6 +198,96 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             return Column(
               children: [
+              // Property summary card
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.black12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    if (widget.conversationData.propertyThumbnail?.isNotEmpty == true)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          widget.conversationData.propertyThumbnail!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.conversationData.propertyName ??
+                                widget.conversationData.propertyAddress ??
+                                'Property',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (widget.conversationData.propertyPrice != null)
+                            Text(
+                              '\$${widget.conversationData.propertyPrice!.toStringAsFixed(0)} / mo',
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          if (widget.conversationData.propertyAddress != null)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  size: 12,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 2),
+                                Expanded(
+                                  child: Text(
+                                    widget.conversationData.propertyAddress!,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'This user wants to rent this property',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: const BoxDecoration(

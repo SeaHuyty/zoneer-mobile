@@ -158,7 +158,7 @@ class _ConversationListScreenState
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
-              conversationId: conversation.conversation.id!,
+              conversationData: conversation,
             ),
           ),
         );

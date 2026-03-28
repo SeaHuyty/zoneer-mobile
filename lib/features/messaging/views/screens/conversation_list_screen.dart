@@ -483,12 +483,19 @@ class _ConversationListScreenState
                   return _buildEmptyState();
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    return _buildConversationCard(filtered[index]);
+                return RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () async {
+                    ref.invalidate(messagingViewModelProvider);
+                    await ref.read(messagingViewModelProvider.future);
                   },
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      return _buildConversationCard(filtered[index]);
+                    },
+                  ),
                 );
               },
             ),

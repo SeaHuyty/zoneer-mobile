@@ -24,6 +24,8 @@ class MessagingRepository {
           created_at,
           last_message_at,
           last_message_preview,
+          status,
+          ended_by,
           tenant:users!conversations_tenant_id_fkey(
             id,
             fullname,

@@ -319,6 +319,81 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             return Column(
               children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                ),
+                child: Row(
+                  children: [
+                    NavigationBackButton(),
+                    const SizedBox(width: 4),
+                    if (firstOther != null) ...[
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserPublicProfileScreen(userId: firstOther.id),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundImage: (firstOther.profileUrl?.isNotEmpty == true)
+                                  ? NetworkImage(firstOther.profileUrl!)
+                                  : null,
+                              backgroundColor: const Color(0xFFE9E9E9),
+                              child: (firstOther.profileUrl == null || firstOther.profileUrl!.isEmpty)
+                                  ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  firstOther.fullname,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const Text(
+                                  'Tap to view profile',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      const Text(
+                        'Chat',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                      ),
+                    ],
+                    const Spacer(),
+                    if (liveStatus == 'active')
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Colors.black54),
+                        onSelected: (value) {
+                          if (value == 'end') _confirmEndConversation(context);
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'end',
+                            child: Text('End conversation', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+
               // Property summary card
               Container(
                 margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -406,80 +481,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-                ),
-                child: Row(
-                  children: [
-                    NavigationBackButton(),
-                    const SizedBox(width: 4),
-                    if (firstOther != null) ...[
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => UserPublicProfileScreen(userId: firstOther.id),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundImage: (firstOther.profileUrl?.isNotEmpty == true)
-                                  ? NetworkImage(firstOther.profileUrl!)
-                                  : null,
-                              backgroundColor: const Color(0xFFE9E9E9),
-                              child: (firstOther.profileUrl == null || firstOther.profileUrl!.isEmpty)
-                                  ? const Icon(Icons.person, size: 18, color: Colors.grey)
-                                  : null,
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  firstOther.fullname,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const Text(
-                                  'Tap to view profile',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      const Text(
-                        'Chat',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-                      ),
-                    ],
-                    const Spacer(),
-                    if (liveStatus == 'active')
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, color: Colors.black54),
-                        onSelected: (value) {
-                          if (value == 'end') _confirmEndConversation(context);
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'end',
-                            child: Text('End conversation', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
                   ],
                 ),
               ),

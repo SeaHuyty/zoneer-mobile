@@ -60,14 +60,14 @@ class TenantProfileSetting extends ConsumerWidget {
                 },
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               /// My Activity
               SectionCard(
                 title: "My Activity",
                 children: [
                   ActionRow(
-                    icon: Icons.favorite_border,
+                    icon: Icons.favorite,
                     label: "Saved Properties",
                     onTap: () {
                       Navigator.push(
@@ -79,7 +79,7 @@ class TenantProfileSetting extends ConsumerWidget {
                     },
                   ),
                   ActionRow(
-                    icon: Icons.assignment_outlined,
+                    icon: Icons.assessment,
                     label: "My Applications",
                     onTap: () {
                       Navigator.push(
@@ -91,7 +91,7 @@ class TenantProfileSetting extends ConsumerWidget {
                     },
                   ),
                   ActionRow(
-                    icon: Icons.chat_bubble_outline,
+                    icon: Icons.chat,
                     label: "Messages",
                     onTap: () {
                       Navigator.push(
@@ -103,7 +103,7 @@ class TenantProfileSetting extends ConsumerWidget {
                     },
                   ),
                   ActionRow(
-                    icon: Icons.event_outlined,
+                    icon: Icons.event,
                     label: "Scheduled Visits",
                     onTap: () {
                       Navigator.push(
@@ -117,16 +117,16 @@ class TenantProfileSetting extends ConsumerWidget {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               /// Logout
               SectionCard(
                 title: "Account",
                 children: [
 ActionRow(
-                    icon: Icons.logout,
+                    icon: Icons.logout_rounded,
                     label: "Logout",
-                    textColor: Colors.red,
+                    textColor: AppColors.primary,
                     onTap: () async {
                       // Step 1: Confirmation dialog
                       final confirmed = await showDialog<bool>(

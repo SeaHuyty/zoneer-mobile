@@ -18,7 +18,10 @@ import 'package:zoneer_mobile/features/property/viewmodels/properties_viewmodel.
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
 import 'package:zoneer_mobile/features/property/widgets/circle_icon.dart';
 import 'package:zoneer_mobile/features/property/widgets/image_widget.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
+import 'package:zoneer_mobile/features/user/views/user_public_profile_screen.dart';
+import 'package:zoneer_mobile/shared/models/enums/verify_status.dart';
 import 'package:zoneer_mobile/features/wishlist/models/wishlist_model.dart';
 import 'package:zoneer_mobile/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 
@@ -478,6 +481,20 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
                         _buildAmenitiesSection(property),
                       ],
 
+                      // About the Host section
+                      if (property.landlordId != null) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'About the Host',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildHostSection(property.landlordId!),
+                      ],
+
                       const SizedBox(height: 16),
 
                       // Map section
@@ -591,65 +608,185 @@ class _PropertyDetailPageState extends ConsumerState<PropertyDetailPage> {
       ),
       bottomNavigationBar: property.maybeWhen(
         orElse: () => const SizedBox(),
-        data: (property) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+        data: (property) {
+          final currentUserId =
+              Supabase.instance.client.auth.currentUser?.id;
+          final isOwner = currentUserId != null &&
+              property.landlordId != null &&
+              currentUserId == property.landlordId;
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '\$${property.price}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Text(
+                      ' /Month',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+                if (isOwner)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: const Text(
+                      'Your Property',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: () => _scheduleTour(context, property),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      child: Text(
+                        'Schedule Tour',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Host section
+  // -------------------------------------------------------------------------
+
+  Widget _buildHostSection(String landlordId) {
+    final hostAsync = ref.watch(userByIdProvider(landlordId));
+    return hostAsync.when(
+      loading: () => const Row(
+        children: [
+          CircleAvatar(radius: 24, backgroundColor: Colors.black12),
+          SizedBox(width: 12),
+          SizedBox(
+            width: 120,
+            height: 14,
+            child: ColoredBox(color: Colors.black12),
+          ),
+        ],
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (host) => GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => UserPublicProfileScreen(userId: landlordId),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.black12),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Text(
-                    '\$${property.price}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    ' /Month',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
+              CircleAvatar(
+                radius: 28,
+                backgroundImage: (host.profileUrl?.isNotEmpty == true)
+                    ? NetworkImage(host.profileUrl!)
+                    : null,
+                backgroundColor: const Color(0xFFE9E9E9),
+                child: (host.profileUrl == null || host.profileUrl!.isEmpty)
+                    ? const Icon(Icons.person, size: 28, color: Colors.grey)
+                    : null,
               ),
-              ElevatedButton(
-                onPressed: () => _scheduleTour(context, property),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 2,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    'Schedule Tour',
-                    style: TextStyle(color: Colors.white),
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          host.fullname,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        if (host.verifyStatus == VerifyStatus.verified) ...[
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.verified,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      host.verifyStatus == VerifyStatus.verified
+                          ? 'Verified Host'
+                          : 'Host',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ),
               ),
+              const Icon(Icons.chevron_right, color: Colors.black38, size: 20),
             ],
           ),
         ),

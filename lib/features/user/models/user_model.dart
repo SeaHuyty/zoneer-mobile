@@ -15,6 +15,7 @@ class UserModel {
   final String? selfieUrl;
 
   final String? createdAt;
+  final String? occupation;
 
   UserModel({
     required this.id,
@@ -30,6 +31,7 @@ class UserModel {
     required this.verifyStatus,
     this.selfieUrl,
     this.createdAt,
+    this.occupation,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class UserModel {
       verifyStatus: VerifyStatus.fromValue(json['verify_status']),
       selfieUrl: json['selfie_url'] as String?,
       createdAt: json['created_at'] as String?,
+      occupation: json['occupation'] as String?,
     );
   }
 
@@ -63,6 +66,7 @@ class UserModel {
       'verify_status': verifyStatus.value,
       'selfie_url': selfieUrl,
       'created_at': createdAt,
+      'occupation': occupation,
     };
 
     data.removeWhere((key, value) => value == null);

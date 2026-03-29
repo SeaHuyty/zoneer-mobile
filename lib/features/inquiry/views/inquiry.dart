@@ -6,6 +6,7 @@ import 'package:zoneer_mobile/features/inquiry/models/inquiry_model.dart';
 import 'package:zoneer_mobile/features/inquiry/views/review_inquiry.dart';
 import 'package:zoneer_mobile/features/property/models/property_model.dart';
 import 'package:zoneer_mobile/features/property/widgets/amenity_item.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_required_screen.dart';
 
 class Inquiry extends ConsumerStatefulWidget {
@@ -26,6 +27,31 @@ class _InquiryState extends ConsumerState<Inquiry> {
   final _messageController = TextEditingController();
 
   bool _agreed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillUserData();
+  }
+
+  Future<void> _prefillUserData() async {
+    final authUser = Supabase.instance.client.auth.currentUser;
+    if (authUser == null) return;
+    try {
+      final user = await ref.read(userByIdProvider(authUser.id).future);
+      if (!mounted) return;
+      _fullNameController.text = user.fullname;
+      _emailController.text = user.email;
+      if (user.phoneNumber?.isNotEmpty == true) {
+        _phoneController.text = user.phoneNumber!;
+      }
+      if (user.occupation?.isNotEmpty == true) {
+        _occupationController.text = user.occupation!;
+      }
+    } catch (_) {
+      // silently fail — form remains manually fillable
+    }
+  }
 
   @override
   void dispose() {
@@ -130,25 +156,46 @@ class _InquiryState extends ConsumerState<Inquiry> {
                     ),
                   ),
                   SizedBox(height: 12),
+                  Text(
+                    widget.property.name?.isNotEmpty == true
+                        ? widget.property.name!
+                        : 'House in ${widget.property.address}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '\$${widget.property.price.toStringAsFixed(0)} / mo',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  SizedBox(height: 4),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'House in ${widget.property.address}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: Colors.grey,
                       ),
-                      AmenityItem(
-                        label: 'Monthly rent',
-                        value: '\$${widget.property.price.toString()}',
-                        icon: Icons.monetization_on_outlined,
+                      SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          widget.property.address,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 10),
-                  Divider(),
+                  Divider(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -245,8 +292,26 @@ class _InquiryState extends ConsumerState<Inquiry> {
                   // Move-in Date
                   _buildTextField(
                     label: 'Preferred Move-in Date',
-                    hint: '06/07/2005',
+                    hint: 'Select a date',
                     controller: _moveInDateController,
+                    readOnly: true,
+                    suffixIcon: const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 730)),
+                      );
+                      if (picked != null) {
+                        _moveInDateController.text =
+                            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+                      }
+                    },
                   ),
                   SizedBox(height: 12),
 
@@ -325,6 +390,9 @@ class _InquiryState extends ConsumerState<Inquiry> {
     required String hint,
     required TextEditingController controller,
     int maxLines = 1,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,6 +405,8 @@ class _InquiryState extends ConsumerState<Inquiry> {
         TextField(
           maxLines: maxLines,
           controller: controller,
+          readOnly: readOnly,
+          onTap: onTap,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
@@ -347,6 +417,7 @@ class _InquiryState extends ConsumerState<Inquiry> {
               borderSide: BorderSide.none,
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            suffixIcon: suffixIcon,
           ),
         ),
       ],

@@ -48,14 +48,20 @@ class ProfileHeaderCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               OutlinedButton.icon(
+                
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined, size: 16),
                 label: const Text("View Profile"),
                 style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: AppColors.primary
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 8,
+
                   ),
+                  
                 ),
               ),
               const SizedBox(width: 10),

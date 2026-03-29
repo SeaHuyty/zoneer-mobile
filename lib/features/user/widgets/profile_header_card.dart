@@ -50,9 +50,8 @@ class ProfileHeaderCard extends StatelessWidget {
               OutlinedButton.icon(
                 
                 onPressed: onEdit,
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text("Edit Profile"),
-
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text("View Profile"),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
                     color: AppColors.primary

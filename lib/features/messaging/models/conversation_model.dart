@@ -7,6 +7,8 @@ class ConversationModel {
   final String? createdAt;
   final String? lastMessageAt;
   final String? lastMessagePreview;
+  final String status;
+  final String? endedBy;
 
   const ConversationModel({
     this.id,
@@ -17,6 +19,8 @@ class ConversationModel {
     this.lastMessageAt,
     this.lastMessagePreview,
     this.createdAt,
+    this.status = 'active',
+    this.endedBy,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +33,28 @@ class ConversationModel {
       lastMessageAt: json['last_message_at'] as String?,
       lastMessagePreview: json['last_message_preview'] as String?,
       createdAt: json['created_at'] as String?,
+      status: json['status'] as String? ?? 'active',
+      endedBy: json['ended_by'] as String?,
+    );
+  }
+
+  ConversationModel copyWith({
+    String? status,
+    String? endedBy,
+    String? lastMessageAt,
+    String? lastMessagePreview,
+  }) {
+    return ConversationModel(
+      id: id,
+      inquiryId: inquiryId,
+      propertyId: propertyId,
+      tenantId: tenantId,
+      landlordId: landlordId,
+      createdAt: createdAt,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      status: status ?? this.status,
+      endedBy: endedBy ?? this.endedBy,
     );
   }
 

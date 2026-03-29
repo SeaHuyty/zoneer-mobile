@@ -24,6 +24,8 @@ class MessagingRepository {
           created_at,
           last_message_at,
           last_message_preview,
+          status,
+          ended_by,
           tenant:users!conversations_tenant_id_fkey(
             id,
             fullname,
@@ -33,6 +35,13 @@ class MessagingRepository {
             id,
             fullname,
             image_profile_url
+          ),
+          property:properties!conversations_property_id_fkey(
+            id,
+            name,
+            address,
+            thumbnail_url,
+            price
           )
         ''')
         .or('tenant_id.eq.$userId,landlord_id.eq.$userId')
@@ -78,6 +87,8 @@ class MessagingRepository {
           body,
           created_at,
           read_at,
+          is_deleted,
+          is_system,
           sender:users!messages_sender_id_fkey(
             id,
             fullname,
@@ -94,6 +105,30 @@ class MessagingRepository {
 
   Future<void> sendMessage(MessageModel message) async {
     await _supabase.from('messages').insert(message.toJson());
+  }
+
+  Future<void> endConversation({
+    required String conversationId,
+    required String endedBy,
+    required String endedByName,
+  }) async {
+    await _supabase
+        .from('conversations')
+        .update({'status': 'ended', 'ended_by': endedBy})
+        .eq('id', conversationId);
+    await _supabase.from('messages').insert({
+      'conversation_id': conversationId,
+      'sender_id': endedBy,
+      'body': '$endedByName has ended this conversation.',
+      'is_system': true,
+    });
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    await _supabase
+        .from('messages')
+        .update({'is_deleted': true})
+        .eq('id', messageId);
   }
 
   Future<void> markConversationMessagesRead(
@@ -119,7 +154,9 @@ class MessagingRepository {
           landlord_id,
           created_at,
           last_message_at,
-          last_message_preview
+          last_message_preview,
+          status,
+          ended_by
         ''')
         .eq('inquiry_id', inquiryId)
         .single();

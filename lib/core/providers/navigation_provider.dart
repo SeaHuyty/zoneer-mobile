@@ -25,7 +25,8 @@ class NavigationTab {
   static const int home = 0;
   static const int wishlist = 1;
   static const int map = 2;
-  static const int profile = 3;
+  static const int messages = 3;
+  static const int profile = 4;
 }
 
 enum MapTabView { map, search }

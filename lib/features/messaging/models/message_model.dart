@@ -5,6 +5,8 @@ class MessageModel {
   final String body;
   final String? createdAt;
   final String? readAt;
+  final bool isDeleted;
+  final bool isSystem;
 
   const MessageModel({
     this.id,
@@ -13,6 +15,8 @@ class MessageModel {
     required this.body,
     this.createdAt,
     this.readAt,
+    this.isDeleted = false,
+    this.isSystem = false,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
@@ -22,7 +26,9 @@ class MessageModel {
       senderId: json['sender_id'] as String,
       body: json['body'] as String,
       createdAt: json['created_at'] as String?,
-      readAt: json['read_at'] as String?
+      readAt: json['read_at'] as String?,
+      isDeleted: json['is_deleted'] as bool? ?? false,
+      isSystem: json['is_system'] as bool? ?? false,
     );
   }
 

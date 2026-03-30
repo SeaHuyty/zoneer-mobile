@@ -30,7 +30,6 @@ class WishlistViewmodel extends AsyncNotifier<List<WishlistModel>> {
       return [wishlist];
     });
 
-    // Return true if success, false if error
     return state.hasValue && !state.hasError;
   }
 
@@ -51,8 +50,40 @@ class WishlistViewmodel extends AsyncNotifier<List<WishlistModel>> {
       return currentState.value ?? <WishlistModel>[];
     });
 
-    // Return true if success, false if error
     return state.hasValue && !state.hasError;
+  }
+
+  /// Bulk-remove multiple properties in parallel.
+  ///
+  /// Optimistically removes the items from local state first, then fires
+  /// the repository calls concurrently. On failure, the state is reloaded
+  /// from the server to stay consistent.
+  Future<bool> deleteSelected(String userId, Set<String> propertyIds) async {
+    if (propertyIds.isEmpty) return true;
+
+    // Optimistic update — remove from local list immediately
+    final previousState = state;
+    state = state.whenData(
+      (items) =>
+          items.where((w) => !propertyIds.contains(w.propertyId)).toList(),
+    );
+
+    try {
+      // Fire all deletions in parallel
+      await Future.wait(
+        propertyIds.map(
+          (id) => ref
+              .read(wishlistRepositoryProvider)
+              .removeFromWishlist(userId, id),
+        ),
+      );
+      return true;
+    } catch (e, st) {
+      // Revert to previous state on error
+      state = previousState;
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<void> clearWishlist(String userId) async {
@@ -86,20 +117,23 @@ final isPropertyInWishlistProvider = FutureProvider.family<bool, String>((
       .isPropertyInWishlist(authUser.id, propertyId);
 });
 
-final wishlistPropertiesProvider = FutureProvider.autoDispose<List<PropertyModel>>((ref) async {
-  final authUser = Supabase.instance.client.auth.currentUser;
+final wishlistPropertiesProvider =
+    FutureProvider.autoDispose<List<PropertyModel>>((ref) async {
+      final authUser = Supabase.instance.client.auth.currentUser;
 
-  if (authUser == null) {
-    return [];
-  }
+      if (authUser == null) {
+        return [];
+      }
 
-  final wishlistItems = await ref.watch(wishlistViewmodelProvider.future);
+      final wishlistItems = await ref.watch(wishlistViewmodelProvider.future);
 
-  if (wishlistItems.isEmpty) {
-    return [];
-  }
+      if (wishlistItems.isEmpty) {
+        return [];
+      }
 
-  final propertyIds = wishlistItems.map((item) => item.propertyId).toList();
-  
-  return ref.read(propertyRepositoryProvider).getPropertiesByIds(propertyIds);
-});
+      final propertyIds = wishlistItems.map((item) => item.propertyId).toList();
+
+      return ref
+          .read(propertyRepositoryProvider)
+          .getPropertiesByIds(propertyIds);
+    });

@@ -12,7 +12,7 @@ class BannerZoneer extends StatelessWidget {
       builder: (context, constraints) {
         return Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(left: 15, top: 15, bottom: 40),
+            padding: const EdgeInsets.only(left: 15, top: 15, bottom: 15),
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(10),

@@ -26,8 +26,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   bool _isSaving = false;
   bool _isDeleting = false;
-  int _imageVersion =
-      0; // incremented once after save to bust NetworkImage cache
+  bool _isEditing = false;
+  int _imageVersion = 0; // incremented once after save to bust NetworkImage cache
 
   @override
   void initState() {
@@ -36,16 +36,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _phoneController = TextEditingController();
     _occupationController = TextEditingController();
 
+    // Await the future after first frame so provider has time to resolve
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final authUser = Supabase.instance.client.auth.currentUser!;
-      final user = await ref.read(userByIdProvider(authUser.id).future);
-      if (!mounted) return;
-      setState(() {
-        _user = user;
-        _nameController.text = user?.fullname ?? '';
-        _phoneController.text = user?.phoneNumber ?? '';
-        _occupationController.text = user?.occupation ?? '';
-      });
+      final authUser = Supabase.instance.client.auth.currentUser;
+      if (authUser == null) return;
+      try {
+        final user = await ref.read(userByIdProvider(authUser.id).future);
+        if (!mounted) return;
+        setState(() {
+          _user = user;
+          _nameController.text = user.fullname;
+          _phoneController.text = user.phoneNumber ?? '';
+          _occupationController.text = user.occupation ?? '';
+        });
+      } catch (_) {}
     });
   }
 
@@ -77,10 +81,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
       String? imageUrl;
+
+      // Try image upload independently — error shown but doesn't block text save
       if (_selectedImage != null) {
-        await _deleteOldProfileImages(userId);
-        imageUrl = await _uploadProfileImage(userId);
-        if (imageUrl == null) throw Exception('Image upload failed');
+        try {
+          await _deleteOldProfileImages(userId);
+          imageUrl = await _uploadProfileImage(userId);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Image upload failed: $e')),
+            );
+          }
+        }
       }
 
       await Supabase.instance.client
@@ -204,13 +217,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget build(BuildContext context) {
     final authUser = Supabase.instance.client.auth.currentUser!;
 
-    // _imageVersion only bumps after a successful save, not on every rebuild
+    // Show loading until data arrives from the provider
+    if (_user == null) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'View Profile',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+        ),
+        backgroundColor: const Color(0xFFF6F6F6),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final imageUrl = _user?.profileUrl;
     final avatar = _selectedImageBytes != null
         ? MemoryImage(_selectedImageBytes!) as ImageProvider
         : (imageUrl != null && imageUrl.isNotEmpty
-              ? NetworkImage('$imageUrl?v=$_imageVersion') as ImageProvider
-              : null);
+            ? NetworkImage('$imageUrl?v=$_imageVersion') as ImageProvider
+            : null);
 
     return Scaffold(
       appBar: AppBar(
@@ -220,9 +253,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'View Profile',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        title: Text(
+          _isEditing ? 'Edit Profile' : 'View Profile',
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
@@ -235,7 +268,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             // Avatar
             Center(
               child: GestureDetector(
-                onTap: _pickImage,
+                onTap: _isEditing ? _pickImage : null,
                 child: Stack(
                   children: [
                     CircleAvatar(
@@ -250,22 +283,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             )
                           : null,
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 16,
-                          color: Colors.white,
+                    if (_isEditing)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -292,12 +322,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   _buildField(
                     label: 'Full Name',
                     controller: _nameController,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Name is required'
+                    enabled: _isEditing,
+                    validator: _isEditing
+                        ? (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null
                         : null,
                   ),
                   const SizedBox(height: 16),
-                  // Email — read-only
+                  // Email — always read-only
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -311,20 +342,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       const SizedBox(height: 8),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           authUser.email ?? '',
-                          style: const TextStyle(
-                            color: Colors.black54,
-                            fontSize: 14,
-                          ),
+                          style: const TextStyle(color: Colors.black54, fontSize: 14),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -338,12 +363,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   _buildField(
                     label: 'Phone Number',
                     controller: _phoneController,
+                    enabled: _isEditing,
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 16),
                   _buildField(
                     label: 'Occupation',
                     controller: _occupationController,
+                    enabled: _isEditing,
                     hint: 'e.g. Student, Engineer',
                   ),
                 ],
@@ -352,11 +379,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
             const SizedBox(height: 20),
 
-            // Save button
+            // Edit Information / Save Changes button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isSaving ? null : _saveProfile,
+                onPressed: (_isSaving || _isDeleting)
+                    ? null
+                    : () {
+                        if (_isEditing) {
+                          _saveProfile();
+                        } else {
+                          setState(() => _isEditing = true);
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -368,14 +403,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : const Text(
-                        'Save Changes',
-                        style: TextStyle(
+                    : Text(
+                        _isEditing ? 'Save Changes' : 'Edit Information',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -389,24 +421,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             // Delete Account
             Center(
               child: TextButton(
-                onPressed: (_isDeleting || _isSaving)
-                    ? null
-                    : _confirmDeleteAccount,
+                onPressed: (_isDeleting || _isSaving) ? null : _confirmDeleteAccount,
                 child: _isDeleting
                     ? const SizedBox(
                         height: 16,
                         width: 16,
-                        child: CircularProgressIndicator(
-                          color: Colors.red,
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
                       )
                     : const Text(
                         'Delete Account',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
                       ),
               ),
             ),
@@ -420,6 +444,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget _buildField({
     required String label,
     required TextEditingController controller,
+    required bool enabled,
     String? hint,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
@@ -427,28 +452,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
+          enabled: enabled,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          style: TextStyle(
+            color: enabled ? Colors.black87 : Colors.black54,
+            fontSize: 14,
           ),
         ),
       ],

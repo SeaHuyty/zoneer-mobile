@@ -3,16 +3,15 @@ import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_screen.dart';
 
-/// Shown in the Wishlist tab when the user is not logged in.
-/// Visually distinct from the profile auth state — uses bookmark/save theme.
-class WishlistAuthState extends StatefulWidget {
-  const WishlistAuthState({super.key});
+/// Shown in the Messages tab when the user is not logged in.
+class MessagingAuthState extends StatefulWidget {
+  const MessagingAuthState({super.key});
 
   @override
-  State<WishlistAuthState> createState() => _WishlistAuthStateState();
+  State<MessagingAuthState> createState() => _MessagingAuthStateState();
 }
 
-class _WishlistAuthStateState extends State<WishlistAuthState>
+class _MessagingAuthStateState extends State<MessagingAuthState>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -64,7 +63,7 @@ class _WishlistAuthStateState extends State<WishlistAuthState>
                         width: 80,
                         height: 80,
                         child: Lottie.asset(
-                          'assets/icons/system-solid-20-bookmark-hover-bookmark-1.json',
+                          'assets/icons/system-solid-47-chat-hover-chat.json',
                           controller: _controller,
                           fit: BoxFit.contain,
                           onLoaded: (composition) {
@@ -79,7 +78,7 @@ class _WishlistAuthStateState extends State<WishlistAuthState>
                 const SizedBox(height: 28),
 
                 Text(
-                  'Save Your Favorites',
+                  'Your Messages',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -89,7 +88,7 @@ class _WishlistAuthStateState extends State<WishlistAuthState>
                 const SizedBox(height: 10),
 
                 Text(
-                  'Sign in to bookmark properties and access them anywhere.',
+                  'Sign in to chat with property owners and manage your inquiries.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                     height: 1.5,
@@ -103,18 +102,18 @@ class _WishlistAuthStateState extends State<WishlistAuthState>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _FeatureHint(
-                      icon: Icons.bookmark_added_outlined,
-                      label: 'Save listings',
+                      icon: Icons.forum_outlined,
+                      label: 'Chat live',
                     ),
                     const SizedBox(width: 20),
                     _FeatureHint(
-                      icon: Icons.notifications_none_rounded,
-                      label: 'Get alerts',
+                      icon: Icons.mark_chat_read_outlined,
+                      label: 'Track replies',
                     ),
                     const SizedBox(width: 20),
                     _FeatureHint(
-                      icon: Icons.history_rounded,
-                      label: 'View history',
+                      icon: Icons.contact_support_outlined,
+                      label: 'Get support',
                     ),
                   ],
                 ),

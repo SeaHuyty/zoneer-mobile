@@ -75,7 +75,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final topPadding = MediaQuery.of(context).padding.top;
     // Collapsed: statusBar + topPad(12) + locationRow(32) + searchBar(55) + botPad(12) + buffer(4)
     final collapsedH = topPadding + 90;
-    // Expanded (auth): collapsed content + gap(10) + banner(130) + buffer(8)
+    // Expanded (auth): collapsed content + gap(10) + banner(155) + buffer(8)
     final expandedH = isAuthenticated ? topPadding + 230 : collapsedH;
 
     return Scaffold(

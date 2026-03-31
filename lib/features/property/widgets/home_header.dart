@@ -348,6 +348,7 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
               ),
 
               isAuthenticated ? const SizedBox(height: 10) : SizedBox.shrink(),
+            
               const SearchBarApp(),
 
               (isAuthenticated && !widget.isCollapsed)

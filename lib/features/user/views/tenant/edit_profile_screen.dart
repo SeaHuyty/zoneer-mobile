@@ -27,7 +27,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _isSaving = false;
   bool _isDeleting = false;
   bool _isEditing = false;
-  int _imageVersion = 0; // bumped after save to bust NetworkImage cache
+  int _imageVersion = 0; // incremented once after save to bust NetworkImage cache
 
   @override
   void initState() {
@@ -63,7 +63,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (picked == null) return;
     final bytes = await picked.readAsBytes();
     setState(() {
@@ -93,34 +96,40 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         }
       }
 
-      // Always save text fields
-      await Supabase.instance.client.from('users').update({
-        'fullname': _nameController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'occupation': _occupationController.text.trim(),
-        if (imageUrl != null) 'image_profile_url': imageUrl,
-      }).eq('id', userId);
+      await Supabase.instance.client
+          .from('users')
+          .update({
+            'fullname': _nameController.text.trim(),
+            'phone_number': _phoneController.text.trim(),
+            'occupation': _occupationController.text.trim(),
+            if (imageUrl != null) 'image_profile_url': imageUrl,
+          })
+          .eq('id', userId);
 
+      // Clear Flutter's image cache so new image shows everywhere
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
 
+      // Invalidate both providers so TenantProfileSetting also re-renders
       ref.invalidate(userByIdProvider(userId));
       ref.invalidate(userProfileOrCreateProvider(userId));
 
+      // Wait for fresh data before popping
       final updatedUser = await ref.read(userByIdProvider(userId).future);
+
       if (mounted) {
         setState(() {
           _user = updatedUser;
           _selectedImage = null;
           _selectedImageBytes = null;
-          _imageVersion++;
+          _imageVersion++; // bump once so ?v= param changes and forces reload
         });
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text('Failed to save: ${e.toString()}')),
         );
       }
     } finally {
@@ -129,29 +138,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _deleteOldProfileImages(String userId) async {
-    try {
-      final files = await Supabase.instance.client.storage
-          .from('profiles')
-          .list(path: userId);
-      if (files.isNotEmpty) {
-        final paths = files.map((f) => '$userId/${f.name}').toList();
-        await Supabase.instance.client.storage
-            .from('profiles')
-            .remove(paths);
-      }
-    } catch (_) {}
+    final files = await Supabase.instance.client.storage
+        .from('profiles')
+        .list(path: userId);
+    if (files.isNotEmpty) {
+      final paths = files.map((f) => '$userId/${f.name}').toList();
+      await Supabase.instance.client.storage.from('profiles').remove(paths);
+    }
   }
 
-  // Returns the public URL; throws on failure so caller can surface the error
-  Future<String> _uploadProfileImage(String userId) async {
+  Future<String?> _uploadProfileImage(String userId) async {
+    if (_selectedImage == null || _selectedImageBytes == null) return null;
+
     final ext = _selectedImage!.name.split('.').last;
-    final path = '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final path =
+        '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
+
     await Supabase.instance.client.storage
         .from('profiles')
         .uploadBinary(path, _selectedImageBytes!);
-    return Supabase.instance.client.storage
-        .from('profiles')
-        .getPublicUrl(path);
+
+    return Supabase.instance.client.storage.from('profiles').getPublicUrl(path);
   }
 
   Future<void> _confirmDeleteAccount() async {
@@ -174,7 +181,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete My Account', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Delete My Account',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -266,7 +276,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       backgroundImage: avatar,
                       backgroundColor: const Color(0xFFE9E9E9),
                       child: avatar == null
-                          ? const Icon(Icons.person, size: 52, color: Colors.grey)
+                          ? const Icon(
+                              Icons.person,
+                              size: 52,
+                              color: Colors.grey,
+                            )
                           : null,
                     ),
                     if (_isEditing)
@@ -320,7 +334,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     children: [
                       const Text(
                         'Email',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(

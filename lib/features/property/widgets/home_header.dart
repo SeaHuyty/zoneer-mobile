@@ -11,6 +11,8 @@ import 'package:zoneer_mobile/features/notification/views/notification_screen.da
 import 'package:zoneer_mobile/features/notification/viewmodels/notification_viewmodel.dart';
 import 'package:zoneer_mobile/features/property/views/home_search_screen.dart';
 import 'package:zoneer_mobile/features/property/widgets/banner.dart';
+import 'package:zoneer_mobile/core/providers/navigation_provider.dart';
+import 'package:zoneer_mobile/features/user/viewmodels/user_provider.dart';
 import 'package:zoneer_mobile/shared/widgets/location_permission_dialog.dart';
 import 'package:zoneer_mobile/shared/widgets/search_bar.dart';
 
@@ -167,7 +169,14 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
     final isAuthenticated = ref.watch(isAuthenticatedProvider);
     final user = ref.watch(authServiceProvider).currentUser;
 
-    final avatar = user?.userMetadata?['avatar_url'];
+    // Uploaded profile image takes priority over Google OAuth avatar
+    final googleAvatar = user?.userMetadata?['avatar_url'] as String?;
+    final dbUser = user != null
+        ? ref.watch(userProfileOrCreateProvider(user.id)).asData?.value
+        : null;
+    final avatar = (dbUser?.profileUrl?.isNotEmpty == true)
+        ? dbUser!.profileUrl!
+        : googleAvatar;
 
     return Container(
       decoration: BoxDecoration(
@@ -175,8 +184,8 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
 
         borderRadius: isAuthenticated
             ? BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(25),
+                bottomRight: Radius.circular(25),
               )
             : BorderRadius.circular(0),
       ),
@@ -317,15 +326,20 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
                       ),
                       if (isAuthenticated) ...[
                         const SizedBox(width: 8),
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: avatar != null
-                              ? NetworkImage(avatar)
-                              : null,
-                          backgroundColor: Colors.white24,
-                          child: avatar == null
-                              ? const Icon(Icons.person, color: Colors.white)
-                              : null,
+                        GestureDetector(
+                          onTap: () => ref
+                              .read(navigationProvider.notifier)
+                              .changeTab(NavigationTab.profile),
+                          child: CircleAvatar(
+                            radius: 20,
+                            backgroundImage: avatar != null
+                                ? NetworkImage(avatar)
+                                : null,
+                            backgroundColor: Colors.white24,
+                            child: avatar == null
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
                         ),
                       ],
                     ],

@@ -8,6 +8,7 @@ import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/messaging/models/conversation_with_user_model.dart';
 import 'package:zoneer_mobile/features/messaging/viewmodels/messaging_viewmodel.dart';
 import 'package:zoneer_mobile/features/messaging/views/screens/chat_screen.dart';
+import 'package:zoneer_mobile/features/messaging/widgets/messaging_auth_state.dart';
 
 class ConversationListScreen extends ConsumerStatefulWidget {
   const ConversationListScreen({super.key});
@@ -425,6 +426,11 @@ class _ConversationListScreenState
 
   @override
   Widget build(BuildContext context) {
+    final authUser = Supabase.instance.client.auth.currentUser;
+    if (authUser == null) {
+      return const MessagingAuthState();
+    }
+
     final conversationAsync = ref.watch(messagingViewModelProvider);
     return Scaffold(
       backgroundColor: Colors.grey[50],

@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:zoneer_mobile/core/utils/app_colors.dart';
 import 'package:zoneer_mobile/features/user/views/auth/auth_screen.dart';
 
 /// Shown in the Profile tab when the user is not logged in.
-class ProfileAuthState extends StatelessWidget {
+class ProfileAuthState extends StatefulWidget {
   const ProfileAuthState({super.key});
+
+  @override
+  State<ProfileAuthState> createState() => _ProfileAuthStateState();
+}
+
+class _ProfileAuthStateState extends State<ProfileAuthState>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,32 +38,42 @@ class ProfileAuthState extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Avatar illustration — uses app primary color
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
+                // Animated icon
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.12),
+                        AppColors.primary.withValues(alpha: 0.04),
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: ColorFiltered(
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.primary,
+                        BlendMode.srcIn,
+                      ),
+                      child: SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: Lottie.asset(
+                          'assets/icons/system-solid-8-account-hover-pinch.json',
+                          controller: _controller,
+                          fit: BoxFit.contain,
+                          onLoaded: (composition) {
+                            _controller.duration = composition.duration * 2;
+                            _controller.repeat();
+                          },
+                        ),
                       ),
                     ),
-                    Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person_outline_rounded,
-                        size: 50,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 28),
 

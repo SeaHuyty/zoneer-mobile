@@ -193,7 +193,7 @@ class _GoogleNavBarState extends ConsumerState<GoogleNavBar>
               gap: 8,
               activeColor: AppColors.primary,
               iconSize: 24,
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               duration: Duration(milliseconds: 400),
               tabBackgroundColor: AppColors.primary.withValues(alpha: 0.1),
               color: AppColors.secondary,

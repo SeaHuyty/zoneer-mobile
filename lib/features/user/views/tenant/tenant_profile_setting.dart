@@ -42,13 +42,18 @@ class TenantProfileSetting extends ConsumerWidget {
             children: [
               ProfileHeaderCard(
                 user: user,
-                onEdit: () {
-                  Navigator.push(
+onEdit: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const EditProfileScreen(),
                     ),
                   );
+
+                    await ref.refresh(
+                    userProfileOrCreateProvider(authUser.id).future,
+                  );
+
                 },
                 onMyProperties: () {
                   Navigator.push(

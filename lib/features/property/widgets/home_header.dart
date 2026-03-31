@@ -175,8 +175,8 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
 
         borderRadius: isAuthenticated
             ? BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(25),
+                bottomRight: Radius.circular(25),
               )
             : BorderRadius.circular(0),
       ),
@@ -334,6 +334,7 @@ class _HomeHeaderState extends ConsumerState<HomeHeader>
               ),
 
               isAuthenticated ? const SizedBox(height: 10) : SizedBox.shrink(),
+            
               const SearchBarApp(),
 
               (isAuthenticated && !widget.isCollapsed)

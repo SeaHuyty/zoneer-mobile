@@ -152,7 +152,7 @@ class _HomePropertySectionState extends State<HomePropertySection> {
 
   Widget _pageViewScroll(List<Widget> cards) {
     return SizedBox(
-      height: 220,
+      height: 200,
       child: ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: PageView.builder(

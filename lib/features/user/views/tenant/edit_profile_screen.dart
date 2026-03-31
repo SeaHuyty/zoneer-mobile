@@ -26,15 +26,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   bool _isSaving = false;
   bool _isDeleting = false;
+  int _imageVersion =
+      0; // incremented once after save to bust NetworkImage cache
 
   @override
   void initState() {
     super.initState();
-    final authUser = Supabase.instance.client.auth.currentUser!;
-    _user = ref.read(userByIdProvider(authUser.id)).value;
-    _nameController = TextEditingController(text: _user?.fullname ?? '');
-    _phoneController = TextEditingController(text: _user?.phoneNumber ?? '');
-    _occupationController = TextEditingController(text: _user?.occupation ?? '');
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _occupationController = TextEditingController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final authUser = Supabase.instance.client.auth.currentUser!;
+      final user = await ref.read(userByIdProvider(authUser.id).future);
+      if (!mounted) return;
+      setState(() {
+        _user = user;
+        _nameController.text = user?.fullname ?? '';
+        _phoneController.text = user?.phoneNumber ?? '';
+        _occupationController.text = user?.occupation ?? '';
+      });
+    });
   }
 
   @override
@@ -47,7 +59,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (picked == null) return;
     final bytes = await picked.readAsBytes();
     setState(() {
@@ -65,22 +80,44 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (_selectedImage != null) {
         await _deleteOldProfileImages(userId);
         imageUrl = await _uploadProfileImage(userId);
+        if (imageUrl == null) throw Exception('Image upload failed');
       }
-      await Supabase.instance.client.from('users').update({
-        'fullname': _nameController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'occupation': _occupationController.text.trim(),
-        if (imageUrl != null) 'image_profile_url': imageUrl,
-      }).eq('id', userId);
 
+      await Supabase.instance.client
+          .from('users')
+          .update({
+            'fullname': _nameController.text.trim(),
+            'phone_number': _phoneController.text.trim(),
+            'occupation': _occupationController.text.trim(),
+            if (imageUrl != null) 'image_profile_url': imageUrl,
+          })
+          .eq('id', userId);
+
+      // Clear Flutter's image cache so new image shows everywhere
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
-      // ignore: unused_result
-      await ref.refresh(userByIdProvider(userId).future);
-      if (mounted) Navigator.pop(context);
+
+      // Invalidate both providers so TenantProfileSetting also re-renders
+      ref.invalidate(userByIdProvider(userId));
+      ref.invalidate(userProfileOrCreateProvider(userId));
+
+      // Wait for fresh data before popping
+      final updatedUser = await ref.read(userByIdProvider(userId).future);
+
+      if (mounted) {
+        setState(() {
+          _user = updatedUser;
+          _selectedImage = null;
+          _selectedImageBytes = null;
+          _imageVersion++; // bump once so ?v= param changes and forces reload
+        });
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: ${e.toString()}')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -88,33 +125,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _deleteOldProfileImages(String userId) async {
-    try {
-      final files = await Supabase.instance.client.storage
-          .from('profile-images')
-          .list(path: userId);
-      if (files.isNotEmpty) {
-        final paths = files.map((f) => '$userId/${f.name}').toList();
-        await Supabase.instance.client.storage
-            .from('profile-images')
-            .remove(paths);
-      }
-    } catch (_) {}
+    final files = await Supabase.instance.client.storage
+        .from('profiles')
+        .list(path: userId);
+    if (files.isNotEmpty) {
+      final paths = files.map((f) => '$userId/${f.name}').toList();
+      await Supabase.instance.client.storage.from('profiles').remove(paths);
+    }
   }
 
   Future<String?> _uploadProfileImage(String userId) async {
     if (_selectedImage == null || _selectedImageBytes == null) return null;
-    try {
-      final ext = _selectedImage!.name.split('.').last;
-      final path = '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
-      await Supabase.instance.client.storage
-          .from('profile-images')
-          .uploadBinary(path, _selectedImageBytes!);
-      return Supabase.instance.client.storage
-          .from('profile-images')
-          .getPublicUrl(path);
-    } catch (_) {
-      return null;
-    }
+
+    final ext = _selectedImage!.name.split('.').last;
+    final path =
+        '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+    await Supabase.instance.client.storage
+        .from('profiles')
+        .uploadBinary(path, _selectedImageBytes!);
+
+    return Supabase.instance.client.storage.from('profiles').getPublicUrl(path);
   }
 
   Future<void> _confirmDeleteAccount() async {
@@ -137,7 +168,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete My Account', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Delete My Account',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -169,11 +203,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authUser = Supabase.instance.client.auth.currentUser!;
+
+    // _imageVersion only bumps after a successful save, not on every rebuild
+    final imageUrl = _user?.profileUrl;
     final avatar = _selectedImageBytes != null
-        ? MemoryImage(_selectedImageBytes!)
-        : (_user?.profileUrl != null && _user!.profileUrl!.isNotEmpty
-            ? NetworkImage(_user!.profileUrl!) as ImageProvider
-            : null);
+        ? MemoryImage(_selectedImageBytes!) as ImageProvider
+        : (imageUrl != null && imageUrl.isNotEmpty
+              ? NetworkImage('$imageUrl?v=$_imageVersion') as ImageProvider
+              : null);
 
     return Scaffold(
       appBar: AppBar(
@@ -206,7 +243,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       backgroundImage: avatar,
                       backgroundColor: const Color(0xFFE9E9E9),
                       child: avatar == null
-                          ? const Icon(Icons.person, size: 52, color: Colors.grey)
+                          ? const Icon(
+                              Icons.person,
+                              size: 52,
+                              color: Colors.grey,
+                            )
                           : null,
                     ),
                     Positioned(
@@ -218,7 +259,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -247,8 +292,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   _buildField(
                     label: 'Full Name',
                     controller: _nameController,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Name is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   // Email — read-only
@@ -257,13 +303,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     children: [
                       const Text(
                         'Email',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(12),
@@ -271,7 +322,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         child: Text(
                           authUser.email ?? '',
                           style: const TextStyle(
-                              color: Colors.black54, fontSize: 14),
+                            color: Colors.black54,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -308,21 +361,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: _isSaving
                     ? const SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text(
                         'Save Changes',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600),
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
               ),
             ),
@@ -340,12 +397,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         height: 16,
                         width: 16,
                         child: CircularProgressIndicator(
-                            color: Colors.red, strokeWidth: 2),
+                          color: Colors.red,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text(
                         'Delete Account',
                         style: TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.w500),
+                          color: Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
               ),
             ),
@@ -366,9 +427,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style:
-                const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -384,12 +446,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
     );
   }
 }
-
-
